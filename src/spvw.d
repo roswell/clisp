@@ -2676,13 +2676,6 @@ global int main (argc_t argc, char* argv[]) {
   aktenv.block_env = NIL;
   aktenv.go_env    = NIL;
   aktenv.decl_env  = O(top_decl_env);
-  { /* init ARGV */
-    uintL count;
-    O(argv) = allocate_vector(argc);
-    for (count=0; count<argc; count++)
-      TheSvector(O(argv))->data[count] =
-        asciz_to_string(argv[count],O(misc_encoding));
-  }
   # everything completely initialized.
  {var struct backtrace_t bt;
   bt.bt_next = NULL;
@@ -2760,6 +2753,15 @@ global int main (argc_t argc, char* argv[]) {
       STACK_0 = Cdr(obj); funcall(Car(obj),0);
     }
     skipSTACK(1);
+  }
+  /* Init O(argv). */
+  {
+    var uintL count;
+    O(argv) = allocate_vector(argc);
+    for (count=0; count<argc; count++) {
+      var object arg = asciz_to_string(argv[count],O(misc_encoding));
+      TheSvector(O(argv))->data[count] = arg;
+    }
   }
   /* print greeting: */
   if (!nullpSv(quiet))           /* SYS::*QUIET* /= NIL ? */
