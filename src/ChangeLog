@@ -1,5 +1,9 @@
 2004-12-05  Bruno Haible  <bruno@clisp.org>
 
+	* stream.d (FILE-POSITION): Fix GC-safety bug introduced on 2004-02-15.
+
+2004-12-05  Bruno Haible  <bruno@clisp.org>
+
 	* foreign.d (convert_to_foreign_*): Mark as "can trigger GC".
 	(FFI::EXEC-ON-STACK): Fix GC-safety bug introduced on 2002-04-23.
 	(FFI::FOREIGN-CALL-OUT): Fix several long-standing GC-safety bugs.
