@@ -3541,6 +3541,9 @@ LISPFUN(make_logical_pathname,seclass_read,0,0,norest,key,8,
   { var object obj = allocate_logpathname();
     TheLogpathname(obj)->pathname_host = STACK_5;
     STACK_5 = obj; }
+  /* PATHNAME-DEVICE for LOGICAL-PATHNAME returns :UNSPECIFIC, so
+     MAKE-LOGICAL-PATHNAME must accept :DEVICE :UNSPECIFIC */
+  if (eq(STACK_4,S(Kunspecific))) STACK_4 = NIL; /* device */
   /* continue at MAKE-PATHNAME. */
   C_make_pathname();
 }
