@@ -12,20 +12,21 @@
 #  rpm -ba --sign clisp.spec
 
 %define name clisp
-%define version 1999.05.15
+%define version 2.29
 %define clisp_build build
 
 # don't you just love that you have to fit the macro into one line?
 # this automatically upgrades `release' with each build.
 # don't forget to remove the file `.release' when changing `version'.
-%define release %(test -f .release || echo 0 >> .release; echo "1 + " `cat .release` | bc > ,.release; mv ,.release .release; cat .release)
+#%define release %(test -f .release || echo 0 >> .release; echo "1 + " `cat .release` | bc > ,.release; mv ,.release .release; cat .release)
 #%define release %(cat .release)
+%define release 1
 
 Summary:      Common Lisp (ANSI CL) implementation
 Name:         %{name}
 Version:      %{version}
 Release:      %{release}
-Icon:         clisp.gif
+# Icon:         clisp.gif
 Copyright:    GPL
 Group:        development/languages
 Source:       ftp://clisp.cons.org/pub/lisp/clisp/source/clispsrc.tar.gz
@@ -82,7 +83,7 @@ We assume that you are in the top level source directory already.
 No unpacking or patching is done - we go straight to build and
 creating the RPMs.  See 'clisp.spec' for more information.
 EOF
-%setup -T -D -n /usr/src/%{name}
+%setup -T -D -n /usr/local/src/%{name}/%{name}-%{version}
 %build
 ##rm -rf src/VERSION
 ##date +%Y-%02m-%02d > src/VERSION
@@ -100,26 +101,26 @@ echo "Uncomment 'make install' in 'clisp.spec' if you want to install";
 # make install
 
 # create the source tar, necessary for source RPMs
-cd /usr/src/%{name}
+#cd /usr/local/src/%{name}/%{name}-%{version}
 # remove the junk created by CVS
-find . -name ".#*" | xargs rm -f
-cd ..
-rm -fv clisp-%{version} # redhat/SOURCES/clispsrc.tar.gz
-ln -sv clisp clisp-%{version}
-tar -c -h -f redhat/SOURCES/clispsrc.tar clisp-%{version}/ \
-    --exclude build --exclude CLHSROOT --exclude CVS --exclude .cvsignore
-gzip -9vf redhat/SOURCES/clispsrc.tar
-rm -fv clisp-%{version}
-cd clisp
+#find . -name ".#*" | xargs rm -f
+#cd ..
+#rm -fv clisp-%{version} # redhat/SOURCES/clispsrc.tar.gz
+#ln -sv clisp clisp-%{version}
+#tar -c -h -f clispsrc.tar clisp-%{version}/ \
+#    --exclude build --exclude CLHSROOT --exclude CVS --exclude .cvsignore
+#gzip -9vf clispsrc.tar
+#rm -fv clisp-%{version}
+#cd clisp-%{version}
 
 %files
 %dir /usr/lib/clisp/
 /usr/lib/clisp/*
 /usr/bin/clisp
-%dir /usr/doc/%{name}-%{version}/
-/usr/doc/%{name}-%{version}/*
-/usr/man/man3/clreadline.3
-/usr/man/man1/clisp.1
+%dir /usr/share/doc/%{name}-%{version}/
+/usr/share/doc/%{name}-%{version}/*
+/usr/share/man/man3/clreadline.3
+/usr/share/man/man1/clisp.1
 /usr/share/locale/de/LC_MESSAGES/clisp.mo
 /usr/share/locale/en/LC_MESSAGES/clisp.mo
 /usr/share/locale/es/LC_MESSAGES/clisp.mo
