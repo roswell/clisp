@@ -1394,6 +1394,46 @@ for-value   NIL or T
         (return t)))
     (setq denv (cdr denv))))
 
+;; (declared-optimize quality) returns the optimization level for the given
+;; quality, as an integer between 0 and 3 (inclusive).
+;; quality - one of COMPILATION-SPEED, DEBUG, SAFETY, SPACE, SPEED.
+;; Current/future assignments:
+;; SAFETY >= 3 => keep function calls even to functions without side-effects
+;;                (for ANSI CL 3.5)
+;;        >= 2 =>
+;;        >= 1 =>
+;; DEBUG >= 3 =>
+;;       >= 2 => every function has an exit restart
+;;       >= 1 =>
+;; SPACE >= 3 =>
+;;       >= 2 =>
+;;       >= 1 =>
+;; SPEED >= 3 =>
+;;       >= 2 =>
+;;       >= 1 =>
+;; COMPILATION-SPEED >= 3 =>
+;;                   >= 2 =>
+;;                   >= 1 =>
+(defun declared-optimize (quality &optional (denv *denv*))
+  (loop
+    (when (atom denv)
+      (return-from declared-optimize 1))
+    (let ((declspec (car denv)))
+      (when (eq (car declspec) 'OPTIMIZE)
+        (dolist (optimspec (cdr declspec))
+          (cond ((eq optimspec quality)
+                 (return-from declared-optimize 3))
+                ((and (consp optimspec) (eq (car optimspec) quality)
+                      (consp (cdr optimspec)) (realp (second optimspec)))
+                 (let ((value (second optimspec)))
+                   (return-from declared-optimize
+                     (if (>= value 0)
+                       (if (<= value 3)
+                         (floor value)
+                         3)
+                       0))))))))
+    (setq denv (cdr denv))))
+
 
 ;;;;****             FUNCTION   MANAGEMENT
 
@@ -1556,8 +1596,6 @@ for-value   NIL or T
 ;;            list : ... produces side-effects only on the values of the
 ;;                    Variables in the list
 ;;            T : ... produces side-effects of unknown dimension.
-;; OR NIL, which means that the anode is FOLDABLE (see lispbibl & control)
-;;   and may be evaluated at compile-time
 ;; (Here, variables are VAR-Structures for lexical variables and symbols for
 ;; dynamic variables.)
 ;; Consequently:
@@ -1569,8 +1607,6 @@ for-value   NIL or T
 ;; FIXME1: foldability of compiled closures is not detected
 ;; FIXME2: RETURN-FROM, GO, HANDLER-BIND ==> *dirty-seclass*
 
-(proclaim '(inline seclass-foldable-p))
-(defun seclass-foldable-p (seclass) (null seclass))
 ;; we use MAPCAR in SECLASS-OR and SECLASS-WITHOUT, so SECLASS must be a list
 ;; if you midify SECLASS structure, you also need to update
 ;;  * seclass_object() in lispbibl.d
@@ -1579,11 +1615,21 @@ for-value   NIL or T
   (uses nil :read-only t)
   (modifies nil :read-only t)
   (uses-binding nil :read-only t))
-(defconstant *seclass-foldable* NIL)
 (defconstant *seclass-pure* (make-seclass))
 (defconstant *seclass-read* (make-seclass :uses 'T))
 (defconstant *seclass-dirty*
   (make-seclass :uses 'T :uses-binding 'T :modifies 'T))
+
+;; Side-Effect-Classes can also be attached to functions, not only to anodes.
+;; The SECLASS of a function can also be:
+;; NIL, which means that the function is constant-FOLDABLE
+;;   (i.e. two calls with identical arguments give the same result,
+;;    and calls with constant arguments can be evaluated at compile time;
+;;    in particular, no side effects, does not depend on global variables or
+;;    such, and does not even look "inside" its arguments).
+(proclaim '(inline seclass-foldable-p))
+(defun seclass-foldable-p (seclass) (null seclass))
+(defconstant *seclass-foldable* NIL)
 
 ;; (seclass-or class1 class2) determines the total class of execution
 (defun seclass-or (seclass1 seclass2)
@@ -2325,10 +2371,18 @@ for-value   NIL or T
 ;; we need to check *known-functions* to make sure that the side-effect
 ;; class is computed correctly
 (defun f-side-effect (fun)
-  ;; for NOTINLINE functions, side effects are unpredictable!
-  (if (and (symbolp fun) (declared-notinline fun)) *seclass-dirty*
+  ;; If SAFETY = 3, ANSI CL 3.5 requires us to signal errors about invalid
+  ;; arguments, and the simplest way to implement this requirement is to
+  ;; not omit the call. We don't keep track of the possibility of errors
+  ;; through the SECLASS currently. Therefore pretend the function has
+  ;; arbitrary side-effects.
+  (if (>= (declared-optimize 'SAFETY) 3)
+    *seclass-dirty*
+    ;; for NOTINLINE functions, side effects are unpredictable!
+    (if (and (symbolp fun) (declared-notinline fun))
+      *seclass-dirty*
       (let ((kf (assoc fun *known-functions* :test #'equal)))
-        (if kf (fourth kf) (function-side-effect fun)))))
+        (if kf (fourth kf) (function-side-effect fun))))))
 
 ;; global function call, normal (notinline): (fun {form}*)
 (defun c-NORMAL-FUNCTION-CALL (fun) ; fun is a symbol or (SETF symbol)
@@ -2912,6 +2966,13 @@ for-value   NIL or T
                ;; we make the call INLINE.
                (let ((sideeffects ; side-effect-class of the function-execution
                       (function-side-effect fun)))
+                 ;; If SAFETY = 3, ANSI CL 3.5 requires us to signal errors about invalid
+                 ;; arguments, and the simplest way to implement this requirement is to
+                 ;; not omit the call. We don't keep track of the possibility of errors
+                 ;; through the SECLASS currently. Therefore pretend the function has
+                 ;; arbitrary side-effects.
+                 (when (>= (declared-optimize 'SAFETY) 3)
+                   (setq sideeffects *seclass-dirty*))
                  (if (and (null *for-value*) (null (cdr sideeffects)))
                    ;; don't have to call the function,
                    ;; only evaluate the arguments
