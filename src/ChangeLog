@@ -1,3 +1,7 @@
+2005-03-07  Bruno Haible  <bruno@clisp.org>
+
+	* intlog.d (I_ord2): Fix bug on 64-bit platforms.
+
 2005-01-23  Bruno Haible  <bruno@clisp.org>
 
 	* compiler.lisp (c-MULTIPLE-VALUE-SETQ): Eliminate assignments to
