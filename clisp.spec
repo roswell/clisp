@@ -121,7 +121,13 @@ echo "Uncomment 'make install' in 'clisp.spec' if you want to install";
 /usr/share/doc/%{name}-%{version}/*
 /usr/share/man/man3/clreadline.3
 /usr/share/man/man1/clisp.1
-/usr/share/locale/de/LC_MESSAGES/clisp.mo
-/usr/share/locale/en/LC_MESSAGES/clisp.mo
-/usr/share/locale/es/LC_MESSAGES/clisp.mo
-/usr/share/locale/fr/LC_MESSAGES/clisp.mo
+%{prefix}/share/locale/de/LC_MESSAGES/clisp.mo
+%{prefix}/share/locale/de/LC_MESSAGES/clisplow.mo
+%{prefix}/share/locale/en/LC_MESSAGES/clisp.mo
+%{prefix}/share/locale/en/LC_MESSAGES/clisplow.mo
+%{prefix}/share/locale/es/LC_MESSAGES/clisp.mo
+%{prefix}/share/locale/es/LC_MESSAGES/clisplow.mo
+%{prefix}/share/locale/fr/LC_MESSAGES/clisp.mo
+%{prefix}/share/locale/fr/LC_MESSAGES/clisplow.mo
+%{prefix}/share/locale/nl/LC_MESSAGES/clisp.mo
+%{prefix}/share/locale/nl/LC_MESSAGES/clisplow.mo
