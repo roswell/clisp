@@ -1,3 +1,8 @@
+2004-07-22  Sam Steingold  <sds@gnu.org>
+
+	* stream.d (bitbuff_ixs_sub): fixed bitbufferptr initialization
+	Reported by Randolph Udodenko <udodenko@users.sourceforge.net>
+
 2004-05-26  Sam Steingold  <sds@gnu.org>
 
 	* pathname.d (MAKE-LOGICAL-PATHNAME): accept :DEVICE :UNSPECIFIC
