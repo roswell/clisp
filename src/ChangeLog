@@ -1,5 +1,14 @@
 2005-01-22  Bruno Haible  <bruno@clisp.org>
 
+	* compiler.lisp (c-GLOBAL-FUNCTION-CALL): Generate references to CAR,
+	CDR, SVREF with *denv*.
+	(c-VAR, c-FUNCTION): Update.
+	(simplify): Don't drop (CAR), (CDR), (SVREF) in non-for-value position
+	if SAFETY = 3.
+	Found by Paul Dietz's ansi-tests test suite.
+
+2005-01-22  Bruno Haible  <bruno@clisp.org>
+
 	* compiler.lisp (c-GLOBAL-FUNCTION-CALL): Generate a SYMBOL-FUNCTION
 	instruction with reference to *denv*.
 	(c-FUNCTION): Likewise with null environment.
