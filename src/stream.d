@@ -10041,8 +10041,13 @@ local object make_terminal_stream_ (void) {
      #else # ttyname() is rather slow, fstat() is faster.
       struct stat stdin_stat;
       struct stat stdout_stat;
-      if ((fstat(stdin_handle,&stdin_stat) >= 0) && (fstat(stdout_handle,&stdout_stat) >= 0))
-        if ((stdin_stat.st_dev == stdout_stat.st_dev) && (stdin_stat.st_ino == stdout_stat.st_ino))
+      if ((fstat(stdin_handle,&stdin_stat) >= 0)
+          && (fstat(stdout_handle,&stdout_stat) >= 0))
+        if ((stdin_stat.st_dev == stdout_stat.st_dev)
+           #ifndef UNIX_CYGWIN32
+            && (stdin_stat.st_ino == stdout_stat.st_ino)
+           #endif
+            )
           same_tty = true;
      #endif
     #endif
