@@ -2722,9 +2722,8 @@ for-value   NIL or T
 ;; returns a function name, that is composed by the package and the printname
 ;; of a given function name, a hyphen and a suffix.
 (defun symbol-suffix (funname suffix)
-  (if (and (symbolp funname) (not (and funname (symbol-package funname)))
-           (function-name-p suffix))
-    suffix
+  (if (and (symbolp funname) (not (and funname (symbol-package funname))))
+    (if (function-name-p suffix) suffix (make-symbol (princ-to-string suffix)))
     (multiple-value-bind (name pack) (get-funname-string+pack funname)
       ;; convert suffix to a string:
       (cond ((symbolp suffix) (setq suffix (symbol-name suffix)))
@@ -11243,6 +11242,7 @@ The function make-closure is required.
 
 (defmacro with-compilation-unit ((&key override) &body forms)
   `(let ((*c-top-call* (or ,override (not (boundp '*c-top-call*))))
+         (*c-listing-output* nil)
          (*c-error-output* *error-output*))
      ;; clean up from the outer `with-compilation-unit':
      ;; <http://www.lisp.org/HyperSpec/Body/mac_with-compilation-unit.html>
