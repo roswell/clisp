@@ -1,7 +1,7 @@
 2.29 (2002-07-25)
 =================
 
-User visible changes [this is a bug-fix only release]
+User visible changes [this is a bug-fix/portability release]
 --------------------
 
 * INSPECT: fixed bugs in HTML generation, Content-Length header,
