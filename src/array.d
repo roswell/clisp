@@ -686,9 +686,11 @@ LISPFUN(store,seclass_default,2,0,rest,nokey,0,NIL)
   var object datenvektor =
     subscripts_to_index(array,rest_args_pointer,argcount, &index);
   /* store element in the data vector: */
+  pushSTACK(STACK_0); STACK_1 = element;
+  /* Stack layout: element, array. */
   storagevector_store(datenvektor,index,element,true);
-  VALUES1(element);
-  skipSTACK(1);
+  VALUES1(STACK_1);
+  skipSTACK(2);
 }
 
 LISPFUNNR(svref,2)
@@ -760,13 +762,15 @@ LISPFUNN(row_major_store,3)
   var uintL index = posfixnum_to_L(STACK_0);
   if (index >= array_total_size(array)) /* index must be smaller than size */
     fehler_index_range(array_total_size(array));
+  STACK_0 = array; STACK_1 = element;
+  /* Stack layout: element, array. */
   if (array_simplep(array)) {
     simple_array_to_storage(array);
   } else {
     array = iarray_displace(array,&index);
   }
   storagevector_store(array,index,element,true);
-  VALUES1(element);
+  VALUES1(STACK_1);
   skipSTACK(2);
 }
 
