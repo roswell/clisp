@@ -2973,7 +2973,7 @@ for-value   NIL or T
                  ;; arbitrary side-effects.
                  (when (>= (declared-optimize 'SAFETY) 3)
                    (setq sideeffects *seclass-dirty*))
-                 (if (and (null *for-value*) (null (cdr sideeffects)))
+                 (if (and (null *for-value*) (null (seclass-modifies sideeffects)))
                    ;; don't have to call the function,
                    ;; only evaluate the arguments
                    (c-form `(PROGN ,@args))
