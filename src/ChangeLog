@@ -1,3 +1,9 @@
+2004-10-28  Bruno Haible  <bruno@clisp.org>
+
+	* Makefile.devel (SBCL_VERSION, SBCL_SOURCE_FILE, SBCL_SOURCE_URL): New
+	variables.
+	(check-sbcl): New target.
+
 2004-10-10  Bruno Haible  <bruno@clisp.org>
 
 	Fix GC crash after a GC was triggered while a break loop was active.
