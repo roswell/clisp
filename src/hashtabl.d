@@ -773,7 +773,11 @@ local uint32 hashcode4_atom (object obj) {
     }
     case_char:                  /* character */
       return hashcode4_char(char_code(obj));
-   #ifndef TYPECODES
+   #ifdef TYPECODES
+    case_machine:               /* machine */
+    case_subr:                  /* subr */
+    case_system:                /* frame-pointer, read-label, system */
+   #else
     case_symbol:                /* symbol */
    #endif
     case_closure:               /* closure */
