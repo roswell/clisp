@@ -1,3 +1,150 @@
+2002-07-25  Sam Steingold  <sds@gnu.org>
+
+	* version.h: 2.29 is released
+
+2002-07-22  Sam Steingold  <sds@gnu.org>
+
+	fixed the (compile nil (lambda () ... #'(lambda ...))) bug
+	* compiler.lisp (symbol-suffix): also work when funname is NIL,
+	but suffix is not a symbol (see also the 2002-02-11 patch)
+
+2002-07-22  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 584866 ]: inspect.lisp invalid XHTML & e-mail
+	* inspect.lisp (*user-mail-address*): new user variable
+	(with-html-output): use it; link/rev should be a string,
+	not a symbol, like all the other attribute values;
+	added a comment about overriding keep-alive
+
+2002-07-19  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 583751 ]: (compile-file xx :verbose NIL)
+	* compiler.lisp (with-compilation-unit): bind *C-LISTING-OUTPUT*
+
+2002-07-13  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 514741 ]: ldap bugs (describe, dir-key-info)
+	* describe.lisp (describe-object): handle DIR-KEY
+
+2002-07-11  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 580090 ]: unbound SYSTEM::*COMPILING-FROM-FILE*
+	error on (lambda () (defmethod ...))
+	* init.lisp (%expand-form): when evaluating (EVAL-WHEN (COMPILE))
+	bind COMPILER::*COMPILING-FROM-FILE* to nil
+
+2002-06-14  Arseny Slobodjuck  <ampy@ich.dvo.ru>
+
+	fixed bug #[ 514805 ]: core dump using :rehash-size in 9nines
+	On MSVC, also UNIX with HAVE_ALLOCA_H, RISCOS and others, where
+	DYNAMIC_ARRAY implemented through _alloca(3), putting it
+	into the loop is dangerous: stack is freed only when function
+	returns, not by FREE_DYNAMIC_ARRAY.
+	* spvw_genera1.d (rebuild_old_generation_cache): put allocation
+	of fixed sized block out of loop. May allocate unneeded block,
+	but that case seems rare to me.
+
+2002-05-17  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 557155 ]: inspector :http broken Content-Length
+	* inspect.lisp (with-http-output): convert the string to a vector
+	with CONVERT-STRING-TO-BYTES and STREAM-EXTERNAL-FORMAT of the
+	socket to reliably compute the `Content-length:' header;
+	then write it with WRITE-BYTE-SEQUENCE (temporarily changing
+	STREAM-ELEMENT-TYPE to binary)
+
+2002-05-03  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 550864 ]: cannot use RETURN-FROM in deep nesting
+	[this bug was introduced by the 2001-06-25 patch]
+	* compiler.lisp (note-far-used-block): propagate block to
+	all the enclosing functions, not just the current one
+
+2002-04-30  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 550528 ]: misleading error converting UTF-7
+	* stream.d (saving_errno, error_saving_errno): new macros
+	(iconv_mblen, iconv_mbstowcs, iconv_wcslen, iconv_wcstombs)
+	(iconv_range, create_input_pipe, create_output_pipe)
+	(create_io_pipe): use them
+
+2002-04-25  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 539701 ]: early initialization error -> crash
+	* spvw.d (main): init_other_modules_2() after the stream
+	variables are already initialized
+
+2002-04-25  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 548368 ]: inspector help barfs (nested inspectors)
+	* inspect.lisp (*inspect-all*): bind in INSPECT instead of using
+	a global variable since nested INSPECT sessions can interfere
+	with each other, each modifying the same *INSPECT-ALL*
+	(inspect-finalize): the default method now does nothing
+
+2002-04-24  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 548362 ]: inspector deletes wrong package on exit
+	* inspect.lisp (inspect): keep the temp inspect package in a
+	lexical variable in addition to *PACKAGE*
+
+2002-04-22  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 547046 ]: compiler-macro -> no special-operator
+	* compiler.lisp (c-form): call EXPAND-COMPILER-MACRO before
+	checking C-FORM-TABLE to accomodate expanding to a special form
+
+2002-04-18  Sam Steingold  <sds@gnu.org>
+
+	fixed bug [ 543072 ]: make-encoding :input-action on bad input
+	* stream.d (iconv_mblen, iconv_mbstowcs): treat EINVAL (incomplete
+	input) like EILEQ (conversion error) for delimited strings
+
+2002-04-04  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 538748 ]: OS_errno lost before error reporting
+	* spvw_memfile.d (loadmem): use OS_errno instead of errno
+
+2002-03-21  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 531879 ]: eval-when and top-forms
+	* init.lisp (%expand-form): do not conflate COMPILE and
+	:COMPILE-TOPLEVEL situations
+	* compiler.lisp (c-EVAL-WHEN): do not conflate LOAD with
+	:LOAD-TOLEVEL and COMPILE with :COMPILE-TOPLEVEL
+
+2002-03-21  Will Newton  <will@misconception.org.uk>
+
+	fixed bug #[ 501963 ]: FFCALL cannot be built with GCC 3.0
+	When compiling with -O2 or better, the configure test for pcc
+	non-reentrant struct return convention is optimized away and
+	always returns true. This causes avcall to believe it can use PCC
+	when it cannot - and so bad things happen.
+	* autoconf/aclocal.m4 (CL_PCC_STRUCT_RETURN): reset CFLAGS
+
+2002-03-14  Sam Steingold  <sds@gnu.org>
+
+	* defs1.lisp (require): fixed a deadly typo in the 2002-02-28 patch
+	this fixed bug #[ 580092 ]: problems with require
+	which will be filed on 2002-07-11
+
+2002-03-13  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 528886 ]: (typep x (type-of x)) must => T (FFI)
+	* type.lisp (foreign-function, foreign-variable, foreign-address)
+	(foreign-pointer): new types
+	(subtypep): FOREIGN-FUNCTION is a FUNCTION
+
+2002-03-12  Sam Steingold  <sds@gnu.org>
+
+	fixed bug #[ 527380 ]: encoding :output-error-action :ignore broken
+	* encoding.d (nls_wcslen): synch with nls_wcstombs() wrt
+	ignoring errors (i.e., return the correct number of dest bytes)
+	(nls_asciiext_wcslen): synch with nls_asciiext_wcstombs() wrt
+	ignoring errors (i.e., return the correct number of dest bytes)
+	(nls_wcstombs, nls_asciiext_wcstombs): handle ignored errors
+	properly (and do not require the same SRC and DEST count)
+
 2002-03-03  Sam Steingold  <sds@gnu.org>
 
 	* version.h: 2.28 is released
