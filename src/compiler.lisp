@@ -2724,15 +2724,18 @@ for-value   NIL or T
   (if (and (symbolp funname) (not (and funname (symbol-package funname)))
            (function-name-p suffix))
     suffix
-    (multiple-value-bind (name pack) (get-funname-string+pack funname)
+    (progn
       ;; convert suffix to a string:
       (cond ((symbolp suffix) (setq suffix (symbol-name suffix)))
             ((not (stringp suffix))
              (setq suffix (write-to-string suffix :escape nil :base 10
                                            :radix nil :readably nil))))
-      ;; build new symbol:
-      (let ((new-name (concatenate 'string name "-" suffix)))
-        (if pack (intern new-name pack) (make-symbol new-name))))))
+      (if funname
+        (multiple-value-bind (name pack) (get-funname-string+pack funname)
+          ;; build new symbol:
+          (let ((new-name (concatenate 'string name "-" suffix)))
+            (if pack (intern new-name pack) (make-symbol new-name))))
+        (make-symbol suffix)))))
 
 ;; (C-COMMENT controlstring . args)
 ;; issue additional information from the compiler (via FORMAT).
