@@ -297,7 +297,7 @@ distrib : linux-distrib src-distrib
 VER=$(shell cat src/VERSION)
 SRC_DIST=/tmp/clisp-$(VER)$(PACKEXT)
 SRC_DIST1=/tmp/clisp-$(VER).tar.gz
-SSHUP=gnudist:~/ftp-clisp/ cons:~/ftp-clisp/
+SSHUP=podval:~/public_html/clisp/
 FTPUP=upload.sf.net:/incoming sunsite.unc.edu:/incoming/linux
 
 $(SRC_DIST1) : $(SRC_DIST)
