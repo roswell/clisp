@@ -16506,6 +16506,7 @@ LISPFUN(file_position,seclass_default,1,1,norest,nokey,0,NIL)
           VALUES1(Fixnum_0); break;
         goto restart_file_position;
       case strmtype_str_in: {
+        STACK_1 = stream;
         var stringarg arg;
         pushSTACK(TheStream(stream)->strm_str_in_string);
         switch (pos_type) {
@@ -16513,6 +16514,7 @@ LISPFUN(file_position,seclass_default,1,1,norest,nokey,0,NIL)
             pushSTACK(TheStream(stream)->strm_str_in_begindex);
             pushSTACK(TheStream(stream)->strm_str_in_endindex);
             test_string_limits_ro(&arg);
+            stream = STACK_1; /* restore */
             TheStream(stream)->strm_str_in_index =
               TheStream(stream)->strm_str_in_endindex;
             value1 = fixnum(arg.len);
@@ -16527,6 +16529,7 @@ LISPFUN(file_position,seclass_default,1,1,norest,nokey,0,NIL)
             pushSTACK(TheStream(stream)->strm_str_in_begindex);
             pushSTACK(fixnum_inc(STACK_0,pos_off));
             test_string_limits_ro(&arg);
+            stream = STACK_1; /* restore */
             TheStream(stream)->strm_str_in_index = fixnum(arg.index+arg.len);
             value1 = fixnum(arg.len); /* == pos */
             break;
@@ -16534,6 +16537,7 @@ LISPFUN(file_position,seclass_default,1,1,norest,nokey,0,NIL)
             pushSTACK(TheStream(stream)->strm_str_in_begindex);
             pushSTACK(TheStream(stream)->strm_str_in_index);
             test_string_limits_ro(&arg);
+            stream = STACK_1; /* restore */
             pos_off = arg.len;
             goto get_position_common;
           default: NOTREACHED;
