@@ -117,14 +117,15 @@ LISPFUNNR(foreign_pointer,1)
 LISPFUNN(set_foreign_pointer,2)
 { /* (setf (foreign-pointer f-ent) new-value) */
   /* f-ent --> foreign-address */
-  var object faddr = foreign_address(STACK_1,false);
+  STACK_1 = foreign_address(STACK_1,false);
   var object new_fp = STACK_0;
   if (eq(new_fp,S(Kcopy))) {
-    TheFaddress(faddr)->fa_base =
-      allocate_fpointer(TheFpointer(TheFaddress(faddr)->fa_base)->fp_pointer);
+    new_fp = allocate_fpointer(TheFpointer(TheFaddress(STACK_1)->fa_base)->fp_pointer);
+    TheFaddress(STACK_1)->fa_base = new_fp;
     VALUES1(S(Kcopy));
   } else {
     new_fp = check_fpointer(new_fp,true);
+    var object faddr = STACK_1;
     TheFaddress(faddr)->fa_base = new_fp;
     TheFaddress(faddr)->fa_offset =
       (uintP)Faddress_value(faddr) - (uintP)Fpointer_value(new_fp);
