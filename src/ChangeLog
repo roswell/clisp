@@ -44,6 +44,21 @@
 	of fixed sized block out of loop. May allocate unneeded block,
 	but that case seems rare to me.
 
+2002-05-28  Bruno Haible  <bruno@clisp.org>
+
+	* makemake.in (XCC_GCC_VERSION): Update for gcc 3.1.
+	(XCFLAGS): With gcc 3.1, add -fno-gcse.
+
+2002-05-28  Bruno Haible  <bruno@clisp.org>
+
+	* lispbibl.d (setSP, FAST_SP) [I80386]: Don't define when using
+	gcc-3.1.
+
+2002-05-19  Sam Steingold  <sds@gnu.org>
+
+	* lispbibl.d (STACK_register) [S390]: adjusted 2002-03-24 patch
+	to use the register on GCC-3.1 or better
+
 2002-05-17  Sam Steingold  <sds@gnu.org>
 
 	fixed bug #[ 557155 ]: inspector :http broken Content-Length
@@ -52,6 +67,11 @@
 	socket to reliably compute the `Content-length:' header;
 	then write it with WRITE-BYTE-SEQUENCE (temporarily changing
 	STREAM-ELEMENT-TYPE to binary)
+
+2002-05-07  Bruno Haible  <bruno@clisp.org>
+
+	* compiler.lisp (SP-depth): Insert a verification that each label
+	is a symbol. Fix wrong treatment of JMPIFBOUNDP.
 
 2002-05-03  Sam Steingold  <sds@gnu.org>
 
