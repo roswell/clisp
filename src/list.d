@@ -553,7 +553,8 @@ LISPFUNNF(endp,1)
        (when (endp fast) (return n))
        (when (endp (cdr fast)) (return (1+ n)))
        (when (eq (cdr fast) slow) (return nil))))
- (see CLtL p 265) */
+ (see CLtL p 265)
+ can trigger GC */
 local inline object list_length (object list, object *dottedp) {
   var object fast = list;
   var object slow = fast;
@@ -567,8 +568,10 @@ local inline object list_length (object list, object *dottedp) {
     fast = Cdr(fast); n++;
     slow = Cdr(slow);
   }
-  *dottedp = fast;
-  return UL_to_I(n);
+  pushSTACK(fast);
+  var object len = UL_to_I(n);
+  *dottedp = popSTACK();
+  return len;
 }
 
 LISPFUNNR(list_length,1)
