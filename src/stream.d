@@ -1,5 +1,5 @@
 # Streams for CLISP
-# Bruno Haible 1990-2004
+# Bruno Haible 1990-2005
 # Sam Steingold 1998-2004
 # Generic Streams: Marcus Daniels 8.4.1994
 # SCREEN package for Win32: Arseny Slobodjuck 2001-02-14
@@ -473,6 +473,12 @@ global object read_byte (object stream) {
       var chart ch = char_code(TheStream(stream)->strm_rd_ch_last);
       var uintB buf[4]; # are there characters longer than 4 bytes?!
       var uintL char_len = cslen(enc,&ch,1);
+      ASSERT(char_len <= sizeof(buf));
+      if (char_len == 0) { # the char corresponds to no bytes at all
+        TheStream(stream)->strmflags &= ~strmflags_unread_B;
+        TheStream(stream)->strm_rd_ch_last = NIL;
+        goto do_read_byte;
+      }
       cstombs(enc,&ch,1,buf,char_len);
       var uint8 code = buf[0];
       if (char_len == 1) { # the char was just one byte
@@ -495,8 +501,10 @@ global object read_byte (object stream) {
         return sfixnum((sint8)code);
       else
         return fixnum((uint8)code);
-    } else
+    } else {
+     do_read_byte:
       return rd_by(stream)(stream);
+    }
   } else {
     # Call the generic function (STREAM-READ-BYTE stream):
     pushSTACK(stream); funcall(S(stream_read_byte),1);
@@ -5326,7 +5334,9 @@ local void wr_ch_unbuffered_unix (const gcv_object_t* stream_, object ch) {
   Encoding_wcstombs(encoding)
     (encoding,stream,&cptr,cptr+1,&bptr,&buf[max_bytes_per_chart]);
   ASSERT(cptr == &c+1);
-  UnbufferedStreamLow_write_array(stream)(stream,&buf[0],bptr-&buf[0],false);
+  var uintL buflen = bptr-&buf[0];
+  if (buflen > 0)
+    UnbufferedStreamLow_write_array(stream)(stream,&buf[0],buflen,false);
   #else
   UnbufferedStreamLow_write(stream)(stream,as_cint(c));
   #endif
@@ -5348,8 +5358,10 @@ local void wr_ch_array_unbuffered_unix (const gcv_object_t* stream_,
     var uintB* bptr = &tmptmpbuf[0];
     Encoding_wcstombs(encoding)(encoding,stream,&charptr,endptr,&bptr,
                                 &tmptmpbuf[tmpbufsize*max_bytes_per_chart]);
-    UnbufferedStreamLow_write_array(stream)(stream,&tmptmpbuf[0],
-                                            bptr-&tmptmpbuf[0],false);
+    var uintL tmptmpbuflen = bptr-&tmptmpbuf[0];
+    if (tmptmpbuflen > 0)
+      UnbufferedStreamLow_write_array(stream)(stream,&tmptmpbuf[0],
+                                              tmptmpbuflen,false);
   } while (charptr != endptr);
   #undef tmpbufsize
   #else
@@ -5373,7 +5385,9 @@ local void wr_ch_unbuffered_mac (const gcv_object_t* stream_, object ch) {
   Encoding_wcstombs(encoding)(encoding,stream,&cptr,cptr+1,&bptr,
                               &buf[max_bytes_per_chart]);
   ASSERT(cptr == &c+1);
-  UnbufferedStreamLow_write_array(stream)(stream,&buf[0],bptr-&buf[0],false);
+  var uintL buflen = bptr-&buf[0];
+  if (buflen > 0)
+    UnbufferedStreamLow_write_array(stream)(stream,&buf[0],buflen,false);
   #else
   UnbufferedStreamLow_write(stream)(stream,as_cint(c));
   #endif
@@ -5413,8 +5427,10 @@ local void wr_ch_array_unbuffered_mac (const gcv_object_t* stream_,
       Encoding_wcstombs(encoding)(encoding,stream,&cptr,tmpptr,&bptr,
                                   &tmptmpbuf[tmpbufsize*max_bytes_per_chart]);
       ASSERT(cptr == tmpptr);
-      UnbufferedStreamLow_write_array(stream)(stream,&tmptmpbuf[0],
-                                              bptr-&tmptmpbuf[0],false);
+      var uintL tmptmpbuflen = bptr-&tmptmpbuf[0];
+      if (tmptmpbuflen > 0)
+        UnbufferedStreamLow_write_array(stream)(stream,&tmptmpbuf[0],
+                                                tmptmpbuflen,false);
       #else
       UnbufferedStreamLow_write_array(stream)(stream,(const uintB*)tmpbuf,
                                               n,false);
@@ -5447,7 +5463,9 @@ local void wr_ch_unbuffered_dos (const gcv_object_t* stream_, object ch) {
   Encoding_wcstombs(encoding)(encoding,stream,&cptr,cp+n,&bptr,
                               &buf[2*max_bytes_per_chart]);
   ASSERT(cptr == cp+n);
-  UnbufferedStreamLow_write_array(stream)(stream,&buf[0],bptr-&buf[0],false);
+  var uintL buflen = bptr-&buf[0];
+  if (buflen > 0)
+    UnbufferedStreamLow_write_array(stream)(stream,&buf[0],buflen,false);
   #else
   if (chareq(c,ascii(NL))) {
     UnbufferedStreamLow_write_array(stream)(stream,(const uintB*)crlf,2,false);
@@ -5492,8 +5510,10 @@ local void wr_ch_array_unbuffered_dos (const gcv_object_t* stream_,
       var uintB* bptr = &tmptmpbuf[0];
       Encoding_wcstombs(encoding)(encoding,stream,&cptr,tmpptr,&bptr,&tmptmpbuf[2*tmpbufsize*max_bytes_per_chart]);
       ASSERT(cptr == tmpptr);
-      UnbufferedStreamLow_write_array(stream)(stream,&tmptmpbuf[0],
-                                              bptr-&tmptmpbuf[0],false);
+      var uintL tmptmpbuflen = bptr-&tmptmpbuf[0];
+      if (tmptmpbuflen > 0)
+        UnbufferedStreamLow_write_array(stream)(stream,&tmptmpbuf[0],
+                                                tmptmpbuflen,false);
       #else
       UnbufferedStreamLow_write_array(stream)(stream,(const uintB*)tmpbuf,
                                               tmpptr-&tmpbuf[0],false);
@@ -6539,9 +6559,11 @@ local void wr_ch_buffered_unix (const gcv_object_t* stream_, object obj) {
                               &buf[max_bytes_per_chart]);
   ASSERT(cptr == &c+1);
   var uintL buflen = bptr-&buf[0];
-  write_byte_array_buffered(stream,&buf[0],buflen,false);
-  # increment position
-  BufferedStream_position(stream) += buflen;
+  if (buflen > 0) {
+    write_byte_array_buffered(stream,&buf[0],buflen,false);
+    # increment position
+    BufferedStream_position(stream) += buflen;
+  }
  #else
   write_byte_buffered(stream,as_cint(c)); # write unchanged
  #endif
@@ -6564,9 +6586,11 @@ local void wr_ch_array_buffered_unix (const gcv_object_t* stream_,
     Encoding_wcstombs(encoding)(encoding,stream,&charptr,endptr,&bptr,
                                 &tmptmpbuf[tmpbufsize*max_bytes_per_chart]);
     var uintL tmptmpbuflen = bptr-&tmptmpbuf[0];
-    write_byte_array_buffered(stream,&tmptmpbuf[0],tmptmpbuflen,false);
-    # increment position
-    BufferedStream_position(stream) += tmptmpbuflen;
+    if (tmptmpbuflen > 0) {
+      write_byte_array_buffered(stream,&tmptmpbuf[0],tmptmpbuflen,false);
+      # increment position
+      BufferedStream_position(stream) += tmptmpbuflen;
+    }
   } until (charptr == endptr);
   #undef tmpbufsize
  #else
@@ -6592,9 +6616,11 @@ local void wr_ch_buffered_mac (const gcv_object_t* stream_, object obj) {
   Encoding_wcstombs(encoding)(encoding,stream,&cptr,cptr+1,&bptr,&buf[max_bytes_per_chart]);
   ASSERT(cptr == &c+1);
   var uintL buflen = bptr-&buf[0];
-  write_byte_array_buffered(stream,&buf[0],buflen,false);
-  # increment position
-  BufferedStream_position(stream) += buflen;
+  if (buflen > 0) {
+    write_byte_array_buffered(stream,&buf[0],buflen,false);
+    # increment position
+    BufferedStream_position(stream) += buflen;
+  }
  #else
   write_byte_buffered(stream,as_cint(c));
  #endif
@@ -6633,9 +6659,11 @@ local void wr_ch_array_buffered_mac (const gcv_object_t* stream_,
                                   &tmptmpbuf[tmpbufsize*max_bytes_per_chart]);
       ASSERT(cptr == tmpptr);
       var uintL tmptmpbuflen = bptr-&tmptmpbuf[0];
-      write_byte_array_buffered(stream,&tmptmpbuf[0],tmptmpbuflen,false);
-      # increment position
-      BufferedStream_position(stream) += tmptmpbuflen;
+      if (tmptmpbuflen > 0) {
+        write_byte_array_buffered(stream,&tmptmpbuf[0],tmptmpbuflen,false);
+        # increment position
+        BufferedStream_position(stream) += tmptmpbuflen;
+      }
     }
     remaining -= n;
   } while (remaining > 0);
@@ -6675,9 +6703,11 @@ local void wr_ch_buffered_dos (const gcv_object_t* stream_, object obj) {
                               &buf[2*max_bytes_per_chart]);
   ASSERT(cptr == cp+n);
   var uintL buflen = bptr-&buf[0];
-  write_byte_array_buffered(stream,&buf[0],buflen,false);
-  # increment position
-  BufferedStream_position(stream) += buflen;
+  if (buflen > 0) {
+    write_byte_array_buffered(stream,&buf[0],buflen,false);
+    # increment position
+    BufferedStream_position(stream) += buflen;
+  }
  #else
   if (chareq(c,ascii(NL))) {
     write_byte_buffered(stream,CR); write_byte_buffered(stream,LF);
@@ -6721,9 +6751,11 @@ local void wr_ch_array_buffered_dos (const gcv_object_t* stream_,
       Encoding_wcstombs(encoding)(encoding,stream,&cptr,tmpptr,&bptr,&tmptmpbuf[2*tmpbufsize*max_bytes_per_chart]);
       ASSERT(cptr == tmpptr);
       var uintL tmptmpbuflen = bptr-&tmptmpbuf[0];
-      write_byte_array_buffered(stream,&tmptmpbuf[0],tmptmpbuflen,false);
-      # increment position
-      BufferedStream_position(stream) += tmptmpbuflen;
+      if (tmptmpbuflen > 0) {
+        write_byte_array_buffered(stream,&tmptmpbuf[0],tmptmpbuflen,false);
+        # increment position
+        BufferedStream_position(stream) += tmptmpbuflen;
+      }
     }
     remaining -= n;
   } while (remaining > 0);
