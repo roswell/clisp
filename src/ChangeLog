@@ -166,6 +166,16 @@
 	(nls_wcstombs, nls_asciiext_wcstombs): handle ignored errors
 	properly (and do not require the same SRC and DEST count)
 
+2002-03-09  Peter Burwood  <clisp@peterb.org.uk>
+
+	cygwin (u)alarm is adequate - do not re-implement it
+	* unix.d (HAVE_UALARM): Remove as defined in unixconf.h.
+	* unixaux.d (alarm, ualarm, sleep, usleep): Remove function as
+	cygwin supplied function works.
+	(do_alarm, do_sleep, interrupt_handler, DoInterruptible): Remove
+	support functions.
+	(alarm_thread, alarm_date, alarm_interval): Remove support variables.
+
 2002-03-03  Sam Steingold  <sds@gnu.org>
 
 	* version.h: 2.28 is released
