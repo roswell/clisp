@@ -2174,6 +2174,7 @@ local uintL rd_ch_array_str_in (const gcv_object_t* stream_,
     var object chararray = *chararray_;
     simple_array_to_storage(chararray);
     elt_copy(string,srcoffset+index,chararray,start,count);
+    stream = *stream_;
     TheStream(stream)->strm_str_in_index = fixnum_inc(TheStream(stream)->strm_str_in_index,count);
     return count;
   } else {
