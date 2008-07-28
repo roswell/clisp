@@ -125,7 +125,7 @@ typedef pthread_key_t     xthread_key_t;
 #define xthread_exit(v)  pthread_exit(v)
 #define xthread_yield()  do { if (sched_yield() < 0) OS_error(); } while(0)
 #define xthread_equal(t1,t2)  pthread_equal(t1,t2)
-#define xthread_cancel(t) pthread_cancel(t)
+#define xthread_cancel(t) pthread_cancel(t), pthread_join(t,NULL)
 
 #ifdef POSIX_THREADS
 #define xcondition_init(c)  pthread_cond_init(c,NULL)
@@ -164,7 +164,6 @@ typedef pthread_key_t     xthread_key_t;
 
 #endif  /* POSIX*_THREADS */
 
-
 #if defined(SOLARIS_THREADS)
 
 #include <thread.h>
@@ -201,7 +200,6 @@ typedef thread_key_t      xthread_key_t;
 
 #endif  /* SOLARIS_THREADS */
 
-
 #if defined(C_THREADS)
 
 #include <cthreads.h>
@@ -230,7 +228,6 @@ typedef struct mutex      xmutex_t;
 #define xmutex_unlock(m)  mutex_unlock(m)
 
 #endif  /* C_THREADS */
-
 
 #if defined(WIN32_THREADS)
 

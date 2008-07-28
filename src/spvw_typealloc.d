@@ -652,9 +652,16 @@ global maygc object allocate_thread (gcv_object_t *name_) {
   var object result = allocate_xrecord(0,Rectype_Thread,thread_length,
                                        thread_xlength,orecord_type);
   TheThread(result)->xth_name = *name_;
-  TheThread(result)->xth_system = xthread_self();
+  /* VTZ: xth_system will be initialized during the actual thread creation, 
+   however for main thread (which is already created) the line below is fine*/
+  TheThread(result)->xth_system = xthread_self(); 
   /* TheThread(result)->xth_next = O(threads);
    * O(threads) = result; */
+
+  /* VTZ: hmm, what to do with the other fields???
+   we can pass here already allocated clisp_thread_t and initialize the backtrace, stack and tlvs???
+   the linked list (??? next/prev) - what it's ussage??? we can always get all threads from the array in spvw.d 
+   (however not in a very nice way) */
   return result;
 }
 

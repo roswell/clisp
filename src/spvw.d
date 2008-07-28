@@ -225,59 +225,61 @@ local int exitcode;
 
 /* Global variables. */
 
+#ifndef MULTITHREAD
+
 /* the STACK: */
 #if !defined(STACK_register)
-global per_thread gcv_object_t* STACK;
+global gcv_object_t* STACK; 
 #endif
 #ifdef HAVE_SAVED_STACK
-global per_thread gcv_object_t* saved_STACK;
+global gcv_object_t* saved_STACK;
 #endif
 
 /* MULTIPLE-VALUE-SPACE: */
 #if !defined(mv_count_register)
-global per_thread uintC mv_count;
+global uintC mv_count;
 #endif
 #ifdef NEED_temp_mv_count
-global per_thread uintC temp_mv_count;
+global uintC temp_mv_count;
 #endif
 #ifdef HAVE_SAVED_mv_count
-global per_thread uintC saved_mv_count;
+global uintC saved_mv_count;
 #endif
-global per_thread object mv_space [mv_limit-1];
+global object mv_space [mv_limit-1];
 #ifdef NEED_temp_value1
-global per_thread object temp_value1;
+global object temp_value1;
 #endif
 #ifdef HAVE_SAVED_value1
-global per_thread object saved_value1;
+global object saved_value1;
 #endif
 
 /* During the execution of a SUBR, FSUBR: the current SUBR resp. FSUBR */
 #if !defined(back_trace_register)
-global per_thread p_backtrace_t back_trace = NULL;
+global p_backtrace_t back_trace = NULL;
 #endif
 #ifdef HAVE_SAVED_back_trace
-global per_thread p_backtrace_t saved_back_trace;
+global p_backtrace_t saved_back_trace;
 #endif
 
 /* during callbacks, the saved registers: */
 #if defined(HAVE_SAVED_REGISTERS)
-global per_thread struct registers * callback_saved_registers = NULL;
+global struct registers * callback_saved_registers = NULL;
 #endif
 
 /* stack-limits: */
 #ifndef NO_SP_CHECK
-global per_thread void* SP_bound;          /* SP-growth-limit */
+global void* SP_bound;          /* SP-growth-limit */
 #endif
-global per_thread void* STACK_bound;       /* STACK-growth-limit */
-global per_thread void* STACK_start;       /* STACK initial value */
+global void* STACK_bound;       /* STACK-growth-limit */
+global void* STACK_start;       /* STACK initial value */
 
 /* the lexical environment: */
-global per_thread gcv_environment_t aktenv;
+global gcv_environment_t aktenv;
 
-global per_thread unwind_protect_caller_t unwind_protect_to_save;
+global unwind_protect_caller_t unwind_protect_to_save;
 
 /* variables for passing of information to the top of the handler: */
-global per_thread handler_args_t handler_args;
+global handler_args_t handler_args;
 
 /* As only whole regions of handlers are deactivated and activated again,
  we treat the handlers on deactivation separately, but we maintain
@@ -285,12 +287,10 @@ global per_thread handler_args_t handler_args;
  A handler counts as inactive if and only if:
  low_limit <= handler < high_limit
  is true for one of the regions listed in inactive_handlers */
-global per_thread stack_range_t* inactive_handlers = NULL;
+global stack_range_t* inactive_handlers = NULL;
 
 /* --------------------------------------------------------------------------
                            Multithreading */
-
-#ifndef MULTITHREAD
 
 #define for_all_threadobjs(statement)                                   \
   do { var gcv_object_t* objptr = (gcv_object_t*)&aktenv;               \
@@ -309,12 +309,18 @@ global per_thread stack_range_t* inactive_handlers = NULL;
     { statement;  }                         \
   } while(0)
 
+/* #if MULTITHREAD*/
 #else
 
 /* Mutex protecting the set of threads. */
 local xmutex_t allthreads_lock;
 
 /* Set of threads. */
+/* We can define max threads as
+   #define MAX_THREADS ((unsigned)minus_bit(THREAD_SP_SHIFT) >> THREAD_SP_SHIFT)
+   on 32 bit systems this gives 1023, however on 64 bit it will give a very big number.
+   also there will be many conflicts with the CLSIP heap in mapping memory models. 
+ */
 #define MAXNTHREADS  128
 local uintC nthreads = 0;
 local clisp_thread_t* allthreads[MAXNTHREADS];
@@ -325,32 +331,80 @@ local uintL num_symvalues = 0;
  storage must be added.
  = floor(round_up(thread_size(num_symvalues),mmap_pagesize)
          -offsetofa(clisp_thread_t,_symvalues),sizeof(gcv_object_t)) */
-local uintL maxnum_symvalues;
+global uintL maxnum_symvalues; /* VTZ: changed to global */
+
+#ifdef per_thread
+global per_thread clisp_thread_t *_current_thread;
+#else
+global xthread_key_t current_thread_tls_key;
+#endif
 
 /* Initialization. */
 local void init_multithread (void) {
   xthread_init();
   xmutex_init(&allthreads_lock);
-  maxnum_symvalues = floor(((thread_size(0)+mmap_pagesize-1)&-mmap_pagesize)
+  maxnum_symvalues = floor(((thread_size(0)+THREAD_SYMVALUES_ALLOCATION_SIZE-1)&-THREAD_SYMVALUES_ALLOCATION_SIZE)
                            -offsetofa(clisp_thread_t,_symvalues),
                            sizeof(gcv_object_t));
+  #if !defined(per_thread)
+    xthread_key_create(&current_thread_tls_key);
+  #endif
 }
 
-/* Create a new thread. */
-local clisp_thread_t* create_thread (void* sp) {
+/* VTZ: forward declaration */
+local inline void get_reserved_memory_regions(uintM *addr_start, uintM *addr_end);
+
+/* VTZ: allocates a LISP stack for new thread (except for the main one) 
+ The stack_size parameters is in bytes. The function is quite ugly since it 
+ tries to avoid "reserved" but still not mapped regions by the CLISP heap.
+ since CLISP maps with MAP_FIXED - it will destroy our mapping if it happens to overlap.
+ in SPVW_PAGES - there are no problems (and the code succeeds on-the first try).
+ TODO: to rewrite it. probably we should reserve some memory range in advance.
+  this probing is very tedious */
+local void* allocate_lisp_thread_stack(clisp_thread_t* thread, uintM stack_size)
+{ 
+  var uintM low,high;
+  low=(uintM)malloc(stack_size);
+  if (!low) return NULL;
+  high=low+stack_size/sizeof(uintM);
+  #ifdef STACK_DOWN
+   thread->_STACK_bound=(gcv_object_t *)low + 0x40;
+   thread->_STACK=(gcv_object_t *)high;
+  #endif
+  #ifdef STACK_UP
+   thread->_STACK_bound=(gcv_object_t *)high - 0x40;
+   thread->_STACK=(gcv_object_t *)low;
+  #endif
+  thread->_STACK_start=thread->_STACK;
+  return thread->_STACK;
+}
+
+/* VTZ: creates new clisp_thread_t, allocates new C and LISP stacks and initializes the clisp_thread_t structure. 
+   DO NOT CALL WITH c_stack_size DIFFERENT THE THREAD_SP_SIZE !!!!
+   the whole stack regions is:
+   |c_stack_pointer->--------------------------------------------<-clisp_thread_t|
+*/
+global clisp_thread_t* create_thread(uintM lisp_stack_size)
+{
   var clisp_thread_t* thread;
   xmutex_lock(&allthreads_lock);
   if (nthreads >= MAXNTHREADS) { thread = NULL; goto done; }
-  thread = sp_to_thread(sp);
-  if (mmap_zeromap(thread,(thread_size(num_symvalues)+mmap_pagesize-1)&-mmap_pagesize) < 0)
-    { thread = NULL; goto done; }
+  thread=(clisp_thread_t *)malloc((thread_size(num_symvalues)+THREAD_SYMVALUES_ALLOCATION_SIZE-1)&-THREAD_SYMVALUES_ALLOCATION_SIZE);
+  if (!thread) goto done;
+  /* VTZ: let's zero up everything - later on when we are sure that we initialize all required things 
+   we will remove this. */
+  memset(thread,0,(thread_size(num_symvalues)+mmap_pagesize-1)&-mmap_pagesize); /* zero everythnig */
   thread->_index = nthreads;
   {
     var gcv_object_t* objptr =
       (gcv_object_t*)((uintP)thread+thread_objects_offset(num_symvalues));
     var uintC count;
     dotimespC(count,thread_objects_count(num_symvalues),
-      { *objptr++ = NIL; objptr++; });
+      { *objptr++ = NIL; });
+  }
+  /* allocate the LISP stack */
+  if (lisp_stack_size) {
+    if (!allocate_lisp_thread_stack(thread,lisp_stack_size)) { free(thread); thread=NULL; goto done;}
   }
   allthreads[nthreads] = thread;
   nthreads++;
@@ -359,13 +413,21 @@ local clisp_thread_t* create_thread (void* sp) {
   return thread;
 }
 
-  /* Delete a thread. */
-local void delete_thread (clisp_thread_t* thread) {
+  /* VTZ: Releases current_thread resources */
+global void delete_thread () {
+  clisp_thread_t *thread=current_thread();
   xmutex_lock(&allthreads_lock);
   ASSERT(thread->_index < nthreads);
   ASSERT(allthreads[thread->_index] == thread);
   allthreads[thread->_index] = allthreads[nthreads-1];
   nthreads--;
+  /* VTZ: deallocate all stuff (stacks) allocated above */
+  #ifdef STACK_DOWN
+    free((gcv_object_t *)thread->_STACK_bound-0x40);
+  #endif
+  #ifdef STACK_UP
+    free(thread->_STACK_start);
+  #endif
   xmutex_unlock(&allthreads_lock);
 }
 
@@ -382,10 +444,13 @@ local uintL make_symvalue_perthread (object value) {
   var uintL symbol_index;
   xmutex_lock(&allthreads_lock);
   if (num_symvalues == maxnum_symvalues) {
+    /*
+      VTZ:TODO IMLEMENT.
     for_all_threads({
       if (mmap_zeromap((void*)((uintP)thread+((thread_size(num_symvalues)+mmap_pagesize-1)&-mmap_pagesize)),mmap_pagesize) < 0)
         goto failed;
     });
+    */ 
     maxnum_symvalues += mmap_pagesize/sizeof(gcv_object_t);
   }
   symbol_index = num_symvalues++;
@@ -430,6 +495,54 @@ local uintL make_symvalue_perthread (object value) {
 /* A dummy-page for lastused: */
   local NODE dummy_NODE;
   #define dummy_lastused  (&dummy_NODE)
+
+#endif
+
+#if defined(MULTITHREAD)
+/* VTZ: Tries to "detect"/"summarize" the "assumed"/"reserved" memory regions that
+   are/will_be used by CLISP heap. We should not overlap with them.
+  TODO: should be checked carefully - not sure that it is correct. */
+local inline void get_reserved_memory_regions(uintM *addr_start, uintM *addr_end)
+{
+#if defined (SPVW_MIXED_BLOCKS_OPPOSITE)
+  *addr_start=mem.heaps[0].heap_start;
+  #if !defined(TRIVIALMAP_MEMORY)
+    *addr_end=mem.MEMTOP;
+  #else
+    *addr_end=mem.conses.heap_end;
+  #endif
+#elif defined(SPVW_PURE_BLOCKS) || defined(SPVW_MIXED_BLOCKS_STAGGERED)
+  *addr_start=mem.heaps[0].heap_start;
+  *addr_end=mem.heaps[heapcount-1].heap_hardlimit;
+#else
+  /* VTZ:TODO may be additional checks ??? */
+  /* in SPVW_PAGES nothing is reserved */
+  *addr_end=0;
+  *addr_start=0;
+  return;
+#endif
+  /* VTZ:TODO in case we are called before heaps are initialized (aka - for the main thread)
+   we want to forbid some region that later on is assumed to be used by the heap.
+  Following works on 32 bit linux and osx. */
+  if (*addr_start==*addr_end) {
+    *addr_end=0x80000000;
+    *addr_start=0;
+  }
+}
+/* VTZ: returns is it safe to use [addr_start,addr_end) region of memory (since the heap may grow with MAP_FIXED in to it)
+ The function examines the heap limits depending on the memory model.
+ TODO: should be checked carefully. */
+local bool is_safe_region(uintM addr_start, uintM addr_end)
+{
+var uintM low; /* bottom of reserved memory ??? */
+var uintM high; /* the highest possible heap address */
+ get_reserved_memory_regions(&low,&high);
+  /* we have 2 intervals - we have to check for overlap 
+   return max((uintM)addr_start,low) > min((uintM)addr_end,high) */
+  low=(low < addr_start) ? addr_start : low;
+  high=(high < addr_end) ? high : addr_end;
+  return low > high;
+}
 
 #endif
 
@@ -618,8 +731,12 @@ global void* getSP (void) {
 }
 #endif
 
+/* VTZ: moved SP_anchor to clisp_thread_t. in MT it is part of the thread 
+ Seems it is used only for debugging/checking purposes. */
+#if !defined(MULTITHREAD)
 /* The initial value of SP() during main(). */
-global void* SP_anchor;
+global void* SP_anchor; 
+#endif
 
 /* error-message when a location of the program is reached that is (should be)
  unreachable. Does not return.
@@ -2445,7 +2562,6 @@ local inline void free_argv_actions (struct argv_actions *p) {
 #endif
 extern char *get_executable_name (void);
 local inline int init_memory (struct argv_initparams *p) {
-  back_trace = NULL;
   {                  /* Initialize the table of relocatable pointers: */
     var object* ptr2 = &pseudofun_tab.pointer[0];
     { var const Pseudofun* ptr1 = (const Pseudofun*)&pseudocode_tab;
@@ -2479,11 +2595,16 @@ local inline int init_memory (struct argv_initparams *p) {
   init_mem_heapnr_from_type();
  #endif
   init_modules_0();             /* assemble the list of modules */
- #ifdef MULTITHREAD
-  init_multithread();
-  create_thread((void*)roughly_SP());
- #endif
   end_system_call();
+
+#if defined(MULTITHREAD)
+  /*VTZ: initialize main thread. */
+  {
+    init_multithread();
+    set_current_thread(create_thread(0));
+  }
+#endif
+  back_trace = NULL;
  #ifdef MAP_MEMORY_TABLES
   {                             /* calculate total_subr_count: */
     var uintC total = 0;
@@ -3202,6 +3323,7 @@ global int main (argc_t argc, char* argv[]) {
       goto end_of_main;
     }
   }
+
   /* The argv_* variables now have their final values.
    Analyze the environment variables determining the locale.
    Deal with LC_CTYPE. */
@@ -3211,10 +3333,11 @@ global int main (argc_t argc, char* argv[]) {
  #ifndef LANGUAGE_STATIC
   init_language(argv0.argv_language,argv0.argv_localedir);
  #endif
-  SP_anchor = (void*)SP();
+
   if (!(setjmp(original_context) == 0)) goto end_of_main;
   /* Initialize memory and load a memory image (if specified). */
   if (init_memory(&argv1) < 0) goto no_mem;
+  SP_anchor = (void*)SP(); /* VTZ: in MT current_thread() should be initialized */
   /* if the image was read from the executable, argv1.argv_memfile was
      set to exec name and now it has to be propagated to argv2.argv_memfile
      to avoid the beginner warning */

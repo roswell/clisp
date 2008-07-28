@@ -537,24 +537,10 @@
   #define log2_C_CODE_ALIGNMENT  0
 #endif
 
-
 /* Flags for the system's include files. */
-#ifdef MULTITHREAD
-  #if defined(UNIX_GNU) || defined(UNIX_SUNOS5)
-    #define _REENTRANT
-  #endif
-  #if defined(__GNUC__)
-    #define per_thread __thread
-  #else
-    #error how does your compiler specify per-thread storage class?
-  #endif
-#else
-  #define per_thread
-#endif
-
 
 /* Width of object representation:
- WIDE means than an object (pointer) occupies 64 bits (instead of 32 bits).
+   WIDE means than an object (pointer) occupies 64 bits (instead of 32 bits).
  WIDE_HARD means on a 64-bit platform.
  WIDE_SOFT means on a 32-bit platform, each object pointer occupies 2 words.
  WIDE_AUXI means on a 32-bit platform, each object occupies 2 words, the
@@ -746,7 +732,7 @@
         long back_trace_register_contents;
       #endif
     };
-    extern per_thread struct registers * callback_saved_registers;
+    extern  struct registers * callback_saved_registers;
     #ifdef STACK_register
       #define SAVE_STACK_register(registers)     \
               registers->STACK_register_contents = STACK_reg
@@ -2070,16 +2056,6 @@ typedef enum {
 #endif
 /* used by SPVW, STREAM */
 
-#ifdef MULTITHREAD
-
-#include "xthread.c"
-
-#if !(defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO) || defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM))
-  #error Multithreading requires memory mapping facilities!
-#endif
-
-#endif
-
 /* ##################### Further system-dependencies #################### */
 
 /* At first dependencies that are visible to the LISP-level: */
@@ -3003,7 +2979,7 @@ typedef signed_int_with_n_bits(intVsize)  sintV;
   #define MAP_MEMORY
 #endif
 
-#if (defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO) || defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM)) && !defined(MAP_MEMORY) && !(defined(UNIX_HPUX) || defined(UNIX_AIX) || defined(ADDRESS_RANGE_RANDOMIZED)) && !defined(NO_TRIVIALMAP)
+#if (defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO) || defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM)) && !defined(MAP_MEMORY) && !(defined(UNIX_HPUX) || defined(UNIX_AIX) || defined(ADDRESS_RANGE_RANDOMIZED)) && !defined(NO_TRIVIALMAP) 
   /* mmap() allows for a more flexible way of memory management than malloc().
    It's not really memory-mapping, but a more comfortable way to
    manage two large memory blocks.
@@ -4281,7 +4257,7 @@ extern bool inside_gc;
 #endif
 
 /* Algorithm by Morris, that compacts Conses without mixing them up: */
-#if defined(SPVW_BLOCKS) && defined(VIRTUAL_MEMORY) && !defined(NO_MORRIS_GC)
+#if defined(SPVW_BLOCKS) && defined(VIRTUAL_MEMORY) && !defined(NO_MORRIS_GC) /*&& !defined(MULTITHREAD) */
   /* Morris-GC is recommended, as it preserves the locality. */
   #define MORRIS_GC
 #endif
@@ -6860,6 +6836,8 @@ typedef enum {
 
 #ifdef MULTITHREAD
 
+#include "xthread.c"
+
 typedef struct {
   XRECORD_HEADER
   gcv_object_t xth_name _attribute_aligned_object_; /* name */
@@ -8935,6 +8913,9 @@ All other long words on the LISP-Stack are LISP-objects.
     #define SP_register "15"
   #endif
 #endif
+/* VTZ: in multithreaded builds we really need a way to change stack pointer. 
+ So even in case we have NO_ASM - we will use this (with simple search it apears that 
+ these macros are used only in MT anyway) */
 #if (defined(GNU) || defined(INTEL)) && !defined(NO_ASM)
   /* Assembler-instruction that copies the SP-register into a variable. */
   #ifdef MC680X0
@@ -8964,7 +8945,8 @@ All other long words on the LISP-Stack are LISP-objects.
     #define ASM_get_SP_register(resultvar)  ("or %0,#r0,#r31" : "=r" (resultvar) : )
   #endif
   #ifdef POWERPC
-    #define ASM_get_SP_register(resultvar)  ("mr %0,1" : "=r" (resultvar) : )
+    #define ASM_get_SP_register(resultvar)  ("mr %0,r1" : "=r" (resultvar) : )
+    #define set_SP_register(newval)  ({ __asm__ __volatile__ ("mr r1,%0" : : "r" (newval) ); })
   #endif
   #ifdef ARM
     #define ASM_get_SP_register(resultvar)  ("mov\t%0, sp" : "=r" (resultvar) : )
@@ -8974,12 +8956,14 @@ All other long words on the LISP-Stack are LISP-objects.
   #endif
   #ifdef I80386
     #define ASM_get_SP_register(resultvar)  ("movl %%esp,%0" : "=g" (resultvar) : )
+    #define set_SP_register(newval)  ({ __asm__ __volatile__ ("movl %0,%%esp" : : "r" (newval) ); })
   #endif
   #ifdef IA64
     #define ASM_get_SP_register(resultvar)  ("mov %0 = r12" : "=r" (resultvar) : )
   #endif
   #ifdef AMD64
     #define ASM_get_SP_register(resultvar)  ("movq %%rsp,%0" : "=g" (resultvar) : )
+    #define set_SP_register(newval)  ({ __asm__ __volatile__ ("movq %0,%%rsp" : : "r" (newval) ); })
   #endif
   #ifdef S390
     #define ASM_get_SP_register(resultvar)  ("lr %0,%%r15" : "=r" (resultvar) : )
@@ -9135,7 +9119,7 @@ extern void* SP_anchor;
 /* LISP-Stack: STACK */
 #if !defined(STACK_register)
   /* a global variable */
-  extern per_thread gcv_object_t* STACK;
+  extern  gcv_object_t* STACK;
 #else
   /* a global register variable */
   register gcv_object_t* STACK __asm__(STACK_register);
@@ -9289,7 +9273,7 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
  and
    end_callback(); */
 #ifdef HAVE_SAVED_mv_count
-  extern per_thread uintC saved_mv_count;
+  extern  uintC saved_mv_count;
   #define SAVE_mv_count()     saved_mv_count = mv_count
   #define RESTORE_mv_count()  mv_count = saved_mv_count
 #else
@@ -9297,7 +9281,7 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   #define RESTORE_mv_count()
 #endif
 #ifdef HAVE_SAVED_value1
-  extern per_thread object saved_value1;
+  extern  object saved_value1;
   #define SAVE_value1()     saved_value1 = value1
   #define RESTORE_value1()  value1 = saved_value1
 #else
@@ -9305,7 +9289,7 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   #define RESTORE_value1()
 #endif
 #ifdef HAVE_SAVED_back_trace
-  extern per_thread p_backtrace_t saved_back_trace;
+  extern  p_backtrace_t saved_back_trace;
   #define SAVE_back_trace()     saved_back_trace = back_trace
   #define RESTORE_back_trace()  back_trace = saved_back_trace
 #else
@@ -9315,7 +9299,7 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
 #define SAVE_GLOBALS()     SAVE_mv_count(); SAVE_value1(); SAVE_back_trace();
 #define RESTORE_GLOBALS()  RESTORE_mv_count(); RESTORE_value1(); RESTORE_back_trace();
 #if defined(HAVE_SAVED_STACK)
-  extern per_thread gcv_object_t* saved_STACK;
+  extern  gcv_object_t* saved_STACK;
   #define begin_call()  SAVE_GLOBALS(); saved_STACK = STACK
   #define end_call()  RESTORE_GLOBALS(); saved_STACK = (gcv_object_t*)NULL
   #define begin_callback()  SAVE_REGISTERS( STACK = saved_STACK; ); end_call()
@@ -9433,7 +9417,7 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
     #endif
   #endif
 #endif
-extern per_thread void* SP_bound;
+extern  void* SP_bound;
 nonreturning_function(extern, SP_ueber, (void));
 #ifdef UNIX
   #define check_SP_notUNIX()
@@ -9450,8 +9434,8 @@ nonreturning_function(extern, SP_ueber, (void));
 #ifdef STACK_UP
   #define STACK_overflow()  ( (aint)STACK > (aint)STACK_bound )
 #endif
-extern per_thread void* STACK_bound;
-extern per_thread void* STACK_start;
+extern  void* STACK_bound;
+extern  void* STACK_start;
 nonreturning_function(extern, STACK_ueber, (void));
 %% #if notused
 %% export_def(check_STACK());
@@ -11474,6 +11458,7 @@ re-enters the corresponding top-level loop.
 
  Highest number of multiple values + 1 */
 #define mv_limit  128
+
 /* Values are always passed in the MULTIPLE_VALUE_SPACE mv_space:
  uintC mv_count : number of values, >=0, <mv_limit
  object mv_space [mv_limit-1] : the values.
@@ -11482,12 +11467,12 @@ re-enters the corresponding top-level loop.
    The values in mv_space are not subject to the Garbage Collection! */
 #if !defined(mv_count_register)
   /* a global Variable */
-  extern per_thread uintC mv_count;
+  extern  uintC mv_count;
 #else
   /* a global register */
   register uintC mv_count __asm__(mv_count_register);
 #endif
-extern per_thread object mv_space [mv_limit-1];
+extern  object mv_space [mv_limit-1];
 /* Synonyms: */
 #if !defined(value1_register)
     #define value1  mv_space[0]
@@ -11507,7 +11492,7 @@ extern per_thread object mv_space [mv_limit-1];
 #define value9  mv_space[8]
 /* You might need global variables to pass with setjmp/longjmp: */
 #ifdef NEED_temp_mv_count
-  extern per_thread uintC temp_mv_count;
+  extern  uintC temp_mv_count;
   #define LONGJMP_SAVE_mv_count()  temp_mv_count = mv_count
   #define LONGJMP_RESTORE_mv_count()  mv_count = temp_mv_count
 #else
@@ -11515,7 +11500,7 @@ extern per_thread object mv_space [mv_limit-1];
   #define LONGJMP_RESTORE_mv_count()
 #endif
 #ifdef NEED_temp_value1
-  extern per_thread object temp_value1;
+  extern  object temp_value1;
   #define LONGJMP_SAVE_value1()  temp_value1 = value1
   #define LONGJMP_RESTORE_value1()  value1 = temp_value1
 #else
@@ -11524,6 +11509,7 @@ extern per_thread object mv_space [mv_limit-1];
 #endif
 /* is used by EVAL, CONTROL,
                     Macros LIST_TO_MV, MV_TO_LIST, STACK_TO_MV, MV_TO_STACK */
+%% #if !defined(MULTITHREAD)
 %% #if notused
 %% export_def(mv_limit);
 %% #endif
@@ -11546,6 +11532,7 @@ extern per_thread object mv_space [mv_limit-1];
 %%   for (; i <=9 ; i++)
 %%     printf("#define value%d  mv_space[%d]\n",i,i-1);
 %% }
+%% #endif
 
 #ifdef DEBUG_GCSAFETY
   /* Add support for the 'mv_space' expression to the GCTRIGGER1/2/... macros. */
@@ -11686,7 +11673,7 @@ nonreturning_function(extern, error_mv_toomany, (object caller));
 %% #endif
 
 #if !defined(back_trace_register)
-  extern per_thread p_backtrace_t back_trace;
+  extern  p_backtrace_t back_trace;
 #else
   register p_backtrace_t back_trace __asm__(back_trace_register);
 #endif
@@ -11747,6 +11734,7 @@ nonreturning_function(extern, error_mv_toomany, (object caller));
  but without changing the value of pointer. */
 #define Next(pointer)  (*(STACKpointable(pointer) STACKop -1))
 #define Before(pointer)  (*(STACKpointable(pointer) STACKop 0))
+%% #if !defined(MULTITHREAD)
 %% emit_define("args_end_pointer","STACK");
 %% #if notused
 %% emit_define("set_args_end_pointer(new_args_end_pointer)","STACK = (new_args_end_pointer)");
@@ -11754,6 +11742,7 @@ nonreturning_function(extern, error_mv_toomany, (object caller));
 %% export_def(BEFORE(argpointer));
 %% emit_define("Next(pointer)","(*(STACKpointable(pointer) STACKop -1))");
 %% emit_define("Before(pointer)","(*(STACKpointable(pointer) STACKop 0))");
+%% #endif
 %% #endif
 
 /* Environments: */
@@ -11774,7 +11763,7 @@ typedef struct {
 } gcv_environment_t;
 
 /* The current Environment: */
-extern per_thread gcv_environment_t aktenv;
+extern  gcv_environment_t aktenv;
 
 /* Macro: Puts five single Environments on the STACK
  and makes a single Environment out of them.
@@ -12353,7 +12342,7 @@ typedef struct {
   restartf_t fun;
   gcv_object_t* upto_frame;
 } unwind_protect_caller_t;
-extern per_thread unwind_protect_caller_t unwind_protect_to_save;
+extern  unwind_protect_caller_t unwind_protect_to_save;
 extern /*maygc*/ void unwind (void);
 /* is used by CONTROL, DEBUG, SPVW */
 
@@ -12401,13 +12390,13 @@ typedef struct {
   SPint* sp;
   object spdepth;
 } handler_args_t;
-extern per_thread handler_args_t handler_args;
+extern  handler_args_t handler_args;
 typedef struct stack_range_t {
   struct stack_range_t * next;
   gcv_object_t* low_limit;
   gcv_object_t* high_limit;
 } stack_range_t;
-extern per_thread stack_range_t* inactive_handlers;
+extern  stack_range_t* inactive_handlers;
 /* is used by ERROR */
 
 /* UP: Determines, whether an Object is a function name, ie. a Symbol or
@@ -16745,57 +16734,34 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 /* ######################## THREADBIBL for THREAD.D ######################## */
 
 #ifdef MULTITHREAD
-
+%% #ifdef MULTITHREAD
 /* Structure containing all the per-thread global variables.
  (We could use a single instance of this structure also in the single-thread
  model, but it would make debugging less straightforward.) */
   typedef struct {
-    /* Most often used: */
-      #if !defined(STACK_register)
-        gcv_object_t* _STACK;
-      #endif
-      #if !defined(mv_count_register)
-        uintC _mv_count;
-      #endif
-      #if !defined(value1_register)
-        object _value1;
-      #endif
-      #if !defined(back_trace_register)
-        p_backtrace_t _back_trace;
-      #endif
-    /* Less often used: */
+    /* Most often used (also used by modules - so should be exported) : */
+      gcv_object_t* _STACK;
+      uintC _mv_count;
+      p_backtrace_t _back_trace;
+    /* VTZ:TODO this belongs to the end of the structure, but since i am lazy and just wanted
+       to compile the system I put it here. Otherwise quite bigger exported definiton (for modules) is required */
+      object _mv_space [mv_limit-1]; 
+
       #ifndef NO_SP_CHECK
         void* _SP_bound;
       #endif
+    /* VTZ: moved here from spvw.d. */
+      void* _SP_anchor;
+
       void* _STACK_bound;
+      void* _STACK_start;
       unwind_protect_caller_t _unwind_protect_to_save;
-      #ifdef NEED_temp_mv_count
-        uintC _temp_mv_count;
-      #endif
-      #ifdef NEED_temp_value1
-        object _temp_value1;
-      #endif
-      #ifdef HAVE_SAVED_STACK
-        gcv_object_t* _saved_STACK;
-      #endif
-      #ifdef HAVE_SAVED_mv_count
-        uintC _saved_mv_count;
-      #endif
-      #ifdef HAVE_SAVED_value1
-        object _saved_value1;
-      #endif
-      #ifdef HAVE_SAVED_back_trace
-        p_backtrace_t _saved_back_trace;
-      #endif
-      #if defined(HAVE_SAVED_REGISTERS)
-        struct registers * _callback_saved_registers;
-      #endif
+
       uintC _index; /* this thread's index in allthreads[] */
     /* Used for exception handling only: */
       handler_args_t _handler_args;
       stack_range_t* _inactive_handlers;
     /* Big, rarely used arrays come last: */
-      object _mv_space [mv_limit-1];
     /* Now the lisp objects (seen by the GC). */
       /* The Lisp object representing this thread: */
       object _lthread;
@@ -16804,56 +16770,115 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       /* The values of per-thread symbols: */
       object _symvalues[unspecified];
   } clisp_thread_t;
+
+  /*VTZ: was based one the mmap_pagesize*/
+  #define THREAD_SYMVALUES_ALLOCATION_SIZE 4096
+
+  /* VTZ: have excluded the _lthread from the thread_object_offset and thread_object_count 
+   I am not sure but seems that garbage collector does not process it nicely. 
+   TODO: should it be included ???*/
   #define thread_size(nsymvalues)  \
     (offsetofa(clisp_thread_t,_symvalues)+nsymvalues*sizeof(gcv_object_t))
   #define thread_objects_offset(nsymvalues)  \
-    (offsetof(clisp_thread_t,_lthread))
+    (offsetof(clisp_thread_t,_aktenv))
   #define thread_objects_count(nsymvalues)  \
-    ((offsetofa(clisp_thread_t,_symvalues)-offsetof(clisp_thread_t,_lthread))/sizeof(gcv_object_t)+(nsymvalues))
+    ((offsetofa(clisp_thread_t,_symvalues)-offsetof(clisp_thread_t,_aktenv))/sizeof(gcv_object_t)+(nsymvalues))
 
-/* Size of a single thread's stack region. Must be a power of 2. */
-  #define THREAD_SP_SHIFT  22  /* 4 MB should be sufficient, and leaves room */
-                               /* for about 128 threads. */
-  #define THREAD_SP_SIZE  bit(THREAD_SP_SHIFT)
-/* Returns the stack pointer, or some address near the stack pointer. */
-  /* Important for efficiency: Multiple calls to this function within a single
-   function must be combined to a single, inlined call. To reach this, we
-   use __asm__, not __asm__ __volatile__, and we don't use a global register
-   variable. */
-  #if defined(ASM_get_SP_register)
-    #define roughly_SP()  \
-      ({ var aint __SP; __asm__ ASM_get_SP_register(__SP); __SP; })
-  #else
-    #define roughly_SP()  (aint)__builtin_frame_address(0)
-    /* Note: If (__GNUC__ == 2) && (__GNUC_MINOR__ >= 8) && (__GNUC_MINOR__ < 95)
-     one can write
-       #define roughly_SP()  (aint)__builtin_sp()
-     but this isn't efficient because gcc somehow knows that the stack pointer
-     varies across the function (maybe because of our register declaration?). */
-  #endif
-/* Returns a pointer to the thread structure, given the thread's stack pointer. */
-  #ifdef SP_DOWN
-    #ifndef MORRIS_GC
-      #define sp_to_thread(sp)  \
-        (clisp_thread_t*)((aint)(sp) & minus_bit(THREAD_SP_SHIFT))
-    #else
-      /* Morris GC doesn't like the backpointers to have garcol_bit set. */
-      #define sp_to_thread(sp)  \
-        (clisp_thread_t*)((aint)(sp) & (minus_bit(THREAD_SP_SHIFT) & ~wbit(garcol_bit_o)))
+/* VTZ: just the beginning of the structure is exported - what modules want to know about 
+   (in order to build) */
+%%  puts("typedef struct {");
+%%  puts("     gcv_object_t* _STACK;");
+%%  puts("     uintC _mv_count;");
+%%  puts("     p_backtrace_t _back_trace;");
+%%  puts("     object _mv_space [unspecified];");
+%%  puts("} clisp_thread_t;");
+  
+  #if defined(__GNUC__)
+    #if defined (UNIX_LINUX) /* || defined() - add more - the GCC should have built-in support for TLS */
+      #define per_thread __thread
     #endif
+  #elif defined(__WIN32__) && defined (MICROSOFT)
+    #define  per_thread __declspec(thread)
   #endif
-  #ifdef SP_UP
-    #define sp_to_thread(sp)  \
-      (clisp_thread_t*)(((aint)(sp) | (bit(THREAD_SP_SHIFT)-1)) - 0x1FFFF)
+  #ifdef per_thread
+     extern per_thread clisp_thread_t* _current_thread; /* current_thread pointer */
+     #define current_thread() _current_thread
+  #else
+    /* VTZ: We want MT, but our compiler does not provide built in support for MT. 
+      So use explicit TLS functions for this - xthread_get_key()
+    */
+    extern xthread_key_t current_thread_tls_key;
+    #define current_thread() ({clisp_thread_t *__thr=(clisp_thread_t *)xthread_key_get(current_thread_tls_key); __thr;})
   #endif
-/* Returns a pointer to the current thread structure. */
-  typedef clisp_thread_t* current_thread_function_t (void);
-  local inline const current_thread_function_t current_thread;
-  local inline clisp_thread_t* current_thread (void)
-  { return sp_to_thread(roughly_SP()); }
 
+#ifdef per_thread
+  #define set_current_thread(thread) _current_thread=thread
+#else
+  #define set_current_thread(thread) xthread_key_set(current_thread_tls_key,(void *)thread);
 #endif
 
+%% #ifdef per_thread
+%%   export_def(per_thread);
+%%   puts("extern per_thread clisp_thread_t* _current_thread;");
+%% #else
+%%   #if defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)
+%%      emit_typedef ("pthread_key_t","xthread_key_t");
+%%   #endif
+%%   #if defined(SOLARIS_THREADS)
+%%      emit_typedef ("thread_key_t","xthread_key_t");
+%%   #endif
+%%   #if defined(WIN32_THREADS)
+%%      emit_typedef ("DWORD","xthread_key_t");
+%%   #endif
+%%   #if defined(C_THREADS)
+%%      #error "C_THREADS do not have TLS"
+%%   #endif
+%%   puts("extern xthread_key_t current_thread_tls_key;");
+%% #endif
+
+  #if 0 /* VTZ: not anymore ??? */
+    #if !(defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO) || defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM))
+      #error Multithreading requires memory mapping facilities!
+    #endif
+  #endif
+
+  #define inactive_handlers current_thread()->_inactive_handlers
+  #define handler_args current_thread()->_handler_args
+  #define unwind_protect_to_save current_thread()->_unwind_protect_to_save
+  #define aktenv current_thread()->_aktenv
+  #define STACK_bound current_thread()->_STACK_bound
+  #define STACK_start current_thread()->_STACK_start
+  #define mv_space current_thread()->_mv_space
+
+  #define STACK current_thread()->_STACK
+  #define mv_count current_thread()->_mv_count
+  #define back_trace current_thread()->_back_trace
+  #define SP_bound current_thread()->_SP_bound
+
+  #define SP_anchor current_thread()->_SP_anchor
+
+/* needed for building modules */
+%% export_def(value1);
+%% export_def(value2);
+%% export_def(value3);
+%% export_def(value4);
+%% export_def(value5);
+%% export_def(value6);
+%% export_def(value7);
+%% export_def(value8);
+%% export_def(value9);
+%% export_def(mv_count);
+%% export_def(back_trace);
+ 
+/* The lisp_stack_size should be speicified - if 0 - no allocation will be performed for it (for main thread). */
+extern clisp_thread_t* create_thread(uintM lisp_stack_size);
+/* removes the current_thread from the list (array) of threads. Also unmaps allocated memory by create_thread() */
+extern void delete_thread ();
+/* currently not used but when we start to play with symbols will be required in many files. */
+extern uintL maxnum_symvalues; /* initialized in spvw.d */
+
+#endif
+%% #endif
 /* ######################## BUILTBIBL for BUILT.D ######################## */
 
 /* Returns a multiline string containing some info about the flags with which

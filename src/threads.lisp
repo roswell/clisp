@@ -24,7 +24,8 @@ terminate and evaluate TIMEOUT-FORMS."
 
 (defun timeout-message (default localinfo)
   (write-string (SYS::TEXT "[Timed out] "))
-  (write-string (car (funcall (if default #'cdr #'car) localinfo)))
+  ;; VTZ: (localized 'sys::y-or-n) returns list(s) of characters - so (string ...)
+  (write-string (string (car (funcall (if default #'cdr #'car) localinfo))))
   (terpri)
   default)
 
