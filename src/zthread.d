@@ -4,6 +4,8 @@
  * Sam Steingold 2003-2008
  */
 
+/* VTZ: just testiong the CVS commit*/
+
 #include "lispbibl.c"
 
 #ifdef MULTITHREAD
