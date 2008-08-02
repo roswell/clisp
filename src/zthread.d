@@ -27,31 +27,33 @@
 #define VAROUT(v)
 #endif
 
+
 /* VTZ: All newly created threads start here.
  since we are replacing the C stack here - we do not want compiler to optimize this function in any way */
 local maygc void *thread_stub(void *arg)
 {
+  register_thread((clisp_thread_t *)arg,false); /* here the thread lock is still held */
   set_current_thread((clisp_thread_t *)arg);
   SP_anchor=(void*)SP();
+  unlock_threads(); /* unlock the threads locked in the make-thread */
   /* VTZ: may be initialize backtrace_t and some frame on the stack (if not done already) ??? */
   funcall(STACK_0,0); /* call it */
-  VAROUT(value1);
+  /*VTZ: may be store the return value in the thread record ??*/
   /* At the end delete the thread. */ 
-  delete_thread(current_thread());
+  delete_thread();
   return NULL;
 }
 
 LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
 { /* (MAKE-THREAD function &key name) */
-  /*VTZ: TODO check the arguments - only functionp as a first parameter is accepted. */
   var uintM lisp_stack_size=(abs((gcv_object_t *)STACK_start - (gcv_object_t *)STACK_bound)+0x40)*sizeof(gcv_object_t *);
   var clisp_thread_t *new_thread;
   var object ret=NIL;
-  new_thread=create_thread(lisp_stack_size);
+  lock_threads();
+  new_thread=create_thread(false,lisp_stack_size);
   if (!new_thread) {
     /* VTZ:TODO. what to do here??? condition, exit with NIL ??? */ 
-    printf("VTZ: create_thread() failed.");
-    skipSTACK(2); VALUES1(NIL); return;
+    skipSTACK(2); VALUES1(NIL); unlock_threads(); return;
   }
   /* prepare the new thread stack */
   /* push 2 nullobj */
@@ -60,14 +62,26 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
   NC_pushSTACK(new_thread->_STACK,STACK_1);
 
   /* VTZ:TODO should we really do this ????  or something else??? */
-  new_thread->_aktenv=aktenv;  /* set it the same as current thread one */
+  new_thread->_aktenv=aktenv; /* set it the same as current thread one */
   /* VTZ:TODO we have to  copy the symvalues as well. */
   /* Should we insert anything else on the STACK? */
 
+  /*VTZ: the GC still does not like thread objects*/
+  /*
   ret=new_thread->_lthread=allocate_thread(&STACK_0);
   xthread_create(&TheThread(new_thread->_lthread)->xth_system,&thread_stub,new_thread);
+  */
+  xthread_t xt;
+  if (xthread_create(&xt,&thread_stub,new_thread)) {
+    ret=NIL;
+    free(THREAD_LISP_STACK_START(new_thread));
+    free(new_thread);
+    unlock_threads(); /* in case of failure - release the thread lock*/
+  }
   skipSTACK(2);
   VALUES1(ret);
+  /* thread creation/deletion as well suspension remains locked 
+   the lock will be releases in the new tread after all initialization are ready*/
 }
 
 struct call_timeout_data_t {
@@ -76,19 +90,24 @@ struct call_timeout_data_t {
   clisp_thread_t *caller;
 };
 
+/* the thread the executes the call-with-timeout body function*/
 local maygc void *exec_timeout_call (void *arg)
 {
   var struct call_timeout_data_t *pcd = (struct call_timeout_data_t*)arg;
-  xmutex_lock(&pcd->mutex); /* wait for the main thread to start waiting */
-  xmutex_unlock(&pcd->mutex); /* allow the main thread to timeout */
   /* simply reuse the calling thread stack. 
    the calling thread does not have a lot of job to do until we work so it seems safe. */
   set_current_thread(pcd->caller);  
+  begin_system_call();
+  xmutex_lock(&pcd->mutex); /* wait for the main thread to start waiting */
+  xmutex_unlock(&pcd->mutex); /* allow the main thread to timeout */
+  end_system_call();
   /*VTZ:TODO The back_trace resides on the caller thread C stack - there maybe problems here*/  
   SP_anchor=(void*)SP(); /* hmm. The back_trace resides on*/
   funcall(STACK_0,0); /* run the function */
   /* now we have to restore our original stack (that OS has provided to us) */
+  begin_system_call();
   xcondition_broadcast(&pcd->cond);
+  end_system_call();
   return NULL;
 }
 
@@ -113,25 +132,24 @@ LISPFUNN(call_with_timeout,3)
     var int retval=0;
     memcpy(&restore_after_cancel,current_thread(),thread_size(0)); /* everything without symvalues */
     cd.caller=current_thread();
+    begin_system_call();
     xcondition_init(&cd.cond); xmutex_init(&cd.mutex);
     xmutex_lock(&cd.mutex);
+    end_system_call();
     xthread_create(&xth,&exec_timeout_call,(void*)&cd);
     gettimeofday(&now,NULL);
     timeout.tv_sec = now.tv_sec + tv.tv_sec;
     timeout.tv_nsec = 1000*(now.tv_usec + tv.tv_usec);
     retval = xcondition_timedwait(&cd.cond,&cd.mutex,&timeout);
     if (retval == ETIMEDOUT) {
-      xthread_cancel(xth);
-      /* VTZ: thread cancellation works perfectly on 32bit x86 linux.
-       no so well on osx ppx - even if we try to cancel - we wait the thread to finish - 
-      at leas the timeout form is returned.
-      not sure how to implement in nicely on Win32 (without adding some code in the eval) -
-      TerminateThread is not an option - leaks the stack. */
+      xthread_wait(xth); /*VTZ: currently we do not have safe way to cancel thread (esp. GC)*/ 
       memcpy(current_thread(),&restore_after_cancel,thread_size(0));
       funcall(STACK_1,0); /* run timeout-function */
     }
+    begin_system_call();
     xcondition_destroy(&cd.cond);
     xmutex_destroy(&cd.mutex);
+    end_system_call();
   } else
     funcall(STACK_1,0);
   skipSTACK(3);
@@ -147,7 +165,10 @@ LISPFUN(thread_wait,seclass_default,3,0,rest,nokey,0,NIL)
 
 LISPFUNN(thread_yield,0)
 { /* (THREAD-YIELD) */
-  NOTREACHED;
+  begin_system_call();
+  xthread_yield();
+  end_system_call();
+  VALUES1(current_thread()->_lthread);
 }
 
 LISPFUNN(thread_kill,1)
@@ -192,7 +213,7 @@ LISPFUNN(thread_whostate,1)
 
 LISPFUNN(current_thread,0)
 { /* (CURRENT-THREAD) */
-  NOTREACHED;
+  VALUES1(current_thread()->_lthread);
 }
 
 LISPFUNN(list_threads,0)

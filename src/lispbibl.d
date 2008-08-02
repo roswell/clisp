@@ -4257,7 +4257,7 @@ extern bool inside_gc;
 #endif
 
 /* Algorithm by Morris, that compacts Conses without mixing them up: */
-#if defined(SPVW_BLOCKS) && defined(VIRTUAL_MEMORY) && !defined(NO_MORRIS_GC) /*&& !defined(MULTITHREAD) */
+#if defined(SPVW_BLOCKS) && defined(VIRTUAL_MEMORY) && !defined(NO_MORRIS_GC)  && !defined(MULTITHREAD) 
   /* Morris-GC is recommended, as it preserves the locality. */
   #define MORRIS_GC
 #endif
@@ -6848,7 +6848,7 @@ typedef struct {
   struct backtrace_t *xth_bt;          /* the backtrace */
   xthread_t xth_system;                /* OS object */
 } * Thread;
-#define thread_length  2
+#define thread_length  5
 #define thread_xlength (sizeof(*(Thread)0)-offsetofa(record_,recdata)-thread_length*sizeof(gcv_object_t))
 
 typedef struct {
@@ -7737,7 +7737,7 @@ typedef struct {
   #define builtin_stream_p(obj)  \
     (orecordp(obj) && (Record_type(obj) == Rectype_Stream))
 #endif
-%% export_def(builtin_stream_p(obj));
+/* %% export_def(builtin_stream_p(obj)); */
 
 /* Test for Stream */
 #define streamp(obj)  \
@@ -9296,6 +9296,44 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   #define SAVE_back_trace()
   #define RESTORE_back_trace()
 #endif
+#if defined(MULTITHREAD)
+  /* no_gc statement is executed in case the thread should not be suspended for GC.*/
+  #define GC_SAFE_POINT_ELSE(no_gc) \
+    do{ \
+      var clisp_thread_t *thr=current_thread();		  \
+      if (spinlock_tryacquire(&thr->_suspend_request)) {  \
+        spinlock_release(&thr->_suspend_ack);		  \
+        xmutex_lock(&thr->_suspend_lock);		  \
+	spinlock_acquire(&thr->_suspend_ack);		  \
+        xmutex_unlock(&thr->_suspend_lock);		  \
+      } else {no_gc;}					  \
+    }while(0)
+  #define GC_SAFE_POINT() GC_SAFE_POINT_ELSE(;)
+/* Giving up suspend ack during we are in system call. So we can be considered 
+ suspended for GC. */
+  #define GC_SAFE_REGION_BEGIN() \
+    do { \
+      spinlock_release(&current_thread()->_suspend_ack); \
+    }while(0)
+/*VTZ: we should acquire the ACK spinlock, however in the existing code the calls to begin/end 
+ calls do not match on many places. So we will check whether there is suspend request. */
+  #define GC_SAFE_REGION_END() GC_SAFE_POINT_ELSE(spinlock_tryacquire(&current_thread()->_suspend_ack))
+
+  /* all calls to GC should be via this maccro */
+  #define PERFORM_GC(statement)			\
+    do {						\
+      gc_suspend_all_threads();			\
+      statement;					\
+      gc_resume_all_threads();			\
+    } while(0)
+
+#else
+  #define GC_SAFE_POINT_ELSE(no_gc)
+  #define GC_SAFE_POINT()
+  #define GC_SAFE_REGION_BEGIN()
+  #define GC_SAFE_REGION_END()
+  #define PERFORM_GC(statement) statement
+#endif
 #define SAVE_GLOBALS()     SAVE_mv_count(); SAVE_value1(); SAVE_back_trace();
 #define RESTORE_GLOBALS()  RESTORE_mv_count(); RESTORE_value1(); RESTORE_back_trace();
 #if defined(HAVE_SAVED_STACK)
@@ -9343,8 +9381,8 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   #define begin_system_call()
   #define end_system_call()
 #else
-  #define begin_system_call()  begin_call()
-  #define end_system_call()  end_call()
+#define begin_system_call()  begin_call(); GC_SAFE_REGION_BEGIN()
+#define end_system_call()  end_call(); GC_SAFE_REGION_END()
 #endif
 /* The same holds for setjmp()/longjmp(). Here we avoid an unneeded overhead
  if at all possible.
@@ -9373,8 +9411,8 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
 /* The same holds for arithmetics-functions that use the STACK_registers.
  On I80386 (%ebx) these are SHIFT_LOOPS, MUL_LOOPS, DIV_LOOPS. */
 #if defined(I80386) && !defined(NO_ARI_ASM) && defined(HAVE_SAVED_STACK)
-  #define begin_arith_call()  begin_system_call()
-  #define end_arith_call()  end_system_call()
+  #define begin_arith_call()  begin_call()
+  #define end_arith_call()  end_call()
 #else
   #define begin_arith_call()
   #define end_arith_call()
@@ -15698,11 +15736,13 @@ extern maygc Handle stream_lend_handle (gcv_object_t *stream_, bool inputp, int 
 /* extract the OS file handle from the file stream
  > stream: open Lisp file stream
  < fd: OS file handle
+ > permissive_p: return nullobj instead of signaling an error
  < result: either stream, or a corrected stream in case stream was invalid
+           or nullobj if permissive_p was true and the stream was invalid
  for syscall module
  can trigger GC */
-extern maygc object open_file_stream_handle (object stream, Handle *fd);
-%% puts("extern object open_file_stream_handle (object stream, Handle *fd);");
+extern maygc object open_file_stream_handle (object stream, Handle *fd, bool permissive_p);
+%% puts("extern object open_file_stream_handle (object stream, Handle *fd, bool permissive_p);");
 
 /* return the OS's idea of the stream length for the file stream
  > stream: for error reporting
@@ -16743,14 +16783,19 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       gcv_object_t* _STACK;
       uintC _mv_count;
       p_backtrace_t _back_trace;
-    /* VTZ:TODO this belongs to the end of the structure, but since i am lazy and just wanted
-       to compile the system I put it here. Otherwise quite bigger exported definiton (for modules) is required */
+
+      /* suspend/resume machinery */
+      spinlock_t _suspend_request; /*always signalled unless there is a suspend request. */
+      spinlock_t _suspend_ack; /* always signalled unless it can be assumed the the thread is suspended */
+      xmutex_t _suspend_lock; /* the mutex on which the thread waits. */
+
+      /* VTZ:TODO this belongs to the end of the structure, but since i am lazy and just wanted
+         to compile the system I put it here. Otherwise quite bigger exported definiton (for modules) is required */
       object _mv_space [mv_limit-1]; 
 
       #ifndef NO_SP_CHECK
         void* _SP_bound;
       #endif
-    /* VTZ: moved here from spvw.d. */
       void* _SP_anchor;
 
       void* _STACK_bound;
@@ -16770,10 +16815,6 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       /* The values of per-thread symbols: */
       object _symvalues[unspecified];
   } clisp_thread_t;
-
-  /*VTZ: was based one the mmap_pagesize*/
-  #define THREAD_SYMVALUES_ALLOCATION_SIZE 4096
-
   /* VTZ: have excluded the _lthread from the thread_object_offset and thread_object_count 
    I am not sure but seems that garbage collector does not process it nicely. 
    TODO: should it be included ???*/
@@ -16783,15 +16824,6 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
     (offsetof(clisp_thread_t,_aktenv))
   #define thread_objects_count(nsymvalues)  \
     ((offsetofa(clisp_thread_t,_symvalues)-offsetof(clisp_thread_t,_aktenv))/sizeof(gcv_object_t)+(nsymvalues))
-
-/* VTZ: just the beginning of the structure is exported - what modules want to know about 
-   (in order to build) */
-%%  puts("typedef struct {");
-%%  puts("     gcv_object_t* _STACK;");
-%%  puts("     uintC _mv_count;");
-%%  puts("     p_backtrace_t _back_trace;");
-%%  puts("     object _mv_space [unspecified];");
-%%  puts("} clisp_thread_t;");
   
   #if defined(__GNUC__)
     #if defined (UNIX_LINUX) /* || defined() - add more - the GCC should have built-in support for TLS */
@@ -16811,36 +16843,57 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
     #define current_thread() ({clisp_thread_t *__thr=(clisp_thread_t *)xthread_key_get(current_thread_tls_key); __thr;})
   #endif
 
-#ifdef per_thread
-  #define set_current_thread(thread) _current_thread=thread
-#else
-  #define set_current_thread(thread) xthread_key_set(current_thread_tls_key,(void *)thread);
-#endif
+  #ifdef per_thread
+    #define set_current_thread(thread) _current_thread=thread
+  #else
+    #define set_current_thread(thread) xthread_key_set(current_thread_tls_key,(void *)thread)
+  #endif
+
+  #ifdef STACK_DOWN
+    #define THREAD_LISP_STACK_START(thread) ((gcv_object_t *)thread->_STACK_bound-0x40)
+  #endif
+  #ifdef STACK_UP
+    #define THREAD_LISP_STACK_START(thread) ((gcv_object_t *)thread->_STACK_start)
+  #endif
+
+%%   #if defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)
+%%      emit_typedef ("pthread_key_t","xthread_key_t");
+%%      emit_typedef ("pthread_mutex_t","xmutex_t");
+%%   #endif
+%%   #if defined(SOLARIS_THREADS)
+%%      emit_typedef ("thread_key_t","xthread_key_t");
+%%      emit_typedef ("mutex_t","xmutex_t");
+%%   #endif
+%%   #if defined(WIN32_THREADS)
+%%      emit_typedef ("DWORD","xthread_key_t");
+%%      emit_typedef ("CRITICAL_SECTION","xmutex_t");
+%%   #endif
+%%   #if defined(C_THREADS)
+%%      #error "C_THREADS do not have TLS"
+%%      emit_typedef ("struct mutex","xmutex_t");
+%%   #endif
+
+%% emit_typedef("int","spinlock_t");
+
+/* VTZ: just the beginning of the structure is exported - what modules want to know about 
+   (in order to build) */
+%%  puts("typedef struct {");
+%%  puts("     gcv_object_t* _STACK;");
+%%  puts("     uintC _mv_count;");
+%%  puts("     p_backtrace_t _back_trace;");
+%%  puts("     spinlock_t _suspend_request;");
+%%  puts("     spinlock_t _suspend_ack;");
+%%  puts("     xmutex_t _suspend_lock;"); 
+%%  puts("     object _mv_space [unspecified];");
+%%  puts("} clisp_thread_t;");
 
 %% #ifdef per_thread
 %%   export_def(per_thread);
 %%   puts("extern per_thread clisp_thread_t* _current_thread;");
 %% #else
-%%   #if defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)
-%%      emit_typedef ("pthread_key_t","xthread_key_t");
-%%   #endif
-%%   #if defined(SOLARIS_THREADS)
-%%      emit_typedef ("thread_key_t","xthread_key_t");
-%%   #endif
-%%   #if defined(WIN32_THREADS)
-%%      emit_typedef ("DWORD","xthread_key_t");
-%%   #endif
-%%   #if defined(C_THREADS)
-%%      #error "C_THREADS do not have TLS"
-%%   #endif
 %%   puts("extern xthread_key_t current_thread_tls_key;");
 %% #endif
 
-  #if 0 /* VTZ: not anymore ??? */
-    #if !(defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO) || defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM))
-      #error Multithreading requires memory mapping facilities!
-    #endif
-  #endif
 
   #define inactive_handlers current_thread()->_inactive_handlers
   #define handler_args current_thread()->_handler_args
@@ -16870,12 +16923,27 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 %% export_def(mv_count);
 %% export_def(back_trace);
  
-/* The lisp_stack_size should be speicified - if 0 - no allocation will be performed for it (for main thread). */
-extern clisp_thread_t* create_thread(uintM lisp_stack_size);
-/* removes the current_thread from the list (array) of threads. Also unmaps allocated memory by create_thread() */
-extern void delete_thread ();
+/* allocates,initializes and returns clisp_thread_t structure. 
+ Does not register it in the global thread array */
+global clisp_thread_t* create_thread(bool is_main, uintM lisp_stack_size);
+/* removes the current_thread from the list (array) of threads. 
+ Also frees any allocated resource. */
+global void delete_thread();
 /* currently not used but when we start to play with symbols will be required in many files. */
-extern uintL maxnum_symvalues; /* initialized in spvw.d */
+global uintL maxnum_symvalues; /* initialized in spvw.d */
+/* register a clisp-thread_t in global thread array 
+ thread - the new allocated thread.
+ lock - whether to lock all threads activity. */
+global int register_thread(clisp_thread_t *thread, bool lock);
+/* locks the global thread array */
+global void lock_threads();
+/* unlocks global thread array */
+global void unlock_threads();
+/* Suspends all running threads /besides the current/ on GC safe points/regions*/
+global void gc_suspend_all_threads();
+/* Resumes all suspended threads /besides the current/ 
+ should match a call to suspend_all_threads()*/
+global void gc_resume_all_threads();
 
 #endif
 %% #endif

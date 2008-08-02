@@ -125,7 +125,10 @@ typedef pthread_key_t     xthread_key_t;
 #define xthread_exit(v)  pthread_exit(v)
 #define xthread_yield()  do { if (sched_yield() < 0) OS_error(); } while(0)
 #define xthread_equal(t1,t2)  pthread_equal(t1,t2)
-#define xthread_cancel(t) pthread_cancel(t), pthread_join(t,NULL)
+/* we should be very careful in canceling threads - especially when we are in GC
+ currently this is disabled. */
+/*#define xthread_cancel(t) pthread_cancel(t), pthread_join(t,NULL)*/
+#define xthread_wait(t) pthread_join(t,NULL)
 
 #ifdef POSIX_THREADS
 #define xcondition_init(c)  pthread_cond_init(c,NULL)
@@ -147,6 +150,7 @@ typedef pthread_key_t     xthread_key_t;
 #endif
 #define xmutex_destroy(m)  pthread_mutex_destroy(m)
 #define xmutex_lock(m)  pthread_mutex_lock(m)
+#define xmutex_trylock(m) (pthread_mutex_trylock(m)==0)
 #define xmutex_unlock(m)  pthread_mutex_unlock(m)
 
 #ifdef POSIX_THREADS
@@ -189,8 +193,10 @@ typedef thread_key_t      xthread_key_t;
 
 #define xmutex_init(m)  mutex_init(m,USYNC_THREAD,0)
 #define xmutex_destroy(m)  mutex_destroy(m)
+#define xmutex_trylock(m) FIXME
 #define xmutex_lock(m)  mutex_lock(m)
 #define xmutex_unlock(m)  mutex_unlock(m)
+
 
 #define xthread_key_create(key)  thr_keycreate(key,NULL)
 #define xthread_key_delete(key)  0
@@ -225,6 +231,7 @@ typedef struct mutex      xmutex_t;
 #define xmutex_init(m)  mutex_init(m)
 #define xmutex_destroy(m)  mutex_clear(m)
 #define xmutex_lock(m)  mutex_lock(m)
+#define xmutex_trylock() FIXME
 #define xmutex_unlock(m)  mutex_unlock(m)
 
 #endif  /* C_THREADS */
@@ -232,15 +239,13 @@ typedef struct mutex      xmutex_t;
 #if defined(WIN32_THREADS)
 
 /* include <windows.h>  -- already included by win32.d */
+#define MAX_SEMAPHORE_COUNT  128
 
 typedef DWORD              xthread_t;
-struct _xthread_waiter {
-  HANDLE sem;
-  struct _xthread_waiter * next;
-};
 struct _xcondition {
   CRITICAL_SECTION cs;
-  struct _xthread_waiter * waiters;
+  HANDLE sem;
+  int waiting_count;
 };
 typedef struct _xcondition xcondition_t;
 typedef CRITICAL_SECTION   xmutex_t;
@@ -251,37 +256,44 @@ typedef DWORD              xthread_key_t;
 #define xthread_create(thread,startroutine,arg)  \
   CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)startroutine,(LPVOID)arg,0,thread)
 #define xthread_exit(v)  ExitThread((DWORD)(v))
-#define xthread_yield()  Sleep(0)FIXME
+#define xthread_yield()  Sleep(0)
 #define xthread_equal(t1,t2)  ((t1)==(t2))
+/*VTZ: the xthread_t is actually the ID of the thread, not it's handle - so the call below
+  is not valid. We should get the HANDLE from the thread id in order to call WaitForSingleObject */
+#define xthread_wait(t) FIXME, WaitForSingleObject(t,INFINITE)
 
-#define xcondition_init(c)                                              \
-  do { InitializeCriticalSection(&(c)->cs); (c)->waiters = NULL; } while(0)
+#define xcondition_init(c) \
+  do { InitializeCriticalSection(&(c)->cs); \
+       (c)->sem=CreateSemaphore(NULL,0,MAX_SEMAPHORE_COUNT,NULL);  \
+       (c)->waiting_count=0;  \
+      } while(0)
 #define xcondition_destroy(c)                   \
-  DeleteCriticalSection(&(c)->cs);
+  do { DeleteCriticalSection(&(c)->cs);    \
+       CloseHandle((c)->sem);  \
+  } while (0)
+
 #define xcondition_wait(c,m)                                        \
-  do { struct _xthread_waiter self_waiting;                         \
-    InitializeSemaphore(self_waiting.sem,FIXME);                    \
+  do {  \
     EnterCriticalSection(&(c)->cs);                                 \
-    self_waiting.next = (c)->waiters; (c)->waiters = &self_waiting; \
+    (c)->waiting_count++;                                          \
     LeaveCriticalSection(&(c)->cs);                                 \
     LeaveCriticalSection(m);                                        \
-    WaitForSingleObject(self_waiting.sem,INFINITE);                 \
+    WaitForSingleObject((c)->sem,INFINITE);			    \
     EnterCriticalSection(m);                                        \
-    DeleteSemaphore(self_waiting.sem,FIXME);                        \
   } while(0)
 #define xcondition_signal(c)                                           \
   do { EnterCriticalSection(&(c)->cs);                                 \
-    if ((c)->waiters != NULL) {                                        \
-      ReleaseSemaphore((c)->waiters->sem,1,NULL);                      \
-      (c)->waiters = (c)->waiters->next;                               \
+    if ((c)->waiting_count > 0) {                                     \
+      ReleaseSemaphore((c)->sem,1,NULL);                               \
+      (c)->waitintg_count--; 					       \
     }                                                                  \
     LeaveCriticalSection(&(c)->cs);                                    \
   } while(0)
 #define xcondition_broadcast(c)                                        \
   do { EnterCriticalSection(&(c)->cs);                                 \
-    while ((c)->waiters != NULL) {                                     \
-      ReleaseSemaphore((c)->waiters->sem,1,NULL);                      \
-      (c)->waiters = (c)->waiters->next;                               \
+    if ((c)->waiting_count > 0) {                                     \
+      ReleaseSemaphore((c)->sem,(c)->waiting_count,NULL);   	  \
+      (c)->waiting_count=0;						\
     }                                                                  \
     LeaveCriticalSection(&(c)->cs);                                    \
   } while(0)
@@ -289,6 +301,7 @@ typedef DWORD              xthread_key_t;
 #define xmutex_init(m) (InitializeCriticalSection(m),GetLastError())
 #define xmutex_destroy(m)  (DeleteCriticalSection(m),GetLastError())
 #define xmutex_lock(m)      (EnterCriticalSection(m),GetLastError())
+#define xmutex_trylock(m) (TryEnterCriticalSection(m)!=0)
 #define xmutex_unlock(m)    (LeaveCriticalSection(m),GetLastError())
 
 #define xthread_key_create(key)  (*(key) = TlsAlloc())
@@ -297,8 +310,6 @@ typedef DWORD              xthread_key_t;
 #define xthread_key_set(key,val)  TlsSetValue(key,val)
 
 #endif  /* WIN32_THREADS */
-
-#ifdef FOR_SOME_REASON_WE_ALSO_WANT_SPIN_LOCKS_WHICH_CAUSE_GCC_TO_BARF
 
 /* ==========================================================================
 
@@ -316,7 +327,7 @@ typedef DWORD              xthread_key_t;
  - Acquiring a lock which is previously unlocked, and releasing a lock are
    fast operations. */
 
-#if defined(GNU) && (defined(MC680X0) || defined(SPARC) || defined(MIPS) || defined(I80386) || defined(DECALPHA))
+#if defined(GNU) && (defined(MC680X0) || defined(SPARC) || defined(MIPS) || defined(I80386) || defined(DECALPHA) || defined(POWERPC))
 
   typedef int spinlock_t; /* A value 0 means unlocked, != 0 means locked. */
 
@@ -386,13 +397,38 @@ typedef DWORD              xthread_key_t;
     static inline long testandset (int* spinlock)
     { int ret;
       __asm__ __volatile__("xchgl %0,%1"
-                           : "=&r" (ret), "=m" (*spinlock)
-                           : "0" (1), "1" (*spinlock)
+                           : "=r" (ret), "=m" (*spinlock)
+                           : "0" (1), "m" (*spinlock)
+			   : "memory"
                           );
       return ret;
     }
     static inline void spinlock_release (int* spinlock)
     { *spinlock = 0; }
+  #endif
+  #ifdef POWERPC
+    static inline long testandset (int* spinlock)
+    { int ret;
+      __asm__ __volatile__(
+			   "0:lwarx %0,0,%1 \n"
+			   " cmpwi %0,0 \n"
+			   " bne 1f \n"
+			   " stwcx. %2,0,%1 \n"
+			   " bne- 0b \n"
+			   "1:  isync  \n"
+			   : "=&r"(ret)
+			   : "r"(spinlock), "r"(1)
+			   : "cr0", "memory");
+      return ret;
+    }
+
+
+    static inline void spinlock_release (int* spinlock)
+    { 
+      __asm__ __volatile__("sync" : : : "memory");
+      *spinlock = 0;
+    }
+
   #endif
   #ifdef DECALPHA
     static inline long testandset (int* spinlock)
@@ -415,6 +451,9 @@ typedef DWORD              xthread_key_t;
     static inline void spinlock_release (int* spinlock)
     { __asm__ __volatile__("mb" : : : "memory"); *spinlock = 0; }
   #endif
+
+  static inline bool spinlock_tryacquire(int* spinlock)
+  { return testandset(spinlock)==0;}
   static inline void spinlock_acquire (int* spinlock)
   { while (testandset(spinlock)) { xthread_yield(); } }
   static inline void spinlock_destroy (int* spinlock)
@@ -441,6 +480,8 @@ typedef DWORD              xthread_key_t;
                         );
     return ret;
   }
+  static inline bool spinlock_tryacquire(int* spinlock)
+  { return testandset(spinlock)==0;}
   static inline void spinlock_acquire (int* spinlock)
   { while (testandset(spinlock)) { xthread_yield(); } }
   static inline void spinlock_release (int* spinlock)
@@ -456,6 +497,8 @@ typedef DWORD              xthread_key_t;
 
   static inline void spinlock_init (spinlock_t* spinlock)
   { int err = xmutex_init(spinlock); if (err) OS_error(); }
+  static inline bool spinlock_tryacquire(spinlock_t* spinlock)
+  { return xmutex_trylock(spinlock); }
   static inline void spinlock_acquire (spinlock_t* spinlock)
   { int err = xmutex_lock(spinlock); if (err) OS_error(); }
   static inline void spinlock_release (spinlock_t* spinlock)
@@ -467,4 +510,4 @@ typedef DWORD              xthread_key_t;
 
 
 /* ====================================================================== */
-#endif  /* FOR_SOME_REASON_WE_ALSO_WANT_SPIN_LOCKS_WHICH_CAUSE_GCC_TO_BARF */
+

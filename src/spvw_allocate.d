@@ -20,6 +20,24 @@ local void* mymalloc (uintM need);
  Finally `ptr' is combined with the type info and returned from the current
  function (via `return'). */
 
+#if defined (MULTITHREAD)
+
+#define LOCK_ALLOCATE()					\
+  do {							\
+    while (!spinlock_tryacquire(&mem.alloc_lock)) {	\
+      GC_SAFE_POINT_ELSE(xthread_yield());		\
+    }							\
+  } while(0)
+
+#define RETURN_OBJ(obj)				\
+  spinlock_release(&mem.alloc_lock); return obj
+
+#else
+#define PERFORM_GC(statement) statement
+#define LOCK_ALLOCATE()
+#define RETURN_OBJ(obj) return obj
+#endif
+
 /* -------------------------- Implementation --------------------------- */
 
 /* error-message because of full memory */
@@ -147,7 +165,7 @@ local void make_space_gc (uintM need)
    (mem.total_room < need)  is already checked, so there
    is not enough room */
  not_enough_room: {
-  gar_col_simple();           /* call garbage collector */
+  PERFORM_GC(gar_col_simple());           /* call garbage collector */
    doing_gc:
   /* Test for keyboard interrupt */
   interruptp({
@@ -163,7 +181,7 @@ local void make_space_gc (uintM need)
        remedy: try a full GC. */
     #ifdef GENERATIONAL_GC
     if (!mem.last_gc_full) {
-      gar_col(0); goto doing_gc;
+      PERFORM_GC(gar_col(0)); goto doing_gc;
     } else
     #endif
       { error_speicher_voll(); }
@@ -211,7 +229,7 @@ local void make_space_gc_true (uintM need, Heap* heapptr)
   var bool done_gc = false;
   if (mem.total_room < need) {
    do_gc:
-    gar_col_simple();           /* call garbage collector */
+    PERFORM_GC(gar_col_simple());           /* call garbage collector */
    doing_gc:
     /* Test for keyboard interrupt */
     interruptp({
@@ -251,7 +269,7 @@ local void make_space_gc_true (uintM need, Heap* heapptr)
       goto do_gc;
    #ifdef GENERATIONAL_GC
     if (!mem.last_gc_full) {
-      gar_col(0); goto doing_gc;
+      PERFORM_GC(gar_col(0)); goto doing_gc;
     }
    #endif
     error_speicher_voll();
@@ -272,7 +290,7 @@ local void make_space_gc_false (uintM need, Heap* heapptr)
   var bool done_gc = false;
   if (mem.total_room < need) {
    do_gc:
-    gar_col_simple();           /* call garbage collector */
+    PERFORM_GC(gar_col_simple());           /* call garbage collector */
    doing_gc:
     /* Test for keyboard interrupt */
     interruptp({
@@ -311,7 +329,7 @@ local void make_space_gc_false (uintM need, Heap* heapptr)
       goto do_gc;
    #ifdef GENERATIONAL_GC
     if (!mem.last_gc_full) {
-      gar_col(0); goto doing_gc;
+      PERFORM_GC(gar_col(0)); goto doing_gc;
     }
    #endif
     error_speicher_voll();
@@ -349,7 +367,7 @@ local void make_space_gc (uintM need, Heap* heapptr)
   var bool done_gc = false;
   if (mem.total_room < need) {
    do_gc:
-    gar_col_simple();           /* call garbage collector */
+    PERFORM_GC(gar_col_simple());           /* call garbage collector */
    doing_gc:
     /* Test for keyboard interrupt */
     interruptp({
@@ -393,7 +411,7 @@ local void make_space_gc (uintM need, Heap* heapptr)
       goto do_gc;
    #ifdef GENERATIONAL_GC
     if (!mem.last_gc_full) {
-      gar_col(0); goto doing_gc;
+      PERFORM_GC(gar_col(0)); goto doing_gc;
     }
    #endif
     error_speicher_voll();
@@ -514,13 +532,13 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
      we do the GC, when the 25%-boundary is reached. */
     make_space_using_malloc();
   }
-  gar_col_simple();             /* call garbage collector */
+  PERFORM_GC(gar_col_simple());             /* call garbage collector */
   handle_interrupt_after_gc();
   /* and test again: */
   var Pages page = AVL(AVLID,least)(need,pages_ptr,stack_ptr);
   if (page==EMPTY) {
     if (!mem.last_gc_compacted) {
-      gar_col_compact();        /* call compacting garbage collector */
+      PERFORM_GC(gar_col_compact());        /* call compacting garbage collector */
       handle_interrupt_after_gc();
       page = AVL(AVLID,least)(need,pages_ptr,stack_ptr);
     }
@@ -558,6 +576,7 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
  #endif
  #ifdef SPVW_MIXED_BLOCKS_OPPOSITE
   #define allocate(type_expr,flag,size_expr,ptrtype,ptrvar,statement)  \
+      LOCK_ALLOCATE(); \
       allocate_##flag (type_expr,size_expr,ptrtype,ptrvar,statement)
   /* object of variable length: */
   #define allocate_true(type_expr,size_expr,ptrtype,ptrvar,statement) do { \
@@ -573,7 +592,7 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     statement;         /* initialize memory piece */                    \
     clr_break_sem_1(); /* allow Break */                                \
     CHECK_GC_CONSISTENCY();                                             \
-    return obj;                                                         \
+    RETURN_OBJ(obj);							\
    }} while(0)
     /* Cons or similar: */
   #define allocate_false(type_expr,size_expr,ptrtype,ptrvar,statement) do { \
@@ -586,11 +605,12 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     statement;         /* initialize memory piece */                    \
     clr_break_sem_1(); /* allow Break */                                \
     CHECK_GC_CONSISTENCY();                                             \
-    return bias_type_pointer_object(cons_bias,type_expr,ptrvar);        \
+    RETURN_OBJ(bias_type_pointer_object(cons_bias,type_expr,ptrvar));	\
    }} while(0)
  #endif
  #ifdef SPVW_MIXED_BLOCKS_STAGGERED
   #define allocate(type_expr,flag,size_expr,ptrtype,ptrvar,statement)  \
+      LOCK_ALLOCATE();							\
       allocate_##flag (type_expr,size_expr,ptrtype,ptrvar,statement)
   /* Object of variable length: */
   #define allocate_true(type_expr,size_expr,ptrtype,ptrvar,statement) do { \
@@ -606,7 +626,7 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     statement;         /* initialize memory piece */                    \
     clr_break_sem_1(); /* allow Break */                                \
     CHECK_GC_CONSISTENCY();                                             \
-    return obj;                                                         \
+    RETURN_OBJ(obj);							\
    }} while(0)
   /* Cons or similar: */
   #define allocate_false(type_expr,size_expr,ptrtype,ptrvar,statement) do { \
@@ -619,11 +639,12 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     statement;         /* initialize memory piece */                    \
     clr_break_sem_1(); /* allow Break */                                \
     CHECK_GC_CONSISTENCY();                                             \
-    return bias_type_pointer_object(cons_bias,type_expr,ptrvar);        \
+    RETURN_OBJ(bias_type_pointer_object(cons_bias,type_expr,ptrvar));	\
    }} while(0)
  #endif
  #ifdef SPVW_PURE
   #define allocate(type_expr,flag,size_expr,ptrtype,ptrvar,statement) do { \
+    LOCK_ALLOCATE();							\
     var tint _type = (type_expr);                                       \
     var Heap* heapptr = &mem.heaps[_type];                              \
     make_space(size_expr,heapptr);                                      \
@@ -636,7 +657,7 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     statement;         /* initialize memory piece */                    \
     clr_break_sem_1(); /* allow Break */                                \
     CHECK_GC_CONSISTENCY();                                             \
-    return as_object((oint)ptrvar);                                     \
+    RETURN_OBJ(as_object((oint)ptrvar));				\
    }} while(0)
   /* Object of variable length: */
   #define allocate_true(ptrvar)                                           \
@@ -647,6 +668,7 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
 #endif
 #ifdef SPVW_PAGES
  #define allocate(type_expr,flag,size_expr,ptrtype,ptrvar,statement)     \
+      LOCK_ALLOCATE();							\
       allocate_##flag (type_expr,size_expr,ptrtype,ptrvar,statement)
  #ifdef SPVW_MIXED
     /* Object of variable length: */
@@ -669,7 +691,7 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     clr_break_sem_1();       /* allow Break */                          \
     CHECK_AVL_CONSISTENCY();                                            \
     CHECK_GC_CONSISTENCY();                                             \
-    return obj;                                                         \
+    RETURN_OBJ(obj);							\
    }} while(0)
   /* Cons or similar: */
   #define allocate_false(type_expr,size_expr,ptrtype,ptrvar,statement) do { \
@@ -696,7 +718,7 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     clr_break_sem_1();                     /* allow Break */            \
     CHECK_AVL_CONSISTENCY();                                            \
     CHECK_GC_CONSISTENCY();                                             \
-    return bias_type_pointer_object(cons_bias,type_expr,ptrvar);        \
+    RETURN_OBJ(bias_type_pointer_object(cons_bias,type_expr,ptrvar));	\
    }} while(0)
  #endif
  #ifdef SPVW_PURE
@@ -721,7 +743,7 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     clr_break_sem_1();       /* allow Break */                          \
     CHECK_AVL_CONSISTENCY();                                            \
     CHECK_GC_CONSISTENCY();                                             \
-    return obj;                                                         \
+    RETURN_OBJ(obj);							\
    }} while(0)
   /* Cons or similar: */
   #define allocate_false(type_expr,size_expr,ptrtype,ptrvar,statement) do { \
@@ -750,7 +772,8 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     clr_break_sem_1();                     /* allow Break */            \
     CHECK_AVL_CONSISTENCY();                                            \
     CHECK_GC_CONSISTENCY();                                             \
-    return type_pointer_object(_type,ptrvar);                           \
+    RETURN_OBJ(type_pointer_object(_type,ptrvar));			\
    }} while(0)
  #endif
 #endif
+

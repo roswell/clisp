@@ -22,6 +22,44 @@
   #define HAVE_HEAPNR_FROM_TYPE
 #endif
 
+/*
+  VTZ: 
+  MT memory heap changes proposal
+  GC.
+  The GC will be protected with spinlock (possibly more efficient than mutex). 
+  During GC all thread will be suspended at "safe" points 
+  (suspension will be through mutex or spinlock - per thread). 
+  The suspension and GC will be performed in the context of the thread that caused the GC.
+
+  Is it ok to delay the suspension after the mark phase? Still no objects are moved.
+  All other threads may continue to run (unless they do not try to allocate something 
+  and do not care about the mark bit(s)).
+
+  Are there non-local exits from the GC? What happpens with signals during GC - looks like "disabled"?
+
+  Allocations.
+  I would like to have spinlock per heap type. In this way the allocations on a single heap
+  will not block allocation on other types (unless GC is invoked). 
+  (not sure that this is possible for all memory models but SVPW_PURE ones are good candidates).
+  Implementing this requires changes to mem structure, spvw_allocate.d and other places that
+  rely on accessing members of mem different than heap specific ones. Currently I do not feel
+  I am aware of all the details in order to do it - so it will remain as TODO item.
+
+  However as a beginning:
+  1. single spinlock protects the whole mem structure (all heaps).
+  2. every thread should acqiure it in order to allocate anything
+  3. the thread that causes the GC will suspend all others before invoking it.
+  4. every thread should define so called "safe" points at which
+    it can be suspended with no risk. these places will be:
+     4.1. any call to allocate_xxxxxx()
+     4.2. begin_system_call (what happens if pointers to LISP heap are passed?)
+     4.3. (*) we need some other place in order to be able to suspend 
+          forms like: (loop). Probably the interrupt() macro is good candidate?
+
+  "safe" points concept is similar to the cancellation points (pthread_testcancel()) in pthreads.
+*/
+
+
 /* Global memory management data structures. */
 local struct {
   /* Lower limit of big allocated memory block. */
@@ -30,6 +68,13 @@ local struct {
   /* now comes the Lisp STACK */
   /* now room for the heaps containing Lisp objects. */
   Heap heaps[heapcount];
+#if defined(MULTITHREAD)
+  /*VTZ: until we have lock per heap type
+   we can live with just single lock for allocation and GC - so no GC lock. The alloc_lock will guard
+  the GC as well.*/
+  /*spinlock_t gc_lock;*/
+  spinlock_t alloc_lock;
+#endif
  #ifdef SPVW_PURE
   sintB heaptype[heapcount];
   /* for every typecode:
@@ -468,5 +513,13 @@ local inline void init_mem_heapnr_from_type (void)
       default:   mem.heapnr_from_type[type] = 0; break;
     }
   }
+}
+#endif
+
+#if defined(MULTITHREAD)
+local void init_heap_locks()
+{
+  /* spinlock_init(&mem.gc_lock);*/
+  spinlock_init(&mem.alloc_lock); 
 }
 #endif

@@ -1,3 +1,52 @@
+2008-08-02  Vladimir Tzankov  <vtzankov@gmail.com>
+
+	Heap/GC changes for multithreading
+	* lispbibl.d
+	(struct clisp_thread_t): added fields for thread suspend/resume 
+	support (used for GC). 
+	(GC_SAFE_POINT, GC_SAFE_POINT_ELSE): macros that define a safe 
+	point for GC in thread execution.
+	(GC_SAFE_REGION_BEGIN,GC_SAFE_REGION_END): macros defining safe 
+	for GC regions (in begin/end_system_call)
+	(PERFORM_GC): macro used for "safe" performing of GC. suspends/resumes
+	threads before/after the GC.
+	* xthread.d
+	(spinlock_t): enabled spinlocks. added asm implementation for 
+	POWERPC and fixed the one for x86. 
+	(xcodition_t): finished native win32 implementation (not tested). 
+	(xthread_cancel): removed.
+	(xthread_wait): added. waits for thread termination
+	(xmutex_trylock): added
+	(spinlock_tryacquire): added
+	* zthread.d
+	(make_thread,thread_stub): re-factored the thread creation.
+	(call-with-timeout): removed usage of xthread_cancel (not GC safe).
+	the spawned thread is not terminated in any way now.
+	* spvw.d
+	removed the MT dependency on the mmap.
+	(main): initialization of MT in the very beginning
+	(create_thread): just creates and initializes a clisp_thread. does not
+	registers the new thread any more (since it still does not run)
+	(delete_thread): fixed bug with thread indexing
+	(lock_threads): obtains global thread operations mutex
+	(unlock_threads): releases the global thread operation mutex
+	(register_thread): register a clisp_thread_t in the global thread 
+	array (the clisp_thread-t should be running at that time - because of GC).
+	(gc_suspend_all_threads): suspends all running threads at points "safe" for GC.
+	(gc_resume_all_threads): resumes the suspended (for GC) threads.
+	* spvw_global.d
+	(struct mem): added alloc_lock (spinlock_t). guarding both allocation and GC.
+	(init_heap_locks): initializes heap locks(s). currently just alloc_lock.
+	* spvw_allocate.d
+	(LOCK_ALLOCATE, RETURN_OBJ): All heap allocation begin with LOCK_ALLOCATE and
+	return via RETURN_OBJ. The macros manage the heap/GC lock(s). 
+	* spvw_memfile.d
+	calls to GC enclosed in PERFORM_GC.
+	* debug.d 
+	calls to GC enclosed in PERFORM_GC.
+	
+	
+
 2008-07-28  vlado tzankov  <vtzankov@gmail.com>
 
 	Initial commit of multithreading. Lisp globals are implemented via
