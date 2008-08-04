@@ -1,18 +1,21 @@
+2008-08-04  Sam Steingold  <sds@gnu.org>
+
+	* lispbibl.d (thread_length): define to 3 because Thread contains
+	3 gcv_object_t fields (sync from HEAD)
+
 2008-08-02  Vladimir Tzankov  <vtzankov@gmail.com>
 
 	Heap/GC changes for multithreading
-	* lispbibl.d
-	(struct clisp_thread_t): added fields for thread suspend/resume 
-	support (used for GC). 
+	* lispbibl.d (struct clisp_thread_t): added fields for
+	thread suspend/resume support (used for GC). 
 	(GC_SAFE_POINT, GC_SAFE_POINT_ELSE): macros that define a safe 
 	point for GC in thread execution.
 	(GC_SAFE_REGION_BEGIN,GC_SAFE_REGION_END): macros defining safe 
 	for GC regions (in begin/end_system_call)
 	(PERFORM_GC): macro used for "safe" performing of GC. suspends/resumes
 	threads before/after the GC.
-	* xthread.d
-	(spinlock_t): enabled spinlocks. added asm implementation for 
-	POWERPC and fixed the one for x86. 
+	* xthread.d (spinlock_t): enabled spinlocks. added asm implementation
+	for POWERPC and fixed the one for x86. 
 	(xcodition_t): finished native win32 implementation (not tested). 
 	(xthread_cancel): removed.
 	(xthread_wait): added. waits for thread termination
@@ -30,68 +33,69 @@
 	(delete_thread): fixed bug with thread indexing
 	(lock_threads): obtains global thread operations mutex
 	(unlock_threads): releases the global thread operation mutex
-	(register_thread): register a clisp_thread_t in the global thread 
-	array (the clisp_thread-t should be running at that time - because of GC).
-	(gc_suspend_all_threads): suspends all running threads at points "safe" for GC.
+	(register_thread): register a clisp_thread_t in the global thread array
+	(the clisp_thread_t should be running at that time - because of GC).
+	(gc_suspend_all_threads): suspends all running threads at points
+	"safe" for GC.
 	(gc_resume_all_threads): resumes the suspended (for GC) threads.
 	* spvw_global.d
-	(struct mem): added alloc_lock (spinlock_t). guarding both allocation and GC.
+	(struct mem): added alloc_lock (spinlock_t) guarding both
+	allocation and GC.
 	(init_heap_locks): initializes heap locks(s). currently just alloc_lock.
 	* spvw_allocate.d
-	(LOCK_ALLOCATE, RETURN_OBJ): All heap allocation begin with LOCK_ALLOCATE and
-	return via RETURN_OBJ. The macros manage the heap/GC lock(s). 
-	* spvw_memfile.d
-	calls to GC enclosed in PERFORM_GC.
-	* debug.d 
-	calls to GC enclosed in PERFORM_GC.
-	
-	
+	(LOCK_ALLOCATE, RETURN_OBJ): All heap allocation begin with
+	LOCK_ALLOCATE and return via RETURN_OBJ.
+	These macros manage the heap/GC lock(s). 
+	* spvw_memfile.d: calls to GC enclosed in PERFORM_GC.
+	* debug.d: calls to GC enclosed in PERFORM_GC.
 
 2008-07-28  vlado tzankov  <vtzankov@gmail.com>
 
 	Initial commit of multithreading. Lisp globals are implemented via
 	TLS (with or without compiler support)
-	* lispbibl.d 
-	(struct clisp_thread_t): reordered the fields. structure starts with the ones 
+	* lispbibl.d (struct clisp_thread_t): reordered the fields.
+	the structure starts with the ones 
 	that have to be accesses from modules (STACK, mv_spaces, etc).
 	Added _SP_anchor (was global in spvw.d)
 	(current_thread, _current_thread, current_thread_tls_key): macro
 	current_thread() provides access to the current clisp_thread_t via 
-	per_thread variable _current_thread (in presence of compiler support) or 
-	through xthread_key_get (slow).
-	(THREAD_SYMVALUES_ALLOCATION_SIZE): initial allocation size of clisp_thread_t 
-	structure - at the end symvalues will be appended (before the change 
-	the size depended on the mmap_pagesize)
-	(per_thread): removed all qualifiers from global variables in single thread builds.
-	in MT builds - there is single global per thread variable for CLISP internals.
-	(thread_objects_offset and thread_objects_count): excluded _lthread from the returned
-	offset/count. seems to cause problems with GC sometimes.
-	(set_current_thread): the first thing a new thread should call - assigns the clisp_thread_t
-	to the TLS.
+	per_thread variable _current_thread (in presence of compiler support)
+	or through xthread_key_get (slow).
+	(THREAD_SYMVALUES_ALLOCATION_SIZE): initial allocation size of
+	clisp_thread_t structure - at the end symvalues will be appended
+	(before the change the size depended on the mmap_pagesize)
+	(per_thread): removed all qualifiers from global variables in single
+	thread builds.  in MT builds - there is single global per thread
+	variable for CLISP internals.
+	(thread_objects_offset, thread_objects_count): excluded _lthread from
+	the returned offset/count. seems to cause problems with GC sometimes.
+	(set_current_thread): the first thing a new thread should call
+	- assigns the clisp_thread_t to the TLS.
 	(create_thread,delete_thread,maxnum_symvalues): made global
-	* spvw.d 
-	(create_thread): changed to accept size of LISP stack. 
+	* spvw.d (create_thread): changed to accept size of LISP stack. 
 	(delete_thread): frees the allocated LISP stack.
-	(allocate_lisp_thread_stack): allocates LISP stack. currently with malloc()
+	(allocate_lisp_thread_stack): allocates LISP stack.
+	currently with malloc()
 	(get_reserved_memory_region, is_safe_region): ensure that address range 
-	for LISP stack is safe (was used in the version with SP tweaking - probably will 
-	be needed later).
-	(init_memory, main): "globals" initialization moved after current_thread() is valid. 
+	for LISP stack is safe (was used in the version with SP tweaking
+	- probably will be needed later).
+	(init_memory, main): "globals" initialization moved after
+	current_thread() is valid. 
 	* spvw_typealloc.d
-	(allocate_thread): xth_system will be initialized on thread creation. what to do 
-	with the other fields?
-	* xthread.d
-	(xthread_cancel): after cancellation - wait the thread to exit.
-	* zthread.d
-	(NC_STACK_,NC_pushSTACK): macros for filling non-current(NC) LISP stacks 
-	of not yet started threads.
+	(allocate_thread): xth_system will be initialized on thread creation.
+	what to do with the other fields?
+	* xthread.d (xthread_cancel): after cancellation wait the thread to exit
+	* zthread.d (NC_STACK_,NC_pushSTACK): macros for filling
+	non-current(NC) LISP stacks of not yet started threads.
 	(thread_stub): the main entry point of threads created by MAKE-THREAD.
-	(MAKE-THREAD): implemented. creates a new OS thread and LISP record for it.
-	(exec_timeout_call): the entry point of threads created by CALL-WITH-TIMEOUT
-	(CALL-WITH-TIMEOUT): reimplemented. creates OS thread bu NO LISP record for it.
-	* thread.lisp
-	(TIMEOUT-MESSAGE): convert to string the default answer (y-or-n provides
-	list(s) with characters).
+	(MAKE-THREAD): implemented. creates a new OS thread and
+	LISP record for it.
+	(exec_timeout_call): the entry point of threads created
+	by CALL-WITH-TIMEOUT
+	(CALL-WITH-TIMEOUT): reimplemented.
+	creates OS thread bu NO LISP record for it.
+	* thread.lisp (TIMEOUT-MESSAGE): convert to string the default
+	answer (y-or-n provides list(s) with characters).
 
 2008-07-27  Sam Steingold  <sds@gnu.org>
 
