@@ -27,61 +27,55 @@
 #define VAROUT(v)
 #endif
 
-
 /* VTZ: All newly created threads start here.
  since we are replacing the C stack here - we do not want compiler to optimize this function in any way */
 local maygc void *thread_stub(void *arg)
 {
-  register_thread((clisp_thread_t *)arg,false); /* here the thread lock is still held */
-  set_current_thread((clisp_thread_t *)arg);
-  SP_anchor=(void*)SP();
-  unlock_threads(); /* unlock the threads locked in the make-thread */
-  /* VTZ: may be initialize backtrace_t and some frame on the stack (if not done already) ??? */
+  clisp_thread_t *me=(clisp_thread_t *)arg;
+  set_current_thread(me);
+  me->_SP_anchor=(void*)SP();
   funcall(STACK_0,0); /* call it */
   /*VTZ: may be store the return value in the thread record ??*/
-  /* At the end delete the thread. */ 
-  delete_thread();
+  delete_thread(me);
   return NULL;
 }
 
 LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
 { /* (MAKE-THREAD function &key name) */
-  var uintM lisp_stack_size=(abs((gcv_object_t *)STACK_start - (gcv_object_t *)STACK_bound)+0x40)*sizeof(gcv_object_t *);
+  var uintM lisp_stack_size=(abs((gcv_object_t *)STACK_start - 
+				 (gcv_object_t *)STACK_bound)+0x40)*
+                            sizeof(gcv_object_t *);
   var clisp_thread_t *new_thread;
-  var object ret=NIL;
-  lock_threads();
-  new_thread=create_thread(false,lisp_stack_size);
+  /*allocate before the lock*/
+  pushSTACK(allocate_thread(&STACK_0)); /* put it in GC visible place */
+  _GC_SAFE_REGION_BEGIN(); /* give chance the GC to work while we wait*/
+  lock_threads(); 
+  _GC_SAFE_REGION_END();
+  /* after we obtain thread lock - no GC can interrupt us. */
+  new_thread=create_thread(lisp_stack_size);
   if (!new_thread) {
-    /* VTZ:TODO. what to do here??? condition, exit with NIL ??? */ 
-    skipSTACK(2); VALUES1(NIL); unlock_threads(); return;
+    skipSTACK(3); VALUES1(NIL); unlock_threads(); return;
   }
+  new_thread->_lthread=popSTACK();
   /* prepare the new thread stack */
   /* push 2 nullobj */
-  NC_pushSTACK(new_thread->_STACK,nullobj); NC_pushSTACK(new_thread->_STACK,nullobj);
+  NC_pushSTACK(new_thread->_STACK,nullobj); 
+  NC_pushSTACK(new_thread->_STACK,nullobj);
   /* push the function to be executed */ 
   NC_pushSTACK(new_thread->_STACK,STACK_1);
-
-  /* VTZ:TODO should we really do this ????  or something else??? */
   new_thread->_aktenv=aktenv; /* set it the same as current thread one */
   /* VTZ:TODO we have to  copy the symvalues as well. */
-  /* Should we insert anything else on the STACK? */
-
-  /*VTZ: the GC still does not like thread objects*/
-  /*
-  ret=new_thread->_lthread=allocate_thread(&STACK_0);
-  xthread_create(&TheThread(new_thread->_lthread)->xth_system,&thread_stub,new_thread);
-  */
-  xthread_t xt;
-  if (xthread_create(&xt,&thread_stub,new_thread)) {
-    ret=NIL;
-    free(THREAD_LISP_STACK_START(new_thread));
-    free(new_thread);
-    unlock_threads(); /* in case of failure - release the thread lock*/
-  }
+  /* thread creation is done withou begin/end_system_call !!! */
   skipSTACK(2);
-  VALUES1(ret);
-  /* thread creation/deletion as well suspension remains locked 
-   the lock will be releases in the new tread after all initialization are ready*/
+  register_thread(new_thread);
+  if (xthread_create(&TheThread(new_thread->_lthread)->xth_system,
+		     &thread_stub,new_thread)) {
+    delete_thread(new_thread);
+    unlock_threads(); /* in case of failure - release the thread lock*/
+    VALUES1(NIL);
+  } else 
+    VALUES1(new_thread->_lthread);
+  unlock_threads();
 }
 
 struct call_timeout_data_t {

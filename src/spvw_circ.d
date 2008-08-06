@@ -117,7 +117,7 @@ local uintP mlb_expand (mlbitmap* bitmap, uintL newsize)
   if (newsize < 2*bitmap->alloc_size)
     newsize = 2*bitmap->alloc_size;
   begin_system_call();
-  var char* newbase = (bitmap->base==NULL ? malloc(newsize) : realloc((char*)bitmap->base,newsize));
+  var char* newbase = (char *) (bitmap->base==NULL ? malloc(newsize) : realloc((char*)bitmap->base,newsize));
   end_system_call();
   if (newbase==NULL)
     longjmp(bitmap->oom_context,true);

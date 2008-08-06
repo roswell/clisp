@@ -1,3 +1,54 @@
+2008-08-06  Vladimir Tzankov  <vtzankov@gmail.com>
+
+	Heap/GC changes
+	* lispbibl.d
+	(pointable_address_unchecked): exported to clisp.h (present 
+	in CVS head as well)
+	(Rectype_Thread,Rectype_Mutex,Rectype_Exemption): moved to 
+	xrecord area in the declarations (present in CVS head as well)
+	(GC_SAFE_REGION_BEGIN/END): now they make GCTRIGGER() for 
+	debugging purposes.
+	(clisp_thread_t): _lthread type changed to gcv_object_t.
+	(clisp_thread_t): renamed the spinlocks and mutex for GC 
+	suspend/resume (now begin with _gc_xxx).
+	(thread_objects_offset): does not need parameter. Also include
+	again the _lthread.
+	(PERFORM_GC): now takes second parameter - whether to lock 
+	the heap operation before performing GC (since it can be 
+	called explicitly, not only from allocations).
+	(inc_allocstamp): the specialization for mv_space moved after
+	the definition of clisp_thread_t.
+	* spvw.d: fixed some comments
+	(create_thread): takes single parameter - the list stack size.
+	(delete_thread): takes a single parameter - the clisp_thread_t
+	to be deleted.  
+	(gc_suspend_all_threads): moved to spvw_global.d
+	(gc_resume_all_threads): moved to spvw_global.d
+	(main): allocates Thread record for the main thread (done after the 
+	heap is initialized).
+	* spvw_global.d
+	(gc_suspend_all_threads): moved here from spvw.d. added second parameter
+	whether to acquire the heap/GC lock (in case we are called not from 
+	allocate_xxxx but explicitly).
+	(gc_resume_all_threads): moved here from spvw.d
+	(ACQUIRE_HEAP_LOCK): macro for locking the heap (and GC as well)
+	(RELEASE_HEAP_LOCK): macro for releasing the heap lock.
+	* spiv_allocate.d 
+	(all): use ACQUIRE/RELEASE_HEAP_LOCK for locking/releasing the heap
+	(all): add second parameter "false" to all PERFORM_GC calls (since
+	we already hold the alloc/GC lock).
+	* spvw_memfile.d
+	(savemem): calls PERFORM_GC with second parameter "true" (alloc/GC lock 
+	should be acquired)
+	* debug.d
+	(gc): calls PERFORM_GC with second parameter "true" (alloc/GC lock 
+	should be acquired)
+	* spvw_circ.d
+	(mlb_expand): added a typecast (g++ complains).
+	* zthread.d
+	(thread_stub): re-factored.
+	(make_thread): re-factored. removed possible deadlock.
+	
 2008-08-04  Sam Steingold  <sds@gnu.org>
 
 	* lispbibl.d (thread_length): define to 3 because Thread contains

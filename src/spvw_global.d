@@ -31,21 +31,7 @@
   (suspension will be through mutex or spinlock - per thread). 
   The suspension and GC will be performed in the context of the thread that caused the GC.
 
-  Is it ok to delay the suspension after the mark phase? Still no objects are moved.
-  All other threads may continue to run (unless they do not try to allocate something 
-  and do not care about the mark bit(s)).
-
-  Are there non-local exits from the GC? What happpens with signals during GC - looks like "disabled"?
-
   Allocations.
-  I would like to have spinlock per heap type. In this way the allocations on a single heap
-  will not block allocation on other types (unless GC is invoked). 
-  (not sure that this is possible for all memory models but SVPW_PURE ones are good candidates).
-  Implementing this requires changes to mem structure, spvw_allocate.d and other places that
-  rely on accessing members of mem different than heap specific ones. Currently I do not feel
-  I am aware of all the details in order to do it - so it will remain as TODO item.
-
-  However as a beginning:
   1. single spinlock protects the whole mem structure (all heaps).
   2. every thread should acqiure it in order to allocate anything
   3. the thread that causes the GC will suspend all others before invoking it.
@@ -69,10 +55,8 @@ local struct {
   /* now room for the heaps containing Lisp objects. */
   Heap heaps[heapcount];
 #if defined(MULTITHREAD)
-  /*VTZ: until we have lock per heap type
-   we can live with just single lock for allocation and GC - so no GC lock. The alloc_lock will guard
-  the GC as well.*/
-  /*spinlock_t gc_lock;*/
+  /*VTZ:  we can live with just single lock for allocation and GC. 
+    The alloc_lock will guard the GC as well.*/
   spinlock_t alloc_lock;
 #endif
  #ifdef SPVW_PURE
@@ -517,9 +501,75 @@ local inline void init_mem_heapnr_from_type (void)
 #endif
 
 #if defined(MULTITHREAD)
+
+#define ACQUIRE_HEAP_LOCK()				\
+  do {							\
+    while (!spinlock_tryacquire(&mem.alloc_lock)) {	\
+      GC_SAFE_POINT_ELSE(xthread_yield());		\
+    }							\
+  } while(0)
+
+#define RELEASE_HEAP_LOCK() spinlock_release(&mem.alloc_lock)
+
+
+/* Suspends all running threads /besides the current/ on GC safe points/region
+ if lock_heap is true the heap is locked first.
+ (this is needed since GC may be called from allocation or explicitly - in latter
+ case the heap lock is not held by the caller) */
+global void gc_suspend_all_threads(bool lock_heap)
+{
+  var uint8 *acklocked; /* flags for indicating whether a thread acknowedge the suspension */
+  var bool all_suspended;
+  var uintL yield_count=0; /* how many times we have */
+  clisp_thread_t *me=current_thread();
+  if (lock_heap) ACQUIRE_HEAP_LOCK();
+  /* lock thread creation/deletion */
+  lock_threads();
+  acklocked=(uint8 *)alloca(nthreads*sizeof(uint8));
+  memset(acklocked,0,sizeof(uint8)*nthreads);
+  for_all_threads({
+    if (thread == me) continue; /* skip ourself */
+    xmutex_lock(&thread->_gc_suspend_lock); /* enable thread waiting */
+    spinlock_release(&thread->_gc_suspend_request); /* request */
+  });
+  do {
+    all_suspended=true;
+    for_all_threads({
+      /* skip ourself and all already suspended (ACK acquired) threads */
+      if ((acklocked[thread->_index]) || (thread == me)) continue; 
+      if (spinlock_tryacquire(&thread->_gc_suspend_ack)) {
+	acklocked[thread->_index]=1;
+      } else {
+	all_suspended=false;
+	break; /* yield - give chance the threads to reach safe point*/
+      }
+    });
+    if (!all_suspended) xthread_yield(); else break;
+  } while (1);
+  if (lock_heap) RELEASE_HEAP_LOCK();
+  unlock_threads();
+}
+
+/* Resumes all suspended threads /besides the current/ 
+ should match a call to suspend_all_threads()*/
+global void gc_resume_all_threads()
+{
+  clisp_thread_t *me=current_thread();
+  /* lock thread creation/deletion.
+   probably it is not needed - since the only active thread at the moment is ourself */
+  lock_threads();
+  for_all_threads({
+    if (thread == me) continue; /* skip ourself */
+    /* currently all ACK locks belong to us as well the mutex lock */
+    spinlock_release(&thread->_gc_suspend_ack); /* release the ACK lock*/
+    xmutex_unlock(&thread->_gc_suspend_lock); /* enable thread */
+  });
+  unlock_threads();
+}
+
+
 local void init_heap_locks()
 {
-  /* spinlock_init(&mem.gc_lock);*/
   spinlock_init(&mem.alloc_lock); 
 }
 #endif

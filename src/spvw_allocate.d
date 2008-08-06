@@ -20,20 +20,12 @@ local void* mymalloc (uintM need);
  Finally `ptr' is combined with the type info and returned from the current
  function (via `return'). */
 
-#if defined (MULTITHREAD)
+#if defined(MULTITHREAD)
 
-#define LOCK_ALLOCATE()					\
-  do {							\
-    while (!spinlock_tryacquire(&mem.alloc_lock)) {	\
-      GC_SAFE_POINT_ELSE(xthread_yield());		\
-    }							\
-  } while(0)
-
-#define RETURN_OBJ(obj)				\
-  spinlock_release(&mem.alloc_lock); return obj
+#define LOCK_ALLOCATE()	ACQUIRE_HEAP_LOCK()
+#define RETURN_OBJ(obj)	RELEASE_HEAP_LOCK(); return obj
 
 #else
-#define PERFORM_GC(statement) statement
 #define LOCK_ALLOCATE()
 #define RETURN_OBJ(obj) return obj
 #endif
@@ -165,7 +157,7 @@ local void make_space_gc (uintM need)
    (mem.total_room < need)  is already checked, so there
    is not enough room */
  not_enough_room: {
-  PERFORM_GC(gar_col_simple());           /* call garbage collector */
+  PERFORM_GC(gar_col_simple(),false);           /* call garbage collector */
    doing_gc:
   /* Test for keyboard interrupt */
   interruptp({
@@ -181,7 +173,7 @@ local void make_space_gc (uintM need)
        remedy: try a full GC. */
     #ifdef GENERATIONAL_GC
     if (!mem.last_gc_full) {
-      PERFORM_GC(gar_col(0)); goto doing_gc;
+      PERFORM_GC(gar_col(0),false); goto doing_gc;
     } else
     #endif
       { error_speicher_voll(); }
@@ -229,7 +221,7 @@ local void make_space_gc_true (uintM need, Heap* heapptr)
   var bool done_gc = false;
   if (mem.total_room < need) {
    do_gc:
-    PERFORM_GC(gar_col_simple());           /* call garbage collector */
+    PERFORM_GC(gar_col_simple(),false);           /* call garbage collector */
    doing_gc:
     /* Test for keyboard interrupt */
     interruptp({
@@ -269,7 +261,7 @@ local void make_space_gc_true (uintM need, Heap* heapptr)
       goto do_gc;
    #ifdef GENERATIONAL_GC
     if (!mem.last_gc_full) {
-      PERFORM_GC(gar_col(0)); goto doing_gc;
+      PERFORM_GC(gar_col(0),false); goto doing_gc;
     }
    #endif
     error_speicher_voll();
@@ -290,7 +282,7 @@ local void make_space_gc_false (uintM need, Heap* heapptr)
   var bool done_gc = false;
   if (mem.total_room < need) {
    do_gc:
-    PERFORM_GC(gar_col_simple());           /* call garbage collector */
+    PERFORM_GC(gar_col_simple(),false);           /* call garbage collector */
    doing_gc:
     /* Test for keyboard interrupt */
     interruptp({
@@ -329,7 +321,7 @@ local void make_space_gc_false (uintM need, Heap* heapptr)
       goto do_gc;
    #ifdef GENERATIONAL_GC
     if (!mem.last_gc_full) {
-      PERFORM_GC(gar_col(0)); goto doing_gc;
+      PERFORM_GC(gar_col(0),false); goto doing_gc;
     }
    #endif
     error_speicher_voll();
@@ -367,7 +359,7 @@ local void make_space_gc (uintM need, Heap* heapptr)
   var bool done_gc = false;
   if (mem.total_room < need) {
    do_gc:
-    PERFORM_GC(gar_col_simple());           /* call garbage collector */
+    PERFORM_GC(gar_col_simple(),false);           /* call garbage collector */
    doing_gc:
     /* Test for keyboard interrupt */
     interruptp({
@@ -411,7 +403,7 @@ local void make_space_gc (uintM need, Heap* heapptr)
       goto do_gc;
    #ifdef GENERATIONAL_GC
     if (!mem.last_gc_full) {
-      PERFORM_GC(gar_col(0)); goto doing_gc;
+      PERFORM_GC(gar_col(0),false); goto doing_gc;
     }
    #endif
     error_speicher_voll();
@@ -532,13 +524,13 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
      we do the GC, when the 25%-boundary is reached. */
     make_space_using_malloc();
   }
-  PERFORM_GC(gar_col_simple());             /* call garbage collector */
+  PERFORM_GC(gar_col_simple(),false);             /* call garbage collector */
   handle_interrupt_after_gc();
   /* and test again: */
   var Pages page = AVL(AVLID,least)(need,pages_ptr,stack_ptr);
   if (page==EMPTY) {
     if (!mem.last_gc_compacted) {
-      PERFORM_GC(gar_col_compact());        /* call compacting garbage collector */
+      PERFORM_GC(gar_col_compact(),false);        /* call compacting garbage collector */
       handle_interrupt_after_gc();
       page = AVL(AVLID,least)(need,pages_ptr,stack_ptr);
     }

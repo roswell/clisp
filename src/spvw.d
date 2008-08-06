@@ -325,9 +325,9 @@ local clisp_thread_t* allthreads[MAXNTHREADS];
 local uintL num_symvalues = 0;
 /* Maximum number of symbol values in every thread before new thread-local
  storage must be added.
- = floor(round_up(thread_size(num_symvalues),mmap_pagesize)
+ = floor(round_up(thread_size(num_symvalues),THREAD_SYMVALUES_ALLOCATION_SIZE)
          -offsetofa(clisp_thread_t,_symvalues),sizeof(gcv_object_t)) */
-global uintL maxnum_symvalues; /* VTZ: changed to global */
+global uintL maxnum_symvalues; 
 
 #ifdef per_thread
 global per_thread clisp_thread_t *_current_thread;
@@ -339,7 +339,9 @@ global xthread_key_t current_thread_tls_key;
 local void init_multithread (void) {
   xthread_init();
   xmutex_init(&allthreads_lock);
-  maxnum_symvalues = floor(((thread_size(0)+THREAD_SYMVALUES_ALLOCATION_SIZE-1)&-THREAD_SYMVALUES_ALLOCATION_SIZE)
+  maxnum_symvalues = floor(((thread_size(0)+
+			     THREAD_SYMVALUES_ALLOCATION_SIZE-1)&
+			    (-THREAD_SYMVALUES_ALLOCATION_SIZE))
                            -offsetofa(clisp_thread_t,_symvalues),
                            sizeof(gcv_object_t));
   #if !defined(per_thread)
@@ -347,22 +349,16 @@ local void init_multithread (void) {
   #endif
 }
 
-/* VTZ: forward declaration */
 local inline void get_reserved_memory_regions(uintM *addr_start, uintM *addr_end);
 
 /* VTZ: allocates a LISP stack for new thread (except for the main one) 
- The stack_size parameters is in bytes. The function is quite ugly since it 
- tries to avoid "reserved" but still not mapped regions by the CLISP heap.
- since CLISP maps with MAP_FIXED - it will destroy our mapping if it happens to overlap.
- in SPVW_PAGES - there are no problems (and the code succeeds on-the first try).
- TODO: to rewrite it. probably we should reserve some memory range in advance.
-  this probing is very tedious */
-local void* allocate_lisp_thread_stack(bool is_main,clisp_thread_t* thread, uintM stack_size)
+ The stack_size parameters is in bytes. 
+ It is always called with main thread lock - so we are not going to call
+ begin/end_system_call.*/
+local void* allocate_lisp_thread_stack(clisp_thread_t* thread, uintM stack_size)
 { 
   var uintM low,high;
-  if (!is_main) {begin_system_call();}
   low=(uintM)malloc(stack_size);
-  if (!is_main) {end_system_call();}
   if (!low) return NULL;
   high=low+stack_size/sizeof(uintM);
   #ifdef STACK_DOWN
@@ -389,71 +385,69 @@ global void unlock_threads()
 }
 
 /* register a clisp-thread_t in global thread array 
- thread - the new allocated thread.
- lock - whether to lock all threads activity. */
-global int register_thread(clisp_thread_t *thread, bool lock)
+ thread - the newly allocated thread.
+ The called party shoul hold the global thread lock */
+global int register_thread(clisp_thread_t *thread)
 {
-  int ret=-1;
-  if (lock) lock_threads();
-  if (nthreads >= MAXNTHREADS) { thread = NULL; goto done; }
+  if (nthreads >= MAXNTHREADS) return -1;
   thread->_index=nthreads;
   allthreads[nthreads] = thread;
   nthreads++;
- done:
-  if (lock) unlock_threads();
-  return ret;
+  return thread->_index;
 }
 
 /* creates new cisp_thread_t structure and allocates LISP stack.
- is_main indicates whether this is the main thread - so requests for suspendsion are not checked*/
-global clisp_thread_t* create_thread(bool is_main,uintM lisp_stack_size)
+ is_main indicates whether this is the main thread - so requests for suspendsion are not checked
+ It is always called with the main thread mutex locked. */
+global clisp_thread_t* create_thread(uintM lisp_stack_size)
 {
   var clisp_thread_t* thread;
-   if (!is_main) {begin_system_call();}
-  thread=(clisp_thread_t *)malloc((thread_size(num_symvalues)+THREAD_SYMVALUES_ALLOCATION_SIZE-1)&-THREAD_SYMVALUES_ALLOCATION_SIZE);
-  if (!is_main) {end_system_call();}
+  var uintM thr_size=
+    (thread_size(num_symvalues) + THREAD_SYMVALUES_ALLOCATION_SIZE-1) &
+    -THREAD_SYMVALUES_ALLOCATION_SIZE;
+  thread=(clisp_thread_t *)malloc(thr_size);
   if (!thread) return NULL;
-  /* VTZ: let's zero up everything - later on when we are sure that we initialize all required things 
-   we will remove this. */
-  memset(thread,0,(thread_size(num_symvalues)+THREAD_SYMVALUES_ALLOCATION_SIZE-1)&-THREAD_SYMVALUES_ALLOCATION_SIZE); /* zero everythnig */
+  memset(thread,0,thr_size); /* zero-up everything */
   {
     var gcv_object_t* objptr =
-      (gcv_object_t*)((uintP)thread+thread_objects_offset(num_symvalues));
+      (gcv_object_t*)((uintP)thread+thread_objects_offset());
     var uintC count;
     dotimespC(count,thread_objects_count(num_symvalues),
       { *objptr++ = NIL; });
   }
   /* allocate the LISP stack */
   if (lisp_stack_size) {
-    if (!allocate_lisp_thread_stack(is_main,thread,lisp_stack_size)) { free(thread); return NULL;}
+    if (!allocate_lisp_thread_stack(thread,lisp_stack_size)) { free(thread); return NULL;}
   }
-  spinlock_init(&thread->_suspend_request); spinlock_acquire(&thread->_suspend_request);
-  spinlock_init(&thread->_suspend_ack); spinlock_acquire(&thread->_suspend_ack);
-  xmutex_init(&thread->_suspend_lock);
+  spinlock_init(&thread->_gc_suspend_request); spinlock_acquire(&thread->_gc_suspend_request);
+  spinlock_init(&thread->_gc_suspend_ack); spinlock_acquire(&thread->_gc_suspend_ack);
+  xmutex_init(&thread->_gc_suspend_lock);
 
   /* VTZ:TODO. get the right SP_bound (pthreads and win32 can provide it ??)*/
 #ifndef NO_SP_CHECK
   thread->_SP_bound=0;
 #endif
-  if (is_main) {
-    register_thread(thread,true); /* does not matter true or false in this case*/
-  }
   return thread;
 }
 
   /* VTZ: Releases current_thread resources */
-global void delete_thread () {
-  clisp_thread_t *thread=current_thread();
-  xmutex_lock(&allthreads_lock);
+global void delete_thread (clisp_thread_t *thread) {
+  /* first give up any locks that the thread holds. 
+   if GC is suspending threads - we do not want to block it
+   anyway we are going away.*/
+  xmutex_destroy(&thread->_gc_suspend_lock);
+  spinlock_release(&thread->_gc_suspend_ack);
+  lock_threads(); /* lock all threads */
   ASSERT(thread->_index < nthreads);
-  ASSERT(allthreads[thread->_index] == thread); /* only current_thread() can delete itself !!! */
+  ASSERT(allthreads[thread->_index] == thread); 
   allthreads[nthreads-1]->_index = thread->_index;;
   allthreads[thread->_index] = allthreads[nthreads-1];
   nthreads--;
+  xmutex_destroy(&thread->_gc_suspend_lock);
   /* VTZ: deallocate all stuff (stacks) allocated above */
   free(THREAD_LISP_STACK_START(thread));
   free(thread);
-  xmutex_unlock(&allthreads_lock);
+  unlock_threads();
 }
 
   #define for_all_threads(statement)                             \
@@ -462,71 +456,12 @@ global void delete_thread () {
         { var clisp_thread_t* thread = *--_pthread; statement; } \
     } while(0)
 
-
-/* Suspends all running threads /besides the current/ on GC safe points/regions*/
-global void gc_suspend_all_threads()
-{
-  var uint8 *acklocked; /* flags for indicating whether a thread acknowedge the suspension */
-  var bool all_suspended;
-  var uintL yield_count=0; /* how many times we have */
-  clisp_thread_t *me=current_thread();
-  /* lock thread creation/deletion */
-  xmutex_lock(&allthreads_lock);
-  acklocked=(uint8 *)alloca(nthreads*sizeof(uint8));
-  memset(acklocked,0,sizeof(uint8)*nthreads);
-  for_all_threads({
-    if (thread == me) continue; /* skip ourself */
-    xmutex_lock(&thread->_suspend_lock); /* enable thread waiting */
-    spinlock_release(&thread->_suspend_request); /* request */
-  });
-  do {
-    all_suspended=true;
-    for_all_threads({
-      /* skip ourself and all already suspended (ACK acquired) threads */
-      if ((acklocked[thread->_index]) || (thread == me)) continue; 
-      if (spinlock_tryacquire(&thread->_suspend_ack)) {
-	acklocked[thread->_index]=1;
-      } else {
-	all_suspended=false;
-	break; /* yield - give chance the threads to reach safe point*/
-      }
-    });
-    if (!all_suspended) xthread_yield(); else break;
-    /*
-    if (++yield_count > GC_SUSPEND_MAX_YIELDS_COUNT) {
-      fprintf(stderr,GETTEXTL("Cannot suspend all threads for GC. Quitting."));
-      fputs("\n",stderr);
-      quit_instantly(2);
-    }
-    */
-  } while (1);
-  xmutex_unlock(&allthreads_lock);
-}
-
-/* Resumes all suspended threads /besides the current/ 
- should match a call to suspend_all_threads()*/
-global void gc_resume_all_threads()
-{
-  clisp_thread_t *me=current_thread();
-  /* lock thread creation/deletion.
-   probably it is not needed - since the only active thread at the moment is ourself */
-  xmutex_lock(&allthreads_lock);
-  for_all_threads({
-    if (thread == me) continue; /* skip ourself */
-    /* currently all ACK locks belong to us as well the mutex lock */
-    spinlock_release(&thread->_suspend_ack); /* release the ACK lock*/
-    xmutex_unlock(&thread->_suspend_lock); /* enable thread */
-  });
-  xmutex_unlock(&allthreads_lock);
-}
-
-
   /* Add a new symbol value.
    > value: the default value in all threads
    < returns: the index in the every thread's _symvalues[] array */
 local uintL make_symvalue_perthread (object value) {
   var uintL symbol_index;
-  xmutex_lock(&allthreads_lock);
+  lock_threads();
   if (num_symvalues == maxnum_symvalues) {
     /*
       VTZ:TODO IMLEMENT.
@@ -539,16 +474,16 @@ local uintL make_symvalue_perthread (object value) {
   }
   symbol_index = num_symvalues++;
   for_all_threads({ thread->_symvalues[symbol_index] = value; });
-  xmutex_unlock(&allthreads_lock);
+  unlock_threads();
   return symbol_index;
  failed:
-  xmutex_unlock(&allthreads_lock);
+  unlock_threads();
   error(error_condition,GETTEXT("could not make symbol value per-thread"));
 }
 
   #define for_all_threadobjs(statement)  \
     for_all_threads({                                     \
-      var gcv_object_t* objptr = (gcv_object_t*)((uintP)thread+thread_objects_offset(num_symvalues)); \
+      var gcv_object_t* objptr = (gcv_object_t*)((uintP)thread+thread_objects_offset()); \
       var uintC count;                                     \
       dotimespC(count,thread_objects_count(num_symvalues), \
         { statement; objptr++; });                         \
@@ -3392,11 +3327,12 @@ global int main (argc_t argc, char* argv[]) {
   This is also described in <doc/impext.xml#cradle-grave>! */
 
 #if defined(MULTITHREAD)
-  /*VTZ: initialize main thread. */
+  /* initialize main thread */
   {
     init_multithread();
     init_heap_locks();
-    set_current_thread(create_thread(true,0));
+    set_current_thread(create_thread(0));
+    register_thread(current_thread());
   }
 #endif
 
@@ -3424,6 +3360,15 @@ global int main (argc_t argc, char* argv[]) {
   if (!(setjmp(original_context) == 0)) goto end_of_main;
   /* Initialize memory and load a memory image (if specified). */
   if (init_memory(&argv1) < 0) goto no_mem;
+#if defined(MULTITHREAD)
+  /* after heap is initialized - allocate thread record for main thread */
+  {
+    /* VTZ:TODO give some meaningful name to the main thread */
+    pushSTACK(NIL);
+    current_thread()->_lthread=allocate_thread(&STACK_0);
+    popSTACK();
+  }
+#endif
   SP_anchor = (void*)SP(); /* VTZ: in MT current_thread() should be initialized */
   /* if the image was read from the executable, argv1.argv_memfile was
      set to exec name and now it has to be propagated to argv2.argv_memfile
