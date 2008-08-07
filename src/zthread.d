@@ -42,15 +42,16 @@ local maygc void *thread_stub(void *arg)
 
 LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
 { /* (MAKE-THREAD function &key name) */
-  var uintM lisp_stack_size=(abs((gcv_object_t *)STACK_start - 
-				 (gcv_object_t *)STACK_bound)+0x40)*
+  /* VTZ: new thread lisp stack size is the same as the calling one 
+   may be add another keyword argument for it ???*/
+  var uintM lisp_stack_size=(STACK_item_count(STACK_bound,STACK_start)+0x40)*
                             sizeof(gcv_object_t *);
   var clisp_thread_t *new_thread;
   /*allocate before the lock*/
   pushSTACK(allocate_thread(&STACK_0)); /* put it in GC visible place */
-  _GC_SAFE_REGION_BEGIN(); /* give chance the GC to work while we wait*/
+  begin_blocking_system_call(); /* give chance the GC to work while we wait*/
   lock_threads(); 
-  _GC_SAFE_REGION_END();
+  end_blocking_system_call();
   /* after we obtain thread lock - no GC can interrupt us. */
   new_thread=create_thread(lisp_stack_size);
   if (!new_thread) {

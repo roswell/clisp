@@ -9297,38 +9297,6 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   #define SAVE_back_trace()
   #define RESTORE_back_trace()
 #endif
-#if defined(MULTITHREAD)
-  /* no_gc statement is executed in case the thread should not be suspended for GC.*/
-  #define GC_SAFE_POINT_ELSE(no_gc) \
-    do{ \
-      var clisp_thread_t *thr=current_thread();		  \
-      if (spinlock_tryacquire(&thr->_gc_suspend_request)) {  \
-        spinlock_release(&thr->_gc_suspend_ack);		  \
-        xmutex_lock(&thr->_gc_suspend_lock);		  \
-	spinlock_acquire(&thr->_gc_suspend_ack);		  \
-        xmutex_unlock(&thr->_gc_suspend_lock);		  \
-      } else {no_gc;}					  \
-    }while(0)
-  #define GC_SAFE_POINT() GC_SAFE_POINT_ELSE(;)
-/* Giving up suspend ack during we are in system call. So we can be considered 
- suspended for GC. */
-  #define _GC_SAFE_REGION_BEGIN() \
-    do { \
-      spinlock_release(&current_thread()->_gc_suspend_ack); \
-    }while(0)
-/*VTZ: we should acquire the ACK spinlock, however in the existing code the calls to begin/end 
- calls do not match on many places. So we will check whether there is suspend request. */
-  #define _GC_SAFE_REGION_END() GC_SAFE_POINT_ELSE(spinlock_tryacquire(&current_thread()->_gc_suspend_ack))
-
-#define GC_SAFE_REGION_BEGIN() GCTRIGGER()
-#define GC_SAFE_REGION_END() GCTRIGGER()
-
-#else
-  #define GC_SAFE_POINT_ELSE(no_gc)
-  #define GC_SAFE_POINT()
-  #define GC_SAFE_REGION_BEGIN()
-  #define GC_SAFE_REGION_END()
-#endif
 #define SAVE_GLOBALS()     SAVE_mv_count(); SAVE_value1(); SAVE_back_trace();
 #define RESTORE_GLOBALS()  RESTORE_mv_count(); RESTORE_value1(); RESTORE_back_trace();
 #if defined(HAVE_SAVED_STACK)
@@ -9376,8 +9344,8 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   #define begin_system_call()
   #define end_system_call()
 #else
-#define begin_system_call()  begin_call(); GC_SAFE_REGION_BEGIN()
-#define end_system_call()  end_call(); GC_SAFE_REGION_END()
+#define begin_system_call()  begin_call() 
+#define end_system_call()  end_call()
 #endif
 /* The same holds for setjmp()/longjmp(). Here we avoid an unneeded overhead
  if at all possible.
@@ -9406,14 +9374,55 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
 /* The same holds for arithmetics-functions that use the STACK_registers.
  On I80386 (%ebx) these are SHIFT_LOOPS, MUL_LOOPS, DIV_LOOPS. */
 #if defined(I80386) && !defined(NO_ARI_ASM) && defined(HAVE_SAVED_STACK)
-  #define begin_arith_call()  begin_call()
-  #define end_arith_call()  end_call()
+  #define begin_arith_call()  begin_system_call()
+  #define end_arith_call()  end_system_call()
 #else
   #define begin_arith_call()
   #define end_arith_call()
 #endif
 %% export_def(begin_system_call());
 %% export_def(end_system_call());
+
+#if defined(MULTITHREAD)
+  /* no_gc statement is executed in case the thread should not be suspended for GC.*/
+  #define GC_SAFE_POINT_ELSE(no_gc) \
+    do{ \
+      var clisp_thread_t *thr=current_thread();		  \
+      if (spinlock_tryacquire(&thr->_gc_suspend_request)) {  \
+        spinlock_release(&thr->_gc_suspend_ack);		  \
+        xmutex_lock(&thr->_gc_suspend_lock);		  \
+	spinlock_acquire(&thr->_gc_suspend_ack);		  \
+        xmutex_unlock(&thr->_gc_suspend_lock);		  \
+      } else {no_gc;}					  \
+    }while(0)
+  #define GC_SAFE_POINT() GC_SAFE_POINT_ELSE(;)
+/* Giving up suspend ack during we are in system call. So we can be considered 
+ suspended for GC. */
+  #define GC_SAFE_REGION_BEGIN() \
+    do { \
+      spinlock_release(&current_thread()->_gc_suspend_ack); \
+    }while(0)
+/* If we cannot get the suspend ack lock again - it means we are in GC - 
+ so go in regular route in this case.*/
+  #define GC_SAFE_REGION_END() \
+    do { \
+      var clisp_thread_t *thr=current_thread(); \
+      if (!spinlock_tryacquire(&thr->_gc_suspend_ack)) { \
+        GC_SAFE_POINT(); \
+      } \
+    }while(0)
+#else
+  #define GC_SAFE_POINT_ELSE(no_gc)
+  #define GC_SAFE_POINT()
+  #define GC_SAFE_REGION_BEGIN()
+  #define GC_SAFE_REGION_END()
+#endif
+
+#define begin_blocking_system_call() GCTRIGGER();begin_system_call();GC_SAFE_REGION_BEGIN()
+#define end_blocking_system_call() GCTRIGGER();end_system_call();GC_SAFE_REGION_END()
+
+%% export_def(begin_blocking_system_call());
+%% export_def(end_blocking_system_call());
 
 #if defined(HAVE_STACK_OVERFLOW_RECOVERY)
   /* Detection of SP-overflow through a Guard-Page or other mechanisms. */
@@ -16784,8 +16793,8 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       #endif
       void* _SP_anchor;
 
-      void* _STACK_bound;
-      void* _STACK_start;
+      gcv_object_t* _STACK_bound;
+      gcv_object_t* _STACK_start;
       unwind_protect_caller_t _unwind_protect_to_save;
 
       uintC _index; /* this thread's index in allthreads[] */
@@ -16941,6 +16950,7 @@ global void gc_resume_all_threads();
       gc_resume_all_threads();			\
     } while(0)
 #else /* !MULTITHREAD */
+%% #else
   #define PERFORM_GC(statement,lock_heap) statement
 #endif
 %% #endif

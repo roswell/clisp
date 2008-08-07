@@ -1,3 +1,14 @@
+2008-08-08  Vladimir Tzankov  <vtzankov@gmail.com>
+
+	GC_SAFE_REGION_END fix + blocking system calls macros.
+	* lispbibl.d
+	(GC_SAFE_REGION_END): fixed possible race condition
+	(begin/end_blocking_system_call): macros for marking possibly
+	blocking system calls.
+	* zthread.d 
+	(make-thread): use STACK_item_count() macro for computing 
+	stack size. use begin/end_blocking_system_call.
+
 2008-08-06  Vladimir Tzankov  <vtzankov@gmail.com>
 
 	Heap/GC changes
