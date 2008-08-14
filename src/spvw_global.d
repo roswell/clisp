@@ -521,7 +521,8 @@ global void gc_suspend_all_threads(bool lock_heap)
   var uint8 *acklocked; /* flags for indicating whether a thread acknowedge the suspension */
   var bool all_suspended;
   var uintL yield_count=0; /* how many times we have */
-  clisp_thread_t *me=current_thread();
+  var clisp_thread_t *me=current_thread();
+  /*printf("VTZ: GC_SUSPEND(): %0x\n",me);*/
   if (lock_heap) ACQUIRE_HEAP_LOCK();
   /* lock thread creation/deletion */
   lock_threads();
@@ -539,6 +540,9 @@ global void gc_suspend_all_threads(bool lock_heap)
       if ((acklocked[thread->_index]) || (thread == me)) continue; 
       if (spinlock_tryacquire(&thread->_gc_suspend_ack)) {
 	acklocked[thread->_index]=1;
+	/* try to get the suspend request lock. In case the thread is in 
+	 blocking system call - this is important. */
+	spinlock_tryacquire(&thread->_gc_suspend_request);
       } else {
 	all_suspended=false;
 	break; /* yield - give chance the threads to reach safe point*/
@@ -546,27 +550,32 @@ global void gc_suspend_all_threads(bool lock_heap)
     });
     if (!all_suspended) xthread_yield(); else break;
   } while (1);
-  if (lock_heap) RELEASE_HEAP_LOCK();
-  unlock_threads();
+  /* keep the lock on threads (and heap if asked for) */
 }
 
 /* Resumes all suspended threads /besides the current/ 
  should match a call to suspend_all_threads()*/
-global void gc_resume_all_threads()
+global void gc_resume_all_threads(bool unlock_heap)
 {
-  clisp_thread_t *me=current_thread();
-  /* lock thread creation/deletion.
-   probably it is not needed - since the only active thread at the moment is ourself */
-  lock_threads();
+  /* no need to lock anything - we are the only one running */
+  var clisp_thread_t *me=current_thread();
+  /*printf("VTZ: GC_RESUME(): %0x\n",me);*/
   for_all_threads({
     if (thread == me) continue; /* skip ourself */
     /* currently all ACK locks belong to us as well the mutex lock */
     spinlock_release(&thread->_gc_suspend_ack); /* release the ACK lock*/
     xmutex_unlock(&thread->_gc_suspend_lock); /* enable thread */
   });
+  if (unlock_heap) RELEASE_HEAP_LOCK();
   unlock_threads();
 }
 
+#ifdef DEBUG_GCSAFETY
+global uintL* current_thread_alloccount() 
+{ 
+  return &current_thread()->_alloccount;
+}
+#endif
 
 local void init_heap_locks()
 {

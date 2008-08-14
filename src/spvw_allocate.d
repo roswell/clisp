@@ -21,10 +21,16 @@ local void* mymalloc (uintM need);
  function (via `return'). */
 
 #if defined(MULTITHREAD)
-
-#define LOCK_ALLOCATE()	ACQUIRE_HEAP_LOCK()
-#define RETURN_OBJ(obj)	RELEASE_HEAP_LOCK(); return obj
-
+  #ifdef DEBUG_GCSAFETY
+    #define LOCK_ALLOCATE()	ACQUIRE_HEAP_LOCK(); GC_STOP_WORLD(false)
+    #define RETURN_OBJ(obj) \
+      GC_RESUME_WORLD(false); \
+      RELEASE_HEAP_LOCK(); \
+      return obj
+  #else
+    #define LOCK_ALLOCATE()	ACQUIRE_HEAP_LOCK()
+    #define RETURN_OBJ(obj)	RELEASE_HEAP_LOCK(); return obj
+  #endif
 #else
 #define LOCK_ALLOCATE()
 #define RETURN_OBJ(obj) return obj
@@ -126,8 +132,22 @@ local void* mymalloc (uintM need)
 #ifdef DEBUG_GCSAFETY
   /* A counter that is incremented each time an allocation occurs that could
    trigger GC. */
-global uintL alloccount = 1;
-  #define inc_alloccount()  (void)(alloccount++)
+  #ifndef MULTITHREAD
+    global uintL alloccount = 1;
+    #define inc_alloccount()  (void)(alloccount++)
+  #else
+     /* the following is really slow. more appropriate implementation should use
+        heap (like) structure and modified GCTRIGGER() macros. for now it is ok.*/
+    inline void inc_alloccount()  {
+      /*find out the max alloccount among all threads
+	and increase it. Also set all others threads alloccount to
+	this one.*/
+      var uintL mac=0;
+      for_all_threads({mac=MAX(mac,thread->_alloccount);});
+      mac++;
+      for_all_threads({thread->_alloccount=mac;});
+    }
+  #endif
 #else
   #define inc_alloccount()  (void)0
 #endif

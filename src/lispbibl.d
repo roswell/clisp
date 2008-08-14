@@ -3047,8 +3047,14 @@ typedef signed_int_with_n_bits(intVsize)  sintV;
 #ifdef DEBUG_GCSAFETY
   /* A counter that is incremented each time an allocation occurs that could
    trigger GC. */
-  extern uintL alloccount;
-
+  #if defined(MULTITHREAD)
+    /* VTZ: this is slow but there will be need of many forward declarations
+     in order to compile. Also in GCSAFETY we do not care about peformance. */
+    extern uintL* current_thread_alloccount();
+    #define alloccount (*current_thread_alloccount())
+  #else 
+    extern uintL alloccount;
+  #endif
   /* A register-allocated object contains, if not GC-invariant, the timestamp
    of when it was fetched from a GC-visible location. */
   struct object {
@@ -3062,7 +3068,12 @@ typedef signed_int_with_n_bits(intVsize)  sintV;
   #define INIT_ALLOCSTAMP
 #endif
 %% #ifdef DEBUG_GCSAFETY
-%%   puts("extern uintL alloccount;");
+%%   #if defined(MULTITHREAD)
+%%     puts("extern uintL* current_thread_alloccount();");
+%%     export_def(alloccount);
+%%   #else
+%%     puts("extern uintL alloccount;");
+%%   #endif
 %% #else
 %%   emit_typedef("gcv_object_t","object");
 %% #endif
@@ -9402,13 +9413,15 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
     do { \
       spinlock_release(&current_thread()->_gc_suspend_ack); \
     }while(0)
-/* If we cannot get the suspend ack lock again - it means we are in GC - 
- so go in regular route in this case.*/
+/* If we cannot get the suspend ack lock again - it means there is/was GC - 
+ so try to wait for it's end if it is not already finished. */
   #define GC_SAFE_REGION_END() \
     do { \
       var clisp_thread_t *thr=current_thread(); \
       if (!spinlock_tryacquire(&thr->_gc_suspend_ack)) { \
-        GC_SAFE_POINT(); \
+	xmutex_lock(&thr->_gc_suspend_lock); \
+	spinlock_acquire(&thr->_gc_suspend_ack); \
+        xmutex_unlock(&thr->_gc_suspend_lock);		  \
       } \
     }while(0)
 #else
@@ -9420,6 +9433,11 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
 
 #define begin_blocking_system_call() GCTRIGGER();begin_system_call();GC_SAFE_REGION_BEGIN()
 #define end_blocking_system_call() GCTRIGGER();end_system_call();GC_SAFE_REGION_END()
+
+/* when we are in big region that is already marked as system call - we would like
+   just to enable GC on some blocking calls*/
+#define begin_blocking_call() GCTRIGGER();GC_SAFE_REGION_BEGIN()
+#define end_blocking_call() GCTRIGGER();GC_SAFE_REGION_END()
 
 %% export_def(begin_blocking_system_call());
 %% export_def(end_blocking_system_call());
@@ -16779,6 +16797,10 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       uintC _mv_count;
       p_backtrace_t _back_trace;
 
+#ifdef DEBUG_GCSAFETY
+    uintL _alloccount; /* alloccount for this thread */
+#endif
+
       /* GC suspend/resume machinery */
       spinlock_t _gc_suspend_request; /*always signalled unless there is a suspend request. */
       spinlock_t _gc_suspend_ack; /* always signalled unless it can be assumed the the thread is suspended */
@@ -16876,6 +16898,9 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 %%  puts("     gcv_object_t* _STACK;");
 %%  puts("     uintC _mv_count;");
 %%  puts("     p_backtrace_t _back_trace;");
+%%  #ifdef DEBUG_GCSAFETY
+%%    puts("     uintL _alloccount;");
+%%  #endif
 %%  puts("     spinlock_t _gc_suspend_request;");
 %%  puts("     spinlock_t _gc_suspend_ack;");
 %%  puts("     xmutex_t _gc_suspend_lock;"); 
@@ -16903,6 +16928,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
   #define SP_anchor current_thread()->_SP_anchor
 
 /* needed for building modules */
+%% export_def(current_thread());
 %% export_def(value1);
 %% export_def(value2);
 %% export_def(value3);
@@ -16937,19 +16963,35 @@ global void unlock_threads();
 global void gc_suspend_all_threads(bool lock_heap);
 /* Resumes all suspended threads /besides the current/ 
    should match a call to suspend_all_threads() */
-global void gc_resume_all_threads();
+global void gc_resume_all_threads(bool unlock_heap);
+
+#define GC_STOP_WORLD(lock_heap) gc_suspend_all_threads(lock_heap) 
+#define GC_RESUME_WORLD(unlock_heap) gc_resume_all_threads(unlock_heap)
 
 /* all calls to GC should be via this macro.
  The statement is executed, if lock_heap is true the heap is locked first.
  (this is needed since GC may be called from allocation or explicitly - when 
  the heap lock is not held) */
-  #define PERFORM_GC(statement,lock_heap)     \
+  #define _PERFORM_GC(statement,lock_heap)     \
     do {	 \
-      gc_suspend_all_threads(lock_heap);		\
-      statement;		\
-      gc_resume_all_threads();			\
+      var bool lh=lock_heap; \
+      GC_STOP_WORLD(lh); \
+      statement;     	\
+      GC_RESUME_WORLD(lh); \
     } while(0)
-#else /* !MULTITHREAD */
+
+  #ifndef DEBUG_GCSAFETY
+    #define PERFORM_GC(statement,lock_heap) _PERFORM_GC(statement,lock_heap)
+  #else
+    /* if we trigger GC from allocate_xxxx, than we already have 
+     stopped the world and will resume it at exit.*/
+    #define PERFORM_GC(statement,lock_heap) \
+      do {\
+	if (lock_heap) _PERFORM_GC(statement,true); else statement;	\
+      }while(0) 
+    extern uintL* current_thread_alloccount();
+  #endif
+#else /* ! MULTITHREAD */
 %% #else
   #define PERFORM_GC(statement,lock_heap) statement
 #endif

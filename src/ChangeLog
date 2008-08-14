@@ -1,3 +1,47 @@
+2008-08-14  Vladimir Tzankov  <vtzankov@gmail.com>
+	DEBUG_GCSSAFETY implementation + REPL GC safe point.
+	Builds with GENERATIONAL_GC will experience segfaults.
+
+	* lispbibl.d: added GCSAFETY for MT as discussed in
+	http://article.gmane.org/gmane.lisp.clisp.devel/18750
+	(GC_STOP_WORLD): macro for stopping all threads for GC
+	(GC_RESUME_WORLD): macro for resuming all suspended during GC
+	threads.
+	(alloccount): redefined as macro when build with MT and GCSAFETY.
+	(clisp_thread_t): added _alloccount for each thread
+	(PERFORM_GC/_PERFORM_GC): refactored in order to take into
+	account DEBUG_GCSAFETY
+	(current_thread_alloccount): returns a pointer to the
+	current thread _alloccount
+	(GC_SAFE_REGION_END): fixed possible race condition
+	(begin/end_blocking_call): pair macro for defining safe for GC
+	regions when the execution is already in system call
+	* spvw.d (create_thread): do not initialize the main (first) 
+	clisp_thread_t fields. 
+	* spvw_global.d
+	(current_thread_alloccount): implementation
+	(gc_suspend_all_threads): keep the heap/threads lock on exit
+	(gc_resume_all_threads): do not acquire threads lock and
+	handle properly heap lock.
+	* spvw_allocate.d: added DEBUG_GCSAFETY support
+	(LOCK_ALLOCATE): stops the "world" on each allocation in GCSAFETY
+	(RETURN_OBJ): resumes the "world" after successful allocation 
+	in GCSAFETY
+	(inc_alloccount): increases the _allocount in all threads (not
+	efficient - see comments).
+	* zthread.d
+	(thread_stub): now it is /*maygc*/ (in GCSAFETY we still do
+	not have current_thread() set).
+	* streams.d: added GC safe region for REPL. the patch is located at:
+	http://code.brumbar.com/stream.d-patch
+	(low_read_unbuffered_handle): maygc now. 
+	(rd_ch_unbuffered): maygc now. the encoding re-acquired from stream
+	for each character (since low_read_unbuffered_handle is maygc now).
+	(rd_ch_terminal1): maygc now
+	* time.d: the patch is located at:
+	http://code.brumbar.com/time.d-patch
+	(sleep): added safe for GC region arround the system call
+	
 2008-08-08  Vladimir Tzankov  <vtzankov@gmail.com>
 
 	GC_SAFE_REGION_END fix + blocking system calls macros.

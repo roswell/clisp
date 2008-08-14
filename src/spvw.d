@@ -397,8 +397,9 @@ global int register_thread(clisp_thread_t *thread)
 }
 
 /* creates new cisp_thread_t structure and allocates LISP stack.
- is_main indicates whether this is the main thread - so requests for suspendsion are not checked
- It is always called with the main thread mutex locked. */
+ It is always called with the main thread mutex locked. 
+ when the lisp_stack_size is 0 - it means this is the very first thread,
+ so we may(should not) perform some initializations */
 global clisp_thread_t* create_thread(uintM lisp_stack_size)
 {
   var clisp_thread_t* thread;
@@ -408,15 +409,13 @@ global clisp_thread_t* create_thread(uintM lisp_stack_size)
   thread=(clisp_thread_t *)malloc(thr_size);
   if (!thread) return NULL;
   memset(thread,0,thr_size); /* zero-up everything */
-  {
+  if (lisp_stack_size) {
     var gcv_object_t* objptr =
       (gcv_object_t*)((uintP)thread+thread_objects_offset());
     var uintC count;
     dotimespC(count,thread_objects_count(num_symvalues),
       { *objptr++ = NIL; });
-  }
-  /* allocate the LISP stack */
-  if (lisp_stack_size) {
+    /* allocate the LISP stack */
     if (!allocate_lisp_thread_stack(thread,lisp_stack_size)) { free(thread); return NULL;}
   }
   spinlock_init(&thread->_gc_suspend_request); spinlock_acquire(&thread->_gc_suspend_request);
@@ -3333,6 +3332,9 @@ global int main (argc_t argc, char* argv[]) {
     init_heap_locks();
     set_current_thread(create_thread(0));
     register_thread(current_thread());
+    #ifdef DEBUG_GCSAFETY && defined(MULTITHREAD)
+      current_thread()->_alloccount=1;
+    #endif
   }
 #endif
 

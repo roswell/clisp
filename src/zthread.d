@@ -29,7 +29,7 @@
 
 /* VTZ: All newly created threads start here.
  since we are replacing the C stack here - we do not want compiler to optimize this function in any way */
-local maygc void *thread_stub(void *arg)
+local /*maygc*/ void *thread_stub(void *arg)
 {
   clisp_thread_t *me=(clisp_thread_t *)arg;
   set_current_thread(me);
