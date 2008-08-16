@@ -4269,7 +4269,7 @@ extern bool inside_gc;
 #endif
 
 /* Algorithm by Morris, that compacts Conses without mixing them up: */
-#if defined(SPVW_BLOCKS) && defined(VIRTUAL_MEMORY) && !defined(NO_MORRIS_GC)  && !defined(MULTITHREAD) 
+#if defined(SPVW_BLOCKS) && defined(VIRTUAL_MEMORY) && !defined(NO_MORRIS_GC) /*  && !defined(MULTITHREAD) */ 
   /* Morris-GC is recommended, as it preserves the locality. */
   #define MORRIS_GC
 #endif
@@ -6850,14 +6850,15 @@ typedef enum {
 
 #include "xthread.c"
 
+/* forward declaration */
+struct clisp_thread_t;
+
 typedef struct {
   XRECORD_HEADER
   gcv_object_t xth_name _attribute_aligned_object_; /* name */
   gcv_object_t xth_next _attribute_aligned_object_; /* next thread */
   gcv_object_t xth_prev _attribute_aligned_object_; /* previous thread */
-  gcv_object_t *xth_tlvs;              /* thread-local values */
-  gcv_object_t *xth_stack;             /* the thread stack */
-  struct backtrace_t *xth_bt;          /* the backtrace */
+  struct clisp_thread_t *xth_globals;         /* all thread specific things */
   xthread_t xth_system;                /* OS object */
 } * Thread;
 #define thread_length  3
@@ -16957,13 +16958,16 @@ global void lock_threads();
 /* unlocks global thread array */
 global void unlock_threads();
 /* Suspends all running threads /besides the current/ on GC safe points/regions.
- if lock_heap is true the heap is locked first.
- (this is needed since GC may be called from allocation or explicitly - when 
- the heap lock is not held) */
+   if lock_heap is true the heap is locked first.
+   (this is needed since GC may be called from allocation or explicitly - when 
+   the heap lock is not held) */
 global void gc_suspend_all_threads(bool lock_heap);
 /* Resumes all suspended threads /besides the current/ 
    should match a call to suspend_all_threads() */
 global void gc_resume_all_threads(bool unlock_heap);
+/* pushes all active LISP thread records on the current LISP stack. 
+   returns the items pushed on the stack. */
+global uintC push_threads_on_stack();
 
 #define GC_STOP_WORLD(lock_heap) gc_suspend_all_threads(lock_heap) 
 #define GC_RESUME_WORLD(unlock_heap) gc_resume_all_threads(unlock_heap)

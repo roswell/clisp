@@ -19,14 +19,6 @@
 #endif
 #define NC_pushSTACK(non_current_stack,obj)  (NC_STACK_(non_current_stack,-1) = (obj), non_current_stack skipSTACKop -1)
 
-
-/* VTZ: copied from spvw.d for debugging/tracing */
-#if 0
-#define VAROUT(v)  printf("[%s:%d] %s=%ld\n",__FILE__,__LINE__,STRING(v),v)
-#else
-#define VAROUT(v)
-#endif
-
 /* VTZ: All newly created threads start here.
  since we are replacing the C stack here - we do not want compiler to optimize this function in any way */
 local /*maygc*/ void *thread_stub(void *arg)
@@ -68,6 +60,7 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
   /* VTZ:TODO we have to  copy the symvalues as well. */
   /* thread creation is done withou begin/end_system_call !!! */
   skipSTACK(2);
+  TheThread(new_thread->_lthread)->xth_globals=new_thread;
   register_thread(new_thread);
   if (xthread_create(&TheThread(new_thread->_lthread)->xth_system,
 		     &thread_stub,new_thread)) {
@@ -160,9 +153,9 @@ LISPFUN(thread_wait,seclass_default,3,0,rest,nokey,0,NIL)
 
 LISPFUNN(thread_yield,0)
 { /* (THREAD-YIELD) */
-  begin_system_call();
+  begin_blocking_system_call();
   xthread_yield();
-  end_system_call();
+  end_blocking_system_call();
   VALUES1(current_thread()->_lthread);
 }
 
@@ -213,7 +206,7 @@ LISPFUNN(current_thread,0)
 
 LISPFUNN(list_threads,0)
 { /* (LIST-THREADS) */
-  NOTREACHED;
+  VALUES1(listof(push_threads_on_stack()));
 }
 
 #endif  /* MULTITHREAD */

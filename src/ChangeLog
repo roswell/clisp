@@ -1,3 +1,31 @@
+2008-08-17  Vladimir Tzankov  <vtzankov@gmail.com>
+	GENERATIONAL_GC support. Thread xrecord changes. 
+	
+	* lispbibl.d
+	(Thread): the record contains now a pointer (xth_globals) to the 
+	clisp_thread_t structure (instead of separate pointers
+	to LISP stack, backtrace and TLS).
+	(push_threads_on_stack): global function to push all active
+	threads (in allthreads[] array) to the current thread LISP
+	stack.
+	* spvw.d
+	(push_threads_on_stack): implementation.
+	(delete_thread): big TODO here. See the comment at the end.
+	* spvw_heap.d
+	(physpage_state_t): added a cache_lock spinlock. During fault
+	handling single thread may manipulate the protection and cache.
+	* spvw_genera1.d
+	(build_old_generation_cache): initialize the cache_lock of 
+	physpage_state_t structures.
+	* spvw_fault.d
+	(handle_fault): implement locking around cache and page protection
+	changes. PROT_READ_WRITE pages always return success now (it means 
+	other fault has handled it before us).
+	* zthreads.d
+	(list_threads): implemented
+	(thread_yield): added safe for GC point. 
+	(make_thread): initialize the xth_global of the Thread record.
+
 2008-08-14  Vladimir Tzankov  <vtzankov@gmail.com>
 	DEBUG_GCSSAFETY implementation + REPL GC safe point.
 	Builds with GENERATIONAL_GC will experience segfaults.

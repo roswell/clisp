@@ -444,6 +444,11 @@ global void delete_thread (clisp_thread_t *thread) {
   nthreads--;
   xmutex_destroy(&thread->_gc_suspend_lock);
   /* VTZ: deallocate all stuff (stacks) allocated above */
+  TheThread(thread->_lthread)->xth_globals=NULL;
+  /* VTZ: TODO: hmm, it is not good to free this memory here. Since the LISP Thread
+   record is still alive (at least till there are references to it and it may 
+   reference the below free memory). It is best to have some kind of finalizer 
+   that will be executed by GC and will free this memory. */
   free(THREAD_LISP_STACK_START(thread));
   free(thread);
   unlock_threads();
@@ -454,6 +459,27 @@ global void delete_thread (clisp_thread_t *thread) {
       while (_pthread != &allthreads[0])                         \
         { var clisp_thread_t* thread = *--_pthread; statement; } \
     } while(0)
+
+/*
+  Pushes all active LISP thread objects on the current LISP stack.
+  The function is here since it relies on internal threads representation - 
+  via the allthreads[] array. This may change later - I do not want to make
+  nthreads and allthreads[] global. returns the items pushed on the stack.
+  called by (list_threads).
+*/
+global uintC push_threads_on_stack()
+{
+  begin_blocking_system_call();
+  lock_threads();
+  end_blocking_system_call();
+  var uintC count=nthreads;
+  for_all_threads({pushSTACK(thread->_lthread);});/* push everything on stack */
+  /* the unlocking should not be blocking. */
+  begin_system_call();
+  unlock_threads();
+  end_system_call();
+  return count;
+}
 
   /* Add a new symbol value.
    > value: the default value in all threads

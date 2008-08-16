@@ -24,7 +24,6 @@ global bool handle_fault_range (int prot, aint start_address, aint end_address);
 #endif
 
 #ifdef GENERATIONAL_GC
-
 /* Does the same as mprotect.
  Aborts if unsuccessful. */
 local void xmprotect (aint addr, uintM len, int prot);
@@ -83,7 +82,7 @@ local int handle_read_fault (aint address, physpage_state_t* physpage)
     }
   }
   /* superimpose page read-only: */
-  if (mprotect((void*)address, physpagesize, PROT_READ) < 0)
+  if (mprotect((void*)address, physpagesize, PROT_READ) < 0) 
     return -1;
   physpage->protection = PROT_READ;
   return 0;
@@ -115,6 +114,7 @@ local handle_fault_result_t handle_fault (aint address, int verbose)
   var uintL heapnr;
   var object obj = as_object((oint)address << oint_addr_shift);
   var aint pa_address = address & -physpagesize; /* page aligned address */
+
   #ifdef SPVW_PURE_BLOCKS
   heapnr = typecode(obj);
   #elif defined(SPVW_MIXED_BLOCKS_STAGGERED)
@@ -134,23 +134,50 @@ local handle_fault_result_t handle_fault (aint address, int verbose)
     {
       var uintL pageno = (pa_address>>physpageshift)-(heap->heap_gen0_start>>physpageshift);
       {
+	var int ret;
         var physpage_state_t* physpage = &heap->physpages[pageno];
+        #if defined(MULTITHREAD)
+          spinlock_acquire(&physpage->cache_lock);
+        #endif
         switch (physpage->protection) {
           case PROT_NONE:
             /* protection: PROT_NONE -> PROT_READ */
-            if (handle_read_fault(pa_address,physpage) < 0)
-              goto error6;
-            return handler_done;
+	    ret=handle_read_fault(pa_address,physpage);
+            #if defined(MULTITHREAD)
+	      spinlock_release(&physpage->cache_lock);
+            #endif
+            if (ret < 0) goto error6;
+	    return handler_done;
           case PROT_READ:
             /* protection: PROT_READ -> PROT_READ_WRITE */
-            if (handle_readwrite_fault(pa_address,physpage) < 0)
-              goto error7;
+	    ret=handle_readwrite_fault(pa_address,physpage);
+            #if defined(MULTITHREAD)
+	      spinlock_release(&physpage->cache_lock);
+            #endif
+            if (ret < 0) goto error7;
             return handler_done;
           case PROT_READ_WRITE:
-            goto error8;
+	    /* it is very unlikely page that has PROT_READ_WRITE to cause 
+	       segfault. probably we are here, since a page that has been 
+	       PROT_READ or PROT_NONE, has changed to PROT_READ_WRITE while 
+	       we were waiting to be executed.
+	       So we just return sucess here - other threads have done 
+	       what is required.
+	    */
+            #if defined(MULTITHREAD)
+	      spinlock_release(&physpage->cache_lock);
+            #endif
+	    return handler_done;
+	    /* goto error8; */
           default:
+            #if defined(MULTITHREAD)
+	      spinlock_release(&physpage->cache_lock);
+            #endif
             goto error9;
         }
+        #if defined(MULTITHREAD)
+	  spinlock_release(&physpage->cache_lock);
+        #endif
        error6:                  /* handle_read_fault() failed */
         if (verbose) {
           var int saved_errno = OS_errno;
