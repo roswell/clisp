@@ -4758,7 +4758,7 @@ local inline uintB* UnbufferedStream_pop_all (object stream,
   return byteptr;
 }
 
-local sintL low_read_unbuffered_handle (object stream) {
+local maygc sintL low_read_unbuffered_handle (object stream) {
   if (UnbufferedStream_status(stream) < 0) { /* already EOF? */
     return -1;
   }
@@ -4767,12 +4767,14 @@ local sintL low_read_unbuffered_handle (object stream) {
   }
   var Handle handle = TheHandle(TheStream(stream)->strm_ichannel);
   var uintB b;
- restart_it:
+  pushSTACK(stream);
+  /*restart_it:*/
   run_time_stop(); /* hold run time clock */
-  begin_system_call();
+  begin_blocking_system_call();
   var ssize_t result = full_read(handle,&b,1); /* try to read a byte */
-  end_system_call();
+  end_blocking_system_call();
   run_time_restart(); /* resume run time clock */
+  stream=popSTACK();
   if (result<0) {
     #ifdef WIN32_NATIVE
     begin_system_call();
@@ -5151,24 +5153,25 @@ local signean listen_byte_ia8_unbuffered (object stream) {
    -----------------
 
  READ-CHAR - Pseudo-Function for Unbuffered-Channel-Streams: */
-local object rd_ch_unbuffered (const gcv_object_t* stream_) {
+local maygc object rd_ch_unbuffered (const gcv_object_t* stream_) {
   var object stream = *stream_;
   if (eq(TheStream(stream)->strm_rd_ch_last,eof_value)) /* already EOF? */
     return eof_value;
  retry: {
     var chart c;
    #ifdef UNICODE
-    var object encoding = TheStream(stream)->strm_encoding;
     var uintB buf[max_bytes_per_chart];
     var uintL buflen = 0;
     while (1) {
       var sintL b = UnbufferedStreamLow_read(stream)(stream);
       if (b < 0)
         return eof_value;
+      stream=*stream_;
       ASSERT(buflen < max_bytes_per_chart);
       buf[buflen++] = (uintB)b;
       var const uintB* bptr = &buf[0];
       var chart* cptr = &c;
+      var object encoding = TheStream(stream)->strm_encoding;
       Encoding_mbstowcs(encoding)
         (encoding,stream,&bptr,&buf[buflen],&cptr,cptr+1);
       if (cptr == &c) { /* Not a complete character. */
@@ -5190,6 +5193,7 @@ local object rd_ch_unbuffered (const gcv_object_t* stream_) {
       var sintL b = UnbufferedStreamLow_read(stream)(stream);
       if (b < 0)
         return eof_value;
+      stream=*stream_;
       c = as_chart((uintB)b);
     }
    #endif
@@ -9217,7 +9221,7 @@ local maygc char** lisp_completion (char* text, int start, int end) {
 #ifdef HAVE_TERMINAL1
 
 /* read a character from a terminal-stream. */
-local object rd_ch_terminal1 (const gcv_object_t* stream_) {
+local maygc object rd_ch_terminal1 (const gcv_object_t* stream_) {
   var object ch = rd_ch_unbuffered(stream_);
   /* If both stdin and stdout are the same Terminal,
    and we read a NL, we can assume, that afterwards

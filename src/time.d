@@ -704,6 +704,7 @@ LISPFUNN(sleep,2)
     var struct timeval start_time;
     var struct timeval end_time;
     if (!( gettimeofday(&start_time,NULL) ==0)) { OS_error(); }
+    begin_blocking_call();
    #ifdef HAVE_SELECT
     { /* select erlaubt eine wunderschöne Implementation von usleep(): */
       var struct timeval timeout; /* Zeitintervall */
@@ -718,6 +719,7 @@ LISPFUNN(sleep,2)
     if (useconds>0) { usleep(useconds); }
     #endif
    #endif
+    end_blocking_call();
     interruptp({
       end_system_call();
       pushSTACK(S(sleep)); tast_break(); /* evtl. Break-Schleife aufrufen */
