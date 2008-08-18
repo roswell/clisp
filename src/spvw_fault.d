@@ -242,6 +242,7 @@ global bool handle_fault_range (int prot, aint start_address, aint end_address)
   }
   {
     var aint pa_address;
+    var int ret;
     for (pa_address = start_address & -physpagesize;
          pa_address < end_address; pa_address += physpagesize)
       if ((heap->heap_gen0_start <= pa_address)
@@ -251,15 +252,27 @@ global bool handle_fault_range (int prot, aint start_address, aint end_address)
         var physpage_state_t* physpage = &heap->physpages[pageno];
         if ((physpage->protection == PROT_NONE)
             && (prot == PROT_READ || prot == PROT_READ_WRITE)) {
+          #if defined(MULTITHREAD)
+          spinlock_acquire(&physpage->cache_lock);
+          #endif
           /* protection: PROT_NONE -> PROT_READ */
-          if (handle_read_fault(pa_address,physpage) < 0)
-            return false;
+	  ret=handle_read_fault(pa_address,physpage);
+          #if defined(MULTITHREAD)
+          spinlock_release(&physpage->cache_lock);
+          #endif
+          if (ret < 0) return false;
         }
         if (!(physpage->protection == PROT_READ_WRITE)
             && (prot == PROT_READ_WRITE)) {
+          #if defined(MULTITHREAD)
+          spinlock_acquire(&physpage->cache_lock);
+          #endif
           /* protection: PROT_READ -> PROT_READ_WRITE */
-          if (handle_readwrite_fault(pa_address,physpage) < 0)
-            return false;
+	  ret=handle_readwrite_fault(pa_address,physpage);
+          #if defined(MULTITHREAD)
+          spinlock_release(&physpage->cache_lock);
+          #endif
+          if (ret < 0) return false;
         }
       }
   }

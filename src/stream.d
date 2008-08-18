@@ -4770,9 +4770,8 @@ local maygc sintL low_read_unbuffered_handle (object stream) {
   pushSTACK(stream);
   /*restart_it:*/
   run_time_stop(); /* hold run time clock */
-  begin_blocking_system_call();
-  var ssize_t result = full_read(handle,&b,1); /* try to read a byte */
-  end_blocking_system_call();
+  /* try to read a byte */
+  var ssize_t result = GC_SAFE_SYSTEM_CALL(ssize_t,full_read(handle,&b,1));
   run_time_restart(); /* resume run time clock */
   stream=popSTACK();
   if (result<0) {
@@ -4986,7 +4985,7 @@ local signean low_listen_unbuffered_handle (object stream) {
   return ret;
 }
 
-local bool low_clear_input_unbuffered_handle (object stream) {
+local maygc bool low_clear_input_unbuffered_handle (object stream) {
   if (nullp(TheStream(stream)->strm_isatty))
     return false; /* it's a file -> nothing to do */
   UnbufferedStream_status(stream) = 0; /* forget about past EOF */
@@ -4995,6 +4994,11 @@ local bool low_clear_input_unbuffered_handle (object stream) {
   /* In case this didn't work, and as a general method for platforms on
    which clear_tty_input() does nothing: read a byte, as long as listen
    says that a byte is available. */
+
+  /* low_read_unbuffered_handle is not going to block - we are sure we 
+     character waiting. My be call directly full_read() without defining
+     safe gc region ???*/
+  pushSTACK(stream);
   while (ls_avail_p(low_listen_unbuffered_handle(stream))) {
     #ifdef WIN32_NATIVE
     /* Our low_listen_unbuffered_handle function, when applied to a WinNT
@@ -5002,12 +5006,15 @@ local bool low_clear_input_unbuffered_handle (object stream) {
      preceding CR has been eaten. Therefore be careful to set
      ChannelStream_ignore_next_LF to true when we read a LF. */
     var sintL c = low_read_unbuffered_handle(stream);
+    stream=STACK_0;
     if (c >= 0)
       ChannelStream_ignore_next_LF(stream) = (c == CR);
     #else
     low_read_unbuffered_handle(stream);
+    stream=STACK_0;
     #endif
   }
+  skipSTACK(1);
   return true;
 }
 
@@ -5222,13 +5229,13 @@ local maygc object rd_ch_unbuffered (const gcv_object_t* stream_) {
  < result:   ls_avail if a character is available,
              ls_eof   if EOF is reached,
              ls_wait  if no character is available, but not because of EOF */
-local signean listen_char_unbuffered (object stream) {
+local maygc signean listen_char_unbuffered (object stream) {
   if (eq(TheStream(stream)->strm_rd_ch_last,eof_value)) /* already EOF ? */
     return ls_eof;
   var signean result;
+  pushSTACK(stream); /* save it */
   #ifdef UNICODE
   var chart c;
-  var object encoding = TheStream(stream)->strm_encoding;
   var uintB buf[max_bytes_per_chart];
   var uintL buflen = 0;
   while (1) {
@@ -5241,14 +5248,22 @@ local signean listen_char_unbuffered (object stream) {
       UnbufferedStreamLow_pushfront_bytes(stream,&buf[0],buflen);
       break;
     }
+    /* this call is not going to block since we are sure that there is 
+       character waiting to be read. However since low_read_unbuffered_handle
+       may trigger GC (full_read) so this function also maygc.
+       Another option is to call full_read() here without surrounding it 
+       in safe for GC ???
+     */
     var sintL b = UnbufferedStreamLow_read(stream)(stream);
     if (b < 0) {
       result = ls_eof; break;
     }
+    stream=STACK_0;
     ASSERT(buflen < max_bytes_per_chart);
     buf[buflen++] = (uintB)b;
     var const uintB* bptr = &buf[0];
     var chart* cptr = &c;
+    var object encoding = TheStream(stream)->strm_encoding;
     Encoding_mbstowcs(encoding)
       (encoding,stream,&bptr,&buf[buflen],&cptr,cptr+1);
     if (cptr == &c) {
@@ -5281,6 +5296,7 @@ local signean listen_char_unbuffered (object stream) {
   result = UnbufferedStreamLow_listen(stream)(stream);
   if (ls_avail_p(result) && ChannelStream_ignore_next_LF(stream)) {
     var sintL b = UnbufferedStreamLow_read(stream)(stream);
+    stream=STACK_0;
     if (b < 0)
       return ls_eof;
     ChannelStream_ignore_next_LF(stream) = false;
@@ -5289,6 +5305,7 @@ local signean listen_char_unbuffered (object stream) {
     UnbufferedStreamLow_pushfront_byte(stream,b);
   }
   #endif
+  skipSTACK(1); /* discard the stream */
   return result;
 }
 
@@ -5297,7 +5314,7 @@ local signean listen_char_unbuffered (object stream) {
  clear_input_unbuffered(stream);
  > stream: Unbuffered-Channel-Stream
  < result: true if Input was deleted, else false */
-local bool clear_input_unbuffered (object stream) {
+local maygc bool clear_input_unbuffered (object stream) {
   if (nullp(TheStream(stream)->strm_isatty))
     return false; /* it's a file -> nothing to do */
   TheStream(stream)->strm_rd_ch_last = NIL; /* forget about past EOF */
@@ -7787,6 +7804,7 @@ local maygc object make_buffered_stream (uintB type, direction_t direction,
  add_to_open_streams()
  <> stream
  can trigger GC */
+/* VTZ: needs global lock */
 local maygc object add_to_open_streams (object stream) {
   pushSTACK(stream);
   var object new_cons = allocate_cons();
@@ -9339,7 +9357,9 @@ local maygc bool clear_input_terminal2 (object stream) {
   if (nullp(TheStream(stream)->strm_terminal_isatty)) /* File -> do nothing */
     return false;
   /* Terminal */
+  pushSTACK(stream);
   clear_input_unbuffered(stream); /* forget about past EOF, call clear_tty_input */
+  stream=popSTACK();
  #if TERMINAL_LINEBUFFERED
   TheStream(stream)->strm_terminal_index = Fixnum_0; /* index := 0 */
   TheIarray(TheStream(stream)->strm_terminal_inbuff)->dims[1] = 0; /* count := 0 */
@@ -14255,11 +14275,13 @@ LISPFUN(socket_status,seclass_default,1,2,norest,nokey,0,NIL) {
          because the buffer contains everything it has got */
       timeout_ptr = &timeout;
       timeout.tv_sec = timeout.tv_usec = 0;
+      
     }
-    if (select(FD_SETSIZE,&readfds,&writefds,&errorfds,timeout_ptr) < 0) {
+    if (GC_SAFE_CALL(int,select(FD_SETSIZE,&readfds,&writefds,&errorfds,timeout_ptr)) < 0) {
       if (sock_errno_is(EINTR)) { end_system_call(); goto restart_select; }
       if (!sock_errno_is(EBADF)) { SOCK_error(); }
     }
+    all=STACK_2; /* reload */
     if (many_sockets_p) {
       var object list = all;
       var uintL index = 0, count = 0;

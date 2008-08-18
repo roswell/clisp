@@ -9412,12 +9412,14 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
  suspended for GC. */
   #define GC_SAFE_REGION_BEGIN() \
     do { \
+      GCTRIGGER(); \
       spinlock_release(&current_thread()->_gc_suspend_ack); \
     }while(0)
 /* If we cannot get the suspend ack lock again - it means there is/was GC - 
  so try to wait for it's end if it is not already finished. */
   #define GC_SAFE_REGION_END() \
     do { \
+      GCTRIGGER(); \
       var clisp_thread_t *thr=current_thread(); \
       if (!spinlock_tryacquire(&thr->_gc_suspend_ack)) { \
 	xmutex_lock(&thr->_gc_suspend_lock); \
@@ -9432,16 +9434,32 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   #define GC_SAFE_REGION_END()
 #endif
 
-#define begin_blocking_system_call() GCTRIGGER();begin_system_call();GC_SAFE_REGION_BEGIN()
-#define end_blocking_system_call() GCTRIGGER();end_system_call();GC_SAFE_REGION_END()
+#define begin_blocking_system_call() begin_system_call();GC_SAFE_REGION_BEGIN()
+#define end_blocking_system_call() end_system_call();GC_SAFE_REGION_END()
 
 /* when we are in big region that is already marked as system call - we would like
    just to enable GC on some blocking calls*/
-#define begin_blocking_call() GCTRIGGER();GC_SAFE_REGION_BEGIN()
-#define end_blocking_call() GCTRIGGER();GC_SAFE_REGION_END()
+#define begin_blocking_call() GC_SAFE_REGION_BEGIN()
+#define end_blocking_call() GC_SAFE_REGION_END()
+
+#define GC_SAFE_CALL(type,statement) \
+  ({var type ret; begin_blocking_call(); \
+    ret=statement; \
+    end_blocking_call(); \
+    ret;})  
+#define GC_SAFE_SYSTEM_CALL(type,statement) \
+  ({var type ret; \
+    begin_blocking_system_call(); \
+    ret=statement; \
+    end_blocking_system_call(); \
+    ret;})
 
 %% export_def(begin_blocking_system_call());
 %% export_def(end_blocking_system_call());
+%% export_def(begin_blocking_call());
+%% export_def(end_blocking_call());
+%% export_def(GC_SAFE_CALL(type,statement));
+%% export_def(GC_SAFE_SYSTEM_CALL(type,statement));
 
 #if defined(HAVE_STACK_OVERFLOW_RECOVERY)
   /* Detection of SP-overflow through a Guard-Page or other mechanisms. */
@@ -16792,7 +16810,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 /* Structure containing all the per-thread global variables.
  (We could use a single instance of this structure also in the single-thread
  model, but it would make debugging less straightforward.) */
-  typedef struct {
+  typedef struct clisp_thread_t {
     /* Most often used (also used by modules - so should be exported) : */
       gcv_object_t* _STACK;
       uintC _mv_count;

@@ -1,4 +1,21 @@
 2008-08-18  Vladimir Tzankov  <vtzankov@gmail.com>
+	Added GC safe points
+
+	* lispbibl.d
+	(GC_SAFE_CALL/GC_SAFE_SYSTEM_CALL): macros for easing encapsulation 
+	of blocking system calls which are safe for GC
+	(clisp_thread_t): changed typedef. C++ does not like forward declarations
+	of "anonymous" typedef-ed structures.
+	* streams.d
+	(low_clear_input_unbuffered_handle): added maygc
+	(listen_char_unbuffered): added maygc
+	(clear_input_unbuffered): added maygc
+	(socket-status): blocking select() is safe for GC
+	* spvw_fault.d
+	(handle_fault_range): implement locking around cache and page
+	protection change (the bulk i/o is still not safe for GC)
+
+2008-08-18  Vladimir Tzankov  <vtzankov@gmail.com>
 	Make the GC re-entrant
 	
 	* spvw_global.d
