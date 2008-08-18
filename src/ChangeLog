@@ -1,3 +1,11 @@
+2008-08-18  Vladimir Tzankov  <vtzankov@gmail.com>
+	Make the GC re-entrant
+	
+	* spvw_global.d
+	(gc_suspend_count): re-entry counter
+	(gc_suspend_all_threads/gc_resume_all_threads): implement the 
+	GC re-entrancy
+
 2008-08-17  Vladimir Tzankov  <vtzankov@gmail.com>
 	GENERATIONAL_GC support. Thread xrecord changes. 
 	

@@ -511,6 +511,9 @@ local inline void init_mem_heapnr_from_type (void)
 
 #define RELEASE_HEAP_LOCK() spinlock_release(&mem.alloc_lock)
 
+/* since the GC may be re-entrant we should keep track how many times
+ we have been called. Only the first time we have to really suspend other threads.*/
+local uintC gc_suspend_count=0;
 
 /* Suspends all running threads /besides the current/ on GC safe points/region
  if lock_heap is true the heap is locked first.
@@ -520,46 +523,58 @@ global void gc_suspend_all_threads(bool lock_heap)
 {
   var uint8 *acklocked; /* flags for indicating whether a thread acknowedge the suspension */
   var bool all_suspended;
-  var uintL yield_count=0; /* how many times we have */
   var clisp_thread_t *me=current_thread();
   /*printf("VTZ: GC_SUSPEND(): %0x\n",me);*/
   if (lock_heap) ACQUIRE_HEAP_LOCK();
-  /* lock thread creation/deletion */
-  lock_threads();
-  acklocked=(uint8 *)alloca(nthreads*sizeof(uint8));
-  memset(acklocked,0,sizeof(uint8)*nthreads);
-  for_all_threads({
-    if (thread == me) continue; /* skip ourself */
-    xmutex_lock(&thread->_gc_suspend_lock); /* enable thread waiting */
-    spinlock_release(&thread->_gc_suspend_request); /* request */
-  });
-  do {
-    all_suspended=true;
+  if (gc_suspend_count == 0) { /* first time here */
+    /* lock thread creation/deletion */
+    lock_threads();
+    acklocked=(uint8 *)alloca(nthreads*sizeof(uint8));
+    memset(acklocked,0,sizeof(uint8)*nthreads);
     for_all_threads({
-      /* skip ourself and all already suspended (ACK acquired) threads */
-      if ((acklocked[thread->_index]) || (thread == me)) continue; 
-      if (spinlock_tryacquire(&thread->_gc_suspend_ack)) {
-	acklocked[thread->_index]=1;
-	/* try to get the suspend request lock. In case the thread is in 
-	 blocking system call - this is important. */
-	spinlock_tryacquire(&thread->_gc_suspend_request);
-      } else {
-	all_suspended=false;
-	break; /* yield - give chance the threads to reach safe point*/
-      }
+      if (thread == me) continue; /* skip ourself */
+      xmutex_lock(&thread->_gc_suspend_lock); /* enable thread waiting */
+      spinlock_release(&thread->_gc_suspend_request); /* request */
     });
-    if (!all_suspended) xthread_yield(); else break;
-  } while (1);
-  /* keep the lock on threads (and heap if asked for) */
+    do {
+      all_suspended=true;
+      for_all_threads({
+	/* skip ourself and all already suspended (ACK acquired) threads */
+	if ((acklocked[thread->_index]) || (thread == me)) continue; 
+	if (spinlock_tryacquire(&thread->_gc_suspend_ack)) {
+	  acklocked[thread->_index]=1;
+	  /* try to get the suspend request lock. In case the thread is in 
+	     blocking system call - this is important. */
+	  spinlock_tryacquire(&thread->_gc_suspend_request);
+	} else {
+	  all_suspended=false;
+	  break; /* yield - give chance the threads to reach safe point*/
+	}
+      });
+      if (!all_suspended) xthread_yield(); else break;
+    } while (1);
+  }
+  gc_suspend_count++; /* increase the suspend count */
+  /* keep the lock on threads, but release the heap lock. 
+     no other threads are running now, so no new allocations may
+     happen - only the ones from GC. Also no new thread can be created.*/
+  RELEASE_HEAP_LOCK();
 }
 
 /* Resumes all suspended threads /besides the current/ 
  should match a call to suspend_all_threads()*/
 global void gc_resume_all_threads(bool unlock_heap)
 {
-  /* no need to lock anything - we are the only one running */
+  /* thread lock is locked. heap lock is free. */
   var clisp_thread_t *me=current_thread();
   /*printf("VTZ: GC_RESUME(): %0x\n",me);*/
+  gc_suspend_count--;
+  if (gc_suspend_count > 0)
+    return;
+  /* get the heap lock. in case we are called from allocate_xxx
+     we should not allow any other thread that will be resumed shortly 
+     to acquire it. */
+  ACQUIRE_HEAP_LOCK(); 
   for_all_threads({
     if (thread == me) continue; /* skip ourself */
     /* currently all ACK locks belong to us as well the mutex lock */
