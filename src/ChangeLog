@@ -1,3 +1,54 @@
+2008-08-25  vlado tzankov  <vlado@whiteborzoi.local>
+	Support for "pinned" varobjects.
+
+	* lispbibl.d: sync with CVS head
+	(Thread): removed xth_next and xth_prev from Thread xrecord
+	(clisp_thread_t): added _pinned object - in case there is no 
+	HAVE_PINNED_BIT defined.
+	(clisp_thread_t): removed the _lthread object. 
+	(thread_objects_offset/count): thread GC visible objects start from
+	_aktenv.
+	(delete_thread): additional parameter - full. If true - frees all
+	resources (memory) previously allocated.
+	(release_threads): releases the threads that have terminated and there
+	are no references to them. Called from GC.
+	(pin/unpin_varobject): macros that pin/unpin varobject. Currently 
+	implemented only if HAVE_PINNED_BIT is undefined.
+	* spvw.d
+	(push_threads_on_stack): removed
+	(delete_thread): additional parameter - full. Implementation.
+	(init_memory/main): fixed/add (main) threads initialization.
+	* spvw_garcol.d
+	(varobj_mem_region): struct defining memory region in varobject
+	heap that can be used for compaction. Also the same struct is used
+	for describing the holes in heap that should be filled after the 
+	compaction.
+	(ACCEPTABLE_VAROBJECT_HEAP_HOLE): defines the "acceptable" size of the hole 
+	in the heap. If there is less place than this constant in front of pinned 
+	object - new hole is added.
+	(gc_sweep1_varobject_page): entirely rewritten in order to take care of
+	pinned objects.
+	(gc_sweep2_varobject_page): changed in order not to move pinned objects - 
+	addresses are already calculated in gc_sweep1_varobject_page.
+	(fill_relocation_memory_regions): fills a list (array actually) of 
+	memory regions in varobject heap that can/should be filled during 
+	compaction. Takes care to keep pinned objects out of these regions.
+	(fill_varobject_heap_holes): fills the holes in all varobject heaps,
+	caused by the existence (if any) of pinned objects.
+	(gar_col_normal): implements the thread xrecords life cycle. All 
+	terminated threads without references to them are released (the same
+	as open files).
+	(gar_col_normal): re-factored to use the new pinned object support 
+	during the sweep phase.
+	(gar_col_done): calls release_threads() if needed.
+	* spvw_sigsegv.d: sync with CVS head
+	* spvw_typealloc.d: comments cleanup
+	* zthread.d 
+	(release_threads): implementation
+	(make-thread): "re-factored" for thread safety and new threads
+	life cycle (O(all-threads))
+	(list-threads): implemented correctly.
+	
 2008-08-18  Vladimir Tzankov  <vtzankov@gmail.com>
 	Added GC safe points
 
@@ -6,7 +57,7 @@
 	of blocking system calls which are safe for GC
 	(clisp_thread_t): changed typedef. C++ does not like forward declarations
 	of "anonymous" typedef-ed structures.
-	* streams.d
+	* stream.d
 	(low_clear_input_unbuffered_handle): added maygc
 	(listen_char_unbuffered): added maygc
 	(clear_input_unbuffered): added maygc
@@ -85,7 +136,7 @@
 	* zthread.d
 	(thread_stub): now it is /*maygc*/ (in GCSAFETY we still do
 	not have current_thread() set).
-	* streams.d: added GC safe region for REPL. the patch is located at:
+	* stream.d: added GC safe region for REPL. the patch is located at:
 	http://code.brumbar.com/stream.d-patch
 	(low_read_unbuffered_handle): maygc now. 
 	(rd_ch_unbuffered): maygc now. the encoding re-acquired from stream

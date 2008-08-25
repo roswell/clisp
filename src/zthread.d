@@ -19,6 +19,17 @@
 #endif
 #define NC_pushSTACK(non_current_stack,obj)  (NC_STACK_(non_current_stack,-1) = (obj), non_current_stack skipSTACKop -1)
 
+
+/* releases the clisp_thread_t memory of the list of Thread records */
+global void release_threads (object list) {
+  while (!endp(list)) {
+    /* may be the stack as well ??? currently freed in delete_thread(). */
+    free(TheThread(Car(list))->xth_globals);
+    list = Cdr(list);
+  }
+}
+
+
 /* VTZ: All newly created threads start here.
  since we are replacing the C stack here - we do not want compiler to optimize this function in any way */
 local /*maygc*/ void *thread_stub(void *arg)
@@ -28,7 +39,7 @@ local /*maygc*/ void *thread_stub(void *arg)
   me->_SP_anchor=(void*)SP();
   funcall(STACK_0,0); /* call it */
   /*VTZ: may be store the return value in the thread record ??*/
-  delete_thread(me);
+  delete_thread(me,false);
   return NULL;
 }
 
@@ -39,37 +50,49 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
   var uintM lisp_stack_size=(STACK_item_count(STACK_bound,STACK_start)+0x40)*
                             sizeof(gcv_object_t *);
   var clisp_thread_t *new_thread;
-  /*allocate before the lock*/
+  /* do allocations before thread locking */ 
   pushSTACK(allocate_thread(&STACK_0)); /* put it in GC visible place */
+  pushSTACK(allocate_cons());
+  /* create clsp_thread_t - no need for locking */
+  new_thread=create_thread(lisp_stack_size);
+  if (!new_thread) {
+    skipSTACK(4); VALUES1(NIL); return;
+  }
+  /* let's lock in order to register */
   begin_blocking_system_call(); /* give chance the GC to work while we wait*/
   lock_threads(); 
   end_blocking_system_call();
-  /* after we obtain thread lock - no GC can interrupt us. */
-  new_thread=create_thread(lisp_stack_size);
-  if (!new_thread) {
-    skipSTACK(3); VALUES1(NIL); unlock_threads(); return;
-  }
-  new_thread->_lthread=popSTACK();
   /* prepare the new thread stack */
   /* push 2 nullobj */
   NC_pushSTACK(new_thread->_STACK,nullobj); 
   NC_pushSTACK(new_thread->_STACK,nullobj);
   /* push the function to be executed */ 
-  NC_pushSTACK(new_thread->_STACK,STACK_1);
+  NC_pushSTACK(new_thread->_STACK,STACK_3);
   new_thread->_aktenv=aktenv; /* set it the same as current thread one */
+  new_thread->_pinned = NIL;
   /* VTZ:TODO we have to  copy the symvalues as well. */
-  /* thread creation is done withou begin/end_system_call !!! */
-  skipSTACK(2);
-  TheThread(new_thread->_lthread)->xth_globals=new_thread;
-  register_thread(new_thread);
-  if (xthread_create(&TheThread(new_thread->_lthread)->xth_system,
-		     &thread_stub,new_thread)) {
-    delete_thread(new_thread);
-    unlock_threads(); /* in case of failure - release the thread lock*/
+  if (register_thread(new_thread)<0) {
+    /* total failure */
+    unlock_threads();
+    delete_thread(new_thread,true);
     VALUES1(NIL);
-  } else 
-    VALUES1(new_thread->_lthread);
-  unlock_threads();
+    skipSTACK(4); 
+    return;
+  }
+  var object new_cons=popSTACK();
+  var object lthr=popSTACK();
+  skipSTACK(2);
+  /* initialize the thread references */
+  new_thread->_lthread=lthr;
+  TheThread(lthr)->xth_globals=new_thread;
+  /* add to all_threads global */
+  Car(new_cons) = lthr;
+  Cdr(new_cons) = O(all_threads);
+  O(all_threads) = new_cons;
+  unlock_threads(); /* allow GC and other thread creation. */
+  /* create the OS thread */
+  xthread_create(&TheThread(lthr)->xth_system, &thread_stub,new_thread);
+  VALUES1(lthr);
 }
 
 struct call_timeout_data_t {
@@ -206,7 +229,22 @@ LISPFUNN(current_thread,0)
 
 LISPFUNN(list_threads,0)
 { /* (LIST-THREADS) */
-  VALUES1(listof(push_threads_on_stack()));
+  /* we cannot copy the all_threads list, since it maygc 
+     and while we hold the threads lock - deadlock will occur. */
+  var uintC count=0;
+  begin_blocking_system_call();
+  lock_threads(); /* stop GC and thread creation*/
+  end_blocking_system_call();
+  var object list=O(all_threads);
+  while (!endp(list)) {
+    count++;
+    pushSTACK(Car(list));
+    list=Cdr(list);
+  }
+  begin_system_call();
+  unlock_threads();
+  end_system_call();
+  VALUES1(listof(count));
 }
 
 #endif  /* MULTITHREAD */

@@ -980,6 +980,19 @@ local void gc_sweep1_instance_target (aint p2, aint p1) {
   }
 }
 
+/* defines memory region in the varobject heap page.
+ used during sweep phase (and holes filling with nullobj)*/
+typedef struct varobj_mem_region {
+  aint start;
+  aint size;
+#ifdef SVPW_PURE
+  uintL heapnr; /* used for hole filling only */
+#endif
+} varobj_mem_region;
+
+/* how to calculate good value for this ??? */
+#define ACCEPTABLE_VAROBJECT_HEAP_HOLE  128*sizeof(gcv_object_t)
+
 /* Prepare objects of variable length between page->page_start and
  page->page_end for compacting below. Therefore, in each marked
  object the pointer in front is pointed to the location, where the
@@ -987,118 +1000,137 @@ local void gc_sweep1_instance_target (aint p2, aint p1) {
  object is unmarked, then its first pointer is oriented to the address
  of the next marked object. */
 #ifdef SPVW_PURE
-local aint gc_sweep1_varobject_page (uintL heapnr, aint start, aint end, gcv_object_t* firstmarked, aint dest)
-#elif defined(GENERATIONAL_GC)
-local aint gc_sweep1_varobject_page (aint start, aint end, gcv_object_t* firstmarked, aint dest)
+local aint gc_sweep1_varobject_page(uintL heapnr, aint start, aint end, 
+				    gcv_object_t *firstmarked, 
+				    varobj_mem_region *dest, uintC dest_count, 
+				    varobj_mem_region *holes, aint *holes_count)
 #else
-local void gc_sweep1_varobject_page (Page* page)
+local aint gc_sweep1_varobject_page(aint start, aint end, 
+				    gcv_object_t *firstmarked, 
+				    varobj_mem_region *dest, uintC dest_count,
+				    varobj_mem_region *holes, aint *holes_count)
 #endif
 {
- #if defined(SPVW_PURE) || defined(GENERATIONAL_GC)
+  var bool last_was_marked=false;
   var gcv_object_t* last_open_ptr = firstmarked;
   var aint p2 = start;          /* source-pointer */
-  var aint p2end = end;         /* upper bound of the source-region */
-  var aint p1 = dest;           /* destination-pointer */
- #else
-  var gcv_object_t* last_open_ptr = &page->page_gcpriv.firstmarked;
-  /* In *last_open_ptr, always store the address of the next marked
-   object (als oint) .
-   Via chained-list-mechanism: At the end, page->page_gcpriv.firstmarked
-   contains the address of the 1. marked object */
-  var aint p2 = page->page_start;                /* source-pointer */
-  var aint p2end = page->page_end; /* upper bound of the source-region */
-  var aint p1 = p2;                /* destination-pointer */
- #endif
-  /* start <= p1 <= p2 <= end, p1 and p2 grow, p2 faster than p1. */
+  var varobj_mem_region *cur=dest;
+  var uintM objlen;
+  var aint new_loc;
   var_prepare_objsize;
- sweeploop1:
-  /* search next marked object.
-   enter address of the next marked object in *last_open_ptr . */
-  if (p2==p2end)                /* upper bound reached -> finished */
-    goto sweepok1;
-  {
-   #ifdef TYPECODES
+#if !defined(HAVE_PINNED_BIT)
+  var varobj_mem_region *pin_watch=dest;
+  var aint next_pinned=pin_watch->start+pin_watch->size;
+#endif
+
+  while (1) {
+    if (p2==end) break; /* we have finishd */
+  #ifdef TYPECODES
     var tint flags = mtypecode(((Varobject)p2)->GCself);
     /* save typeinfo (and flags for symbols) */
-   #endif
-    var uintM laenge = objsize((Varobject)p2); /* determine byte-length */
-    if (!marked(p2)) {                         /* object unmarked? */
-      p2 += laenge; goto sweeploop1; /* yes -> goto next object */
+  #endif
+    objlen=objsize((Varobject)p2);
+
+    /* Check for pinned object. Currently we assume that it is
+     possible to have pinned object that is not marked !!!
+    This is quite unlikely (at least I do not see normal
+    case in which this may occur). moving this after the mark is checked
+    will improve the performance of course. */
+  #ifdef HAVE_PINNED_BIT
+    if (varobject_pinnedp(p2)) { /* is current object pinned? */
+    pin:;
+      var varobj_mem_region *last=dest+dest_count-1;
+      var varobj_mem_region *rnew=last+1;
+      dest_count++; /* add another region */
+      last->size=p2-last->start; /* adjust previous region */
+      rnew->start=p2+objlen; /* new region beginning */
+      rnew->size=end-rnew->start; /* set the size */
+      /* nothing more to do with this object */
+      mark(p2); /* marked it in case it is not*/
+      new_loc=p2; /* stay where you are !!! */
+      goto advance;
     }
-    /* object marked
-     Elimination of forward pointers: */
-   #ifdef HAVE_SMALL_SSTRING
-    #ifdef SPVW_PURE
-    if (heapnr == sstring_type)
-    #else
-     #ifdef TYPECODES
-    if ((flags & ~bit(garcol_bit_t)) == sstring_type)
-     #else
-      /* NB: No need to handle Rectype_[Imm_]S8string here. */
-    if ((uintB)(record_type((Record)p2) - Rectype_S16string)
-        <= Rectype_reallocstring - Rectype_S16string)
-     #endif
-    #endif
-      {
-        if (sstring_reallocatedp((Sstring)p2)) {
-          /* A forward pointer. */
-          gc_sweep1_sstring_forward(p2);
-        } else {
-          /* Possibly the target of a forward pointer. */
-          gc_sweep1_sstring_target(p2,p1);
-        }
-      }
-    else
-    #endif
-     #ifdef SPVW_PURE
-      if (heapnr == instance_type
-          || (heapnr == closure_type
-              && (closure_flags((Closure)p2) & closflags_instance_B)))
-     #else
-      #ifdef TYPECODES
-      if ((flags & ~bit(garcol_bit_t)) == instance_type
-          || ((flags & ~bit(garcol_bit_t)) == closure_type
-              && (closure_flags((Closure)p2) & closflags_instance_B)))
-      #else
-      if (record_type((Record)p2) == Rectype_Instance
-          || (record_type((Record)p2) == Rectype_Closure
-              && (closure_flags((Closure)p2) & closflags_instance_B)))
-      #endif
-     #endif
-        {
-          if (record_flags((Instance)p2) & instflags_forwarded_B) {
-            /* A forward pointer. */
-            gc_sweep1_instance_forward(p2);
-          } else {
-            /* Possibly the target of a forward pointer. */
-            gc_sweep1_instance_target(p2,p1);
-          }
-        }
-      else {
-        set_GCself(p2, flags,p1); /* enter new address, with old */
-        /* typeinfo (the mark bit is contained within) */
-        #ifndef TYPECODES
-        mark(p2);
-        #endif
-      }
-    *last_open_ptr = pointer_as_object(p2); /* store address */
-    p2 += laenge;               /* source address for next object */
-    p1 += laenge;              /* destination address for next object */
-  }
- sweeploop2:
-  /* search next unmarked object. */
-  if (p2==p2end)                /* upper bound reached -> finished */
-    goto sweepok2;
-  {
-   #ifdef TYPECODES
-    var tint flags = mtypecode(((Varobject)p2)->GCself);
-    /* save typeinfo (and flags for symbols) */
-   #endif
-    var uintM laenge = objsize((Varobject)p2); /* determine byte-length */
-    if (!marked(p2)) {                         /* object unmarked? */
-      last_open_ptr = (gcv_object_t*)p2; /* yes -> store the next pointer here */
-      p2 += laenge; goto sweeploop1;     /* goto next object */
+  #else 
+    if (p2==next_pinned) { /* is the current object pinned? */
+    pin:;
+      /* advanace to next pinned object */
+      pin_watch++; next_pinned=pin_watch->start+pin_watch->size;
+      new_loc=p2; /* stay here */
+      mark(p2); /* mark it: VTZ: currently for testing - should be marked! */
+      goto advance;
     }
+  #endif
+    if (!marked(p2)) { 
+      /* in the original implementation the loops were unrolled
+	 but here we will pay the price for pin object support :( */
+      if (last_was_marked) {
+	last_open_ptr = (gcv_object_t*)p2;
+	last_was_marked = false;
+      } 
+      p2+=objlen; 
+      continue; 
+    }
+    /* we have marked object that is not pinned. 
+       we should calculate the new address at which we will move it */
+  relocate:
+    if (cur->size >= objlen) {
+      /* we still have place in this region */
+      new_loc=cur->start;
+      /* shrink current region */
+      cur->start+=objlen; cur->size-=objlen;
+    } else {
+      /* no place in current region. */
+      /* if the whole remaining area is small enough - just fill it with 
+	 nullobjects and move to next regions */
+      if (cur->size < ACCEPTABLE_VAROBJECT_HEAP_HOLE) {
+	/* fill with nullobj the hole begore the pinned object.
+	   this should be done in AFTER sweep second phase.
+	   ---------------------------------
+	   var int count=cur->size/sizeof(gcv_object_t);
+	   var gcv_object_t *ptr=(gcv_object_t *)cur->start;
+	   dotimesL(count,count, { *ptr++ = nullobj; } ); 
+	   ---------------------------------
+	So just record what we have to do (if any). */
+	if (cur->size) {
+	  holes[*holes_count].start=cur->start;
+	  holes[*holes_count].size=cur->size;
+	  #ifdef SPVW_PURE
+	  holes[*holes_count].heapnr=heapnr;
+          #endif
+	  (*holes_count)++;
+	}
+	cur++;  /* advanace to next free buffer */
+	goto relocate;
+      }
+      /* loop over all free regions and try to find enough place at the
+	 beginning of each. If we find - we just shrink the region and relocate
+	 there the current object.*/
+      var varobj_mem_region *r=cur+1;
+      var int i;
+      for (i=0;i<dest_count-1;i++) {
+	if (r->size > objlen) {
+	  new_loc=r->start;
+	  /* shrink the region */
+	  r->start+=objlen; r->size-=objlen;
+	  goto advance;
+	}
+      }
+      /* we have not found big enough place for this object. 
+	 just pin it at it's current location. */
+#if !defined(HAVE_PINNED_BIT)
+      /* in this case we have insert it in the appropriate
+       place in the list. */
+      memmove(pin_watch+1,pin_watch,
+	      sizeof(varobj_mem_region)*(dest_count-(pin_watch-dest)));
+      dest_count++;
+      (pin_watch+1)->size=pin_watch->size-(p2-pin_watch->start)-objlen;
+      (pin_watch+1)->start=p2+objlen;
+      pin_watch->size=p2-pin_watch->start;
+      next_pinned=p2;
+#endif
+      goto pin;
+    }
+  advance:
     /* object marked
      Elimination of forward pointers: */
    #ifdef HAVE_SMALL_SSTRING
@@ -1119,7 +1151,7 @@ local void gc_sweep1_varobject_page (Page* page)
           gc_sweep1_sstring_forward(p2);
         } else {
           /* Possibly the target of a forward pointer. */
-          gc_sweep1_sstring_target(p2,p1);
+          gc_sweep1_sstring_target(p2,new_loc);
         }
       }
     else
@@ -1145,26 +1177,45 @@ local void gc_sweep1_varobject_page (Page* page)
             gc_sweep1_instance_forward(p2);
           } else {
             /* Possibly the target of a forward pointer. */
-            gc_sweep1_instance_target(p2,p1);
+            gc_sweep1_instance_target(p2,new_loc);
           }
         }
       else {
-        set_GCself(p2, flags,p1); /* enter new address, with old */
-        /* typeinfo (the mark bit is contained within) */
-       #ifndef TYPECODES
-        mark(p2);
-       #endif
+	set_GCself(p2, flags,new_loc); /* enter new address, with old */
+	/* typeinfo (the mark bit is contained within) */
+  #ifndef TYPECODES
+	mark(p2);
+  #endif
       }
-    p2 += laenge;               /* source address for next object */
-    p1 += laenge;              /* destination address for next object */
-    goto sweeploop2;
+    if (!last_was_marked) {
+      last_was_marked = true;
+      *last_open_ptr = pointer_as_object(p2); /* store address */
+    }
+    p2 += objlen;               /* source address for next object */    
   }
- sweepok1: { *last_open_ptr = pointer_as_object(p2); }
- sweepok2: ;
- #if defined(SPVW_PURE) || defined(GENERATIONAL_GC)
-  return p1;
- #endif
+  /* add the last link if needed. */
+  if (!last_was_marked) {
+      *last_open_ptr = pointer_as_object(p2); 
+  }
+  /* did we reach the end of mem regions? 
+     if not - there is a hole to be filled. */
+  if (cur != dest+dest_count-1) {
+    /* get the region before the last one. Pinned object is located 
+       before the beginning of the last region. */
+    var varobj_mem_region *lastlast=dest+dest_count-2;
+    holes[*holes_count].size=lastlast->start + lastlast->size - cur->start;
+    if (holes[*holes_count].size) { /* is there a hole really?  */
+      holes[*holes_count].start=cur->start;
+      (*holes_count)++;
+      #ifdef SPVW_PURE
+      holes[*holes_count].heapnr=heapnr;
+      #endif
+    }
+    return (lastlast+1)->start; /* return first free address */
+  } else 
+    return cur->start; /* used only if GENERATIONAL_GC || SPVW_PURE */
 }
+
 
 /* update phase:
  The entire LISP-memory is perused and old addresses are replaced
@@ -1367,6 +1418,7 @@ local void gc_sweep2_varobject_page (Page* page)
   var aint p1 = (aint)pointer_was_object(page->page_gcpriv.firstmarked); /* source-pointer, first marked object */
   var aint p1end = page->page_end;
   var aint p2 = page->page_start; /* destination-pointer */
+  var aint last_pinned_end=p2;
   var_prepare_objsize;
   while (p1!=p1end) {           /* upper bound reached -> finished */
     /* next object has address p1 */
@@ -1375,15 +1427,35 @@ local void gc_sweep2_varobject_page (Page* page)
       /* keep object and relocate: */
       var uintM count = objsize((Varobject)p1); /* length (divisible by varobject_alignment , >0) */
       if (p1!=p2) {             /* if relocation is necessary */
-        move_aligned_p1_p2(count); /* relocate and advance */
+	/* check for pinned objec. */
+      #if defined(MULTITHREAD)
+       #if defined(HAVE_PINNED_BIT)
+	if (varobject_pinnedp(p1))
+       #else
+	  /* GCself of p1 should point to p2 if the object is not pinned. 
+	     It should point to p1 if it is pinned.*/
+	  /* VTZ:TODO: probably just ((Varobject)p1)->GCself is correct as well ???*/
+	var aint pn = (aint)ThePointer(((Varobject)p1)->GCself);
+	if (pn==p1) 
+       #endif
+	{
+	  /* hehe - pinned object. we should not move it it any case */
+	  p1 += count; 
+	  last_pinned_end = p1;
+	} else 
+      #endif
+	  move_aligned_p1_p2(count); /* relocate and advance */
       } else {                     /* else only advance: */
+	/* we do nay care whether the object is pinned - it is not 
+	   going to move anyway */
         p1 += count; p2 += count;
       }
     } else {
       p1 = (aint)pointer_was_object(*(gcv_object_t*)p1); /* with pointer (typeinfo=0) to the next marked object */
     }
   }
-  page->page_end = p2; /* set upper bound of the objects of variable length */
+  /* set upper bound of the objects of variable length */
+  page->page_end = MAX(p2,last_pinned_end);
 }
 
 #if defined(DEBUG_SPVW) && !defined(GENERATIONAL_GC) && !defined(TYPECODES)
@@ -1486,6 +1558,95 @@ local void free_some_unused_pages (void)
 }
 #endif
 
+/* checks whether there are pinned objects in the start/end rannge. 
+ fills the approriate varobj_mem_regions and count based on this. */
+#ifdef SPVW_PURE
+local void fill_relocation_memory_regions(uintL heapnr, aint start,aint end,
+					  varobj_mem_region *regs, uintC *count)
+#else
+local void fill_relocation_memory_regions(aint start,aint end,
+					  varobj_mem_region *regs, uintC *count)
+#endif
+{
+  /* if we have bit for marking pinned objects - just set the whole regions
+     during sweeping the objects will be found and new regions will be added.*/
+#if defined(HAVE_PINNED_BIT) || !defined(MULTITHREAD)
+  regs->start=start;
+  regs->size=end-start;
+  *count=1;
+#else
+  /* we do not have pinned bit support - so iterate through all active threads
+     and check whether there are pinned objects and whether they are in the 
+     specified range.
+     TODO: can be implemented better. In SPVW_PURE - it will be called for each 
+     heap. It will be better to have sorted list of pinned regions and while 
+     iterating over heaps to construct mem_region array for each heap.
+  */
+  var varobj_mem_region *mit=regs+1;
+  var aint vs; /* start address of varobject*/
+  var_prepare_objsize; /* TODO: heapnr for SPVW_PURE */
+  *count=1;
+  for_all_threads({
+    /* is this varobject? */
+    if (varobjectp(thread->_pinned)) {
+      vs=(aint)TheVarobject(thread->_pinned);
+      /* are we inside range? */
+      if (start<=vs && end>vs) {
+	mit->start=vs; mit->size=objsize((Varobject)vs);
+	mit++; (*count)++;
+      }}});
+  regs->start=start; /* set the first region */
+  if (*count > 2) {
+    /* SORT(stable - because of the fist element) the regions by their 
+       start address. Since we do not expect to have too many items here - 
+       simple insertion sort is probably the fastest option ??? */
+    var int i,j;
+    var varobj_mem_region val;
+    for (i=1;i<*count;i++) {
+      val=regs[i];
+      for (j=i-1;regs[j].start>regs[i].start;j--) regs[j+1]=regs[j];
+      regs[j+1]=val;
+    }
+  }
+  /* create free region list - available for relocation */
+  while (regs != mit-1) {
+    /* current region size */
+    regs->size = (regs+1)->start - regs->start;
+    regs++; /*advance*/
+    /* next region start */
+    regs->start+=regs->size;
+  }
+  /* fix the last size*/
+  regs->size=end-regs->start; 
+#endif
+}
+/* filles all holes specified by holes structures.*/
+local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
+					    uintC holes_count)
+{
+  /* compiler shouls optimize this to nop if not MT!*/
+#if defined(MULTITHREAD) /* only in MT we may have pinned objects */
+  while (holes_count--) {
+    var Sbvector ptr=(Sbvector)holes->start;
+     /* we always have a plce in the hole for at least an varobject header*/
+    #ifdef SPVW_MIXED
+    /* single heap for varobjects - so just reserve simple-8bit-vector */
+     set_GCself(ptr,Array_type_simple_bit_vector(Atype_8Bit),ptr); 
+     var int len = holes->size - offsetofa(sbvector_,data);
+     #ifdef TYPECODES
+      ptr->length = len;
+     #else
+      ptr->tfl = vrecord_tfl(Rectype_Sb8vector,len);
+     #endif
+    #else 
+     /* depending on the heap type we have to allocate differently*/
+     #error "VTZ: still not implemented!!! Which kind of object should be supported? "
+    #endif
+    holes++;
+  }
+#endif
+}
+
 /* perform normal Garbage Collection: */
 local void gar_col_normal (void)
 {
@@ -1495,6 +1656,9 @@ local void gar_col_normal (void)
   var object all_finalizers;    /* list of finalizers */
   #ifdef GC_CLOSES_FILES
   var object files_to_close;    /* list of files to be closed */
+  #endif
+  #if defined(MULTITHREAD)
+  var object threads_to_go; /* list of threads to be released */
   #endif
   set_break_sem_1();       /* disable BREAK during Garbage Collection */
   gc_signalblock_on();   /* disable Signals during Garbage Collection */
@@ -1538,6 +1702,9 @@ local void gar_col_normal (void)
   all_finalizers = O(all_finalizers); O(all_finalizers) = Fixnum_0;
   #ifdef GC_CLOSES_FILES
   files_to_close = O(open_files); O(open_files) = NIL; /* O(files_to_close) = NIL; */
+  #endif
+  #if defined(MULTITHREAD)
+  threads_to_go = O(all_threads); O(all_threads) = NIL;
   #endif
   gc_markphase();
   gc_mark_weakpointers(all_weakpointers);
@@ -1593,6 +1760,30 @@ local void gar_col_normal (void)
   }
   gc_mark(O(open_files)); gc_mark(O(files_to_close)); /* mark both lists now */
  #endif
+  /* VTZ: ugly copy&paste from above. */
+ #if defined(MULTITHREAD)
+  {
+    /* if we want to keep the lisp stack of terminated threads
+       we should mark them as well (and should free the stack in 
+       delete_thread() of course) */
+    var object Lu = threads_to_go;
+    var gcv_object_t* L1 = &O(all_threads);
+    var gcv_object_t* L2 = &O(threads_to_release);
+    while (consp(Lu)) {
+      if (in_old_generation(Car(Lu),orecord_type,0)
+          || marked(TheThread(Car(Lu))) /* (car Lu) marked? */
+	  || TheThread(Car(Lu))->xth_globals->_index < MAXNTHREADS) { 
+        /* yes -> take over in O(all_threads) : */
+        *L1 = Lu; L1 = &Cdr(Lu); Lu = *L1;
+      } else {
+        /* no -> take over in O(threads_to_release) : */
+        *L2 = Lu; L2 = &Cdr(Lu); Lu = *L2;
+      }
+    }
+    *L1 = NIL; *L2 = NIL;
+  }
+  gc_mark(O(all_threads)); gc_mark(O(threads_to_release));
+ #endif
   /* No more gc_mark operations from here on. */
   clean_weakpointers(all_weakpointers);
  #if defined(USE_JITC)
@@ -1615,65 +1806,108 @@ local void gar_col_normal (void)
   for_each_cons_page(page, { gc_compact_cons_page(page); } );
  #endif
   /* prepare objects of variable length for compacting below: */
+
+  /* we cannot have more pinned objeects than the number of active threads
+     multiply by 4 since large blocks that may not be moved may introduce
+     new pinned objects (actually not sure that 4 is fine)*/
+#if !defined(MULTITHREAD)
+  #define nthreads 1
+#endif
+  var varobj_mem_region *regions=
+    (varobj_mem_region *)alloca(4*nthreads*sizeof(varobj_mem_region));
+  var varobj_mem_region *holes_to_fill=
+    (varobj_mem_region *)alloca(4*nthreads*sizeof(varobj_mem_region));
+#if !defined(MULTITHREAD)
+  #undef nthreads
+#endif
+  var uintC holes_count=0, regions_count;
  #ifdef SPVW_PURE
   #ifdef GENERATIONAL_GC
   if (generation == 0) {
     for_each_varobject_heap(heap, {
       if (heap->heap_gen0_end < heap->heap_gen1_start) {
         /* Bridge the gap by putting a pointer. */
-        var aint tmp =
-          gc_sweep1_varobject_page(heapnr,
-                                   heap->heap_gen0_start,heap->heap_gen0_end,
-                                   &heap->pages.page_gcpriv.firstmarked,
-                                   heap->heap_gen0_start);
-        gc_sweep1_varobject_page(heapnr,
-                                 heap->heap_gen1_start,heap->heap_end,
-                                 (gcv_object_t*)heap->heap_gen0_end,
-                                 tmp);
+	fill_relocation_memory_regions(heapnr,
+				       heap->heap_gen0_start,heap->heap_gen0_end,
+				       regions,&regions_count);
+	var aint tmp =
+	  gc_sweep1_varobject_page(heapnr,
+				   heap->heap_gen0_start,heap->heap_gen0_end,
+				   &heap->pages.page_gcpriv.firstmarked,
+				   regions,regions_count,
+				   holes_to_fill,&holes_count);
+	fill_relocation_memory_regions(heapnr,
+				       heap->heap_gen1_start,heap->heap_end,
+				       regions,&regions_count);
+	/* adjust the first region to merge with previos generation */
+	regions->size+=regions->start - tmp;
+	regions->start=tmp;
+	gc_sweep1_varobject_page(heapnr,
+				 heap->heap_gen1_start,heap->heap_end,
+				 (gcv_object_t*)(heap->heap_gen0_end),
+				 regions,regions_count,
+				 holes_to_fill,&holes_count);
       } else {                  /* no gap */
-        gc_sweep1_varobject_page(heapnr,
-                                 heap->heap_gen0_start,heap->heap_end,
-                                 &heap->pages.page_gcpriv.firstmarked,
-                                 heap->heap_gen0_start);
-      }
-    });
+	for_each_varobject_page(page, { 
+	  fill_relocation_memory_regions(heapnr,
+					 heap->heap_gen0_start,heap->heap_end,
+					 regions,&regions_count);
+	  gc_sweep1_varobject_page(heapnr,
+				   heap->heap_gen0_start,heap->heap_end,
+				   &heap->pages.page_gcpriv.firstmarked,
+				   regions,regions_count,
+				   holes_to_fill,&holes_count);});}});
   } else
   #endif
-    for_each_varobject_page(page, {
+    for_each_varobject_page(page, { 
+      fill_relocation_memory_regions(heapnr,
+				     page->page_start,page->page_end,
+				     regions,&regions_count);
       gc_sweep1_varobject_page(heapnr,
-                               page->page_start,page->page_end,
-                               &page->page_gcpriv.firstmarked,
-                               page->page_start);
-    });
+			       page->page_start,page->page_end,
+			       &page->page_gcpriv.firstmarked,
+			       regions,regions_count,
+			       holes_to_fill,&holes_count);});
  #else  /* SPVW_MIXED */
   #ifdef GENERATIONAL_GC
   if (generation == 0) {
     for_each_varobject_heap(heap, {
       if (heap->heap_gen0_end < heap->heap_gen1_start) {
         /* Bridge the gap by putting a pointer. */
-        var aint tmp =
-          gc_sweep1_varobject_page(heap->heap_gen0_start,heap->heap_gen0_end,
-                                   &heap->pages.page_gcpriv.firstmarked,
-                                   heap->heap_gen0_start);
-        gc_sweep1_varobject_page(heap->heap_gen1_start,heap->heap_end,
-                                 (gcv_object_t*)(heap->heap_gen0_end),
-                                 tmp);
+	fill_relocation_memory_regions(heap->heap_gen0_start,heap->heap_gen0_end,
+				       regions,&regions_count);
+	var aint tmp =
+	  gc_sweep1_varobject_page(heap->heap_gen0_start,heap->heap_gen0_end,
+				   &heap->pages.page_gcpriv.firstmarked,
+				   regions,regions_count,
+				   holes_to_fill, &holes_count);
+	fill_relocation_memory_regions(heap->heap_gen1_start,heap->heap_end,
+				       regions,&regions_count);
+	/* adjust the first region to merge with previos generation */
+	regions->size+=regions->start - tmp;
+	regions->start=tmp;
+	gc_sweep1_varobject_page(heap->heap_gen1_start,heap->heap_end,
+				 (gcv_object_t*)(heap->heap_gen0_end),
+				 regions,regions_count,
+				 holes_to_fill,&holes_count);
       } else {                  /* no gap */
-        gc_sweep1_varobject_page(heap->heap_gen0_start,heap->heap_end,
-                                 &heap->pages.page_gcpriv.firstmarked,
-                                 heap->heap_gen0_start);
-      }
-    });
+	for_each_varobject_page(page, { 
+	  fill_relocation_memory_regions(heap->heap_gen0_start,heap->heap_end,
+					 regions,&regions_count);
+	  gc_sweep1_varobject_page(heap->heap_gen0_start,heap->heap_end,
+				   &heap->pages.page_gcpriv.firstmarked,
+				   regions,regions_count,
+				   holes_to_fill,&holes_count);});}});
   } else
-    for_each_varobject_page(page, {
-      gc_sweep1_varobject_page(page->page_start,page->page_end,
-                               &page->page_gcpriv.firstmarked,
-                               page->page_start);
-    });
-  #else
-  for_each_varobject_page(page, { gc_sweep1_varobject_page(page); } );
-  #endif
  #endif
+    for_each_varobject_page(page, { 
+      fill_relocation_memory_regions(page->page_start,page->page_end,
+				     regions,&regions_count);
+      gc_sweep1_varobject_page(page->page_start,page->page_end,
+			       &page->page_gcpriv.firstmarked,
+			       regions,regions_count,
+			       holes_to_fill,&holes_count);});
+#endif
   /* Now all active objects are prepared for update:
    For active objects of variable length at objptr, *objptr is the address,
    where the object will be situated after the GC (incl. Typeinfo and
@@ -1769,6 +2003,8 @@ local void gar_col_normal (void)
   #else  /* SPVW_PURE */
   for_each_varobject_page(page, { gc_sweep2_varobject_page(page,heapnr); } );
   #endif
+  /* fill with nullobjects the holes generated by pinned objects */
+  fill_varobject_heap_holes(holes_to_fill,holes_count);
  #else  /* defined(GENERATIONAL_GC) */
   {
     var uintL heapnr;
@@ -1781,6 +2017,8 @@ local void gar_col_normal (void)
          #else  /* SPVW_PURE */
           gc_sweep2_varobject_page(&heap->pages,heapnr);
          #endif
+	  /* fill with nullobjects the holes generated by pinned objects */
+	  fill_varobject_heap_holes(holes_to_fill,holes_count);
         }
         if (generation == 0) {
           /* The remainder forms the new generation 0. */
@@ -1984,6 +2222,19 @@ local maygc void gar_col_done (void)
   #ifdef GC_CLOSES_FILES
   close_some_files(O(files_to_close)); /* close previously unmarked files */
   O(files_to_close) = NIL;
+  #endif
+  #if defined(MULTITHREAD)
+  /* release terminated threads */
+  release_threads(O(threads_to_release));
+  O(threads_to_release) = NIL;
+  /* set the new addresses of _lthread record in clisp_thread_t*/
+  {
+    var object list=O(all_threads);
+    while (!endp(list)) {
+      TheThread(Car(list))->xth_globals->_lthread=Car(list);
+      list=Cdr(list);
+    }
+  }
   #endif
   /* perform finalizer-functions: */
   while (!(eq(O(pending_finalizers),Fixnum_0))) {

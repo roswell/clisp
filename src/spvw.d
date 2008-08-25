@@ -389,6 +389,7 @@ global void unlock_threads()
  The called party shoul hold the global thread lock */
 global int register_thread(clisp_thread_t *thread)
 {
+  /* register lisp_thread to global thread list. */
   if (nthreads >= MAXNTHREADS) return -1;
   thread->_index=nthreads;
   allthreads[nthreads] = thread;
@@ -430,7 +431,7 @@ global clisp_thread_t* create_thread(uintM lisp_stack_size)
 }
 
   /* VTZ: Releases current_thread resources */
-global void delete_thread (clisp_thread_t *thread) {
+global void delete_thread (clisp_thread_t *thread, bool full) {
   /* first give up any locks that the thread holds. 
    if GC is suspending threads - we do not want to block it
    anyway we are going away.*/
@@ -443,14 +444,16 @@ global void delete_thread (clisp_thread_t *thread) {
   allthreads[thread->_index] = allthreads[nthreads-1];
   nthreads--;
   xmutex_destroy(&thread->_gc_suspend_lock);
-  /* VTZ: deallocate all stuff (stacks) allocated above */
-  TheThread(thread->_lthread)->xth_globals=NULL;
-  /* VTZ: TODO: hmm, it is not good to free this memory here. Since the LISP Thread
-   record is still alive (at least till there are references to it and it may 
-   reference the below free memory). It is best to have some kind of finalizer 
-   that will be executed by GC and will free this memory. */
+  thread->_index=MAXNTHREADS+1; /* mark as exitted */
+  /* VTZ: The LISP stack should be unwound so no
+     interesting stuff on it. Let's deallocate it.*/
   free(THREAD_LISP_STACK_START(thread));
-  free(thread);
+  thread->_STACK=NULL; 
+  /* VTZ: the clisp_thread_t itself will be deallocated during 
+   finalization phase of GC - when the thread record is discarded. */
+  if (full) {
+    free(thread);
+  }
   unlock_threads();
 }
 
@@ -460,27 +463,6 @@ global void delete_thread (clisp_thread_t *thread) {
         { var clisp_thread_t* thread = *--_pthread; statement; } \
     } while(0)
 
-/*
-  Pushes all active LISP thread objects on the current LISP stack.
-  The function is here since it relies on internal threads representation - 
-  via the allthreads[] array. This may change later - I do not want to make
-  nthreads and allthreads[] global. returns the items pushed on the stack.
-  called by (list_threads).
-*/
-global uintC push_threads_on_stack()
-{
-  begin_blocking_system_call();
-  lock_threads();
-  end_blocking_system_call();
-  var uintC count=nthreads;
-  for_all_threads({pushSTACK(thread->_lthread);});/* push everything on stack */
-  /* the unlocking should not be blocking. */
-  begin_system_call();
-  unlock_threads();
-  end_system_call();
-  return count;
-}
-
   /* Add a new symbol value.
    > value: the default value in all threads
    < returns: the index in the every thread's _symvalues[] array */
@@ -489,7 +471,7 @@ local uintL make_symvalue_perthread (object value) {
   lock_threads();
   if (num_symvalues == maxnum_symvalues) {
     /*
-      VTZ:TODO IMLEMENT.
+      VTZ:TODO IMPLEMENT.
     for_all_threads({
       if (mmap_zeromap((void*)((uintP)thread+((thread_size(num_symvalues)+mmap_pagesize-1)&-mmap_pagesize)),mmap_pagesize) < 0)
         goto failed;
@@ -3000,6 +2982,17 @@ local inline int init_memory (struct argv_initparams *p) {
   else if (!loadmem_from_executable())
     p->argv_memfile = get_executable_name();
   else initmem();               /* manual initialization */
+#if defined(MULTITHREAD)
+  /* "FIX"
+     VTZ:TODO. list threads records currently are saved into the lisp image 
+     but are not re-created when the image is restored.
+     the records themeselves are tottally invalid - since they point to
+     nowhere - no clisp_threat_t for them.
+     We should be able to re-create the saved threads - save the all
+     relevant data from clisp_thread_t and re-create new threads from it.
+  */
+  O(all_threads) = NIL;
+#endif
   /* init O(current_language) */
   O(current_language) = current_language_o(language);
   /* set current evaluator-environments to the toplevel-value: */
@@ -3358,7 +3351,7 @@ global int main (argc_t argc, char* argv[]) {
     init_heap_locks();
     set_current_thread(create_thread(0));
     register_thread(current_thread());
-    #ifdef DEBUG_GCSAFETY && defined(MULTITHREAD)
+    #ifdef DEBUG_GCSAFETY
       current_thread()->_alloccount=1;
     #endif
   }
@@ -3388,16 +3381,31 @@ global int main (argc_t argc, char* argv[]) {
   if (!(setjmp(original_context) == 0)) goto end_of_main;
   /* Initialize memory and load a memory image (if specified). */
   if (init_memory(&argv1) < 0) goto no_mem;
+  SP_anchor = (void*)SP(); /* VTZ: in MT current_thread() should be initialized */
 #if defined(MULTITHREAD)
-  /* after heap is initialized - allocate thread record for main thread */
+  /* after heap is initialized - allocate thread record for main thread.
+     no locking is needed here*/
   {
-    /* VTZ:TODO give some meaningful name to the main thread */
+    /* VTZ:TODO when we are loaded from mem file - we should restore the 
+     threads from there. 
+     Currently we just register our main thread and do not care what we have in
+     mem file!!! Threads do not survive mem file save/restore - just create 
+     garbage in it :( */
     pushSTACK(NIL);
-    current_thread()->_lthread=allocate_thread(&STACK_0);
+    pushSTACK(allocate_thread(&STACK_0));
+    var object new_cons=allocate_cons();
+    var object lthr;
+    /* add to all_threads global */
+    Car(new_cons) = lthr = popSTACK();
+    Cdr(new_cons) = O(all_threads);
+    O(all_threads) = new_cons;
+    /* initialize the thread references */
+    current_thread()->_lthread=lthr;
+    TheThread(lthr)->xth_globals=current_thread();
     popSTACK();
+    current_thread()->_pinned = NIL;
   }
 #endif
-  SP_anchor = (void*)SP(); /* VTZ: in MT current_thread() should be initialized */
   /* if the image was read from the executable, argv1.argv_memfile was
      set to exec name and now it has to be propagated to argv2.argv_memfile
      to avoid the beginner warning */

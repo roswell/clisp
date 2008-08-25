@@ -6856,12 +6856,10 @@ struct clisp_thread_t;
 typedef struct {
   XRECORD_HEADER
   gcv_object_t xth_name _attribute_aligned_object_; /* name */
-  gcv_object_t xth_next _attribute_aligned_object_; /* next thread */
-  gcv_object_t xth_prev _attribute_aligned_object_; /* previous thread */
   struct clisp_thread_t *xth_globals;         /* all thread specific things */
   xthread_t xth_system;                /* OS object */
 } * Thread;
-#define thread_length  3
+#define thread_length  1
 #define thread_xlength (sizeof(*(Thread)0)-offsetofa(record_,recdata)-thread_length*sizeof(gcv_object_t))
 
 typedef struct {
@@ -16404,14 +16402,12 @@ extern sintL I_to_L (object obj);
   #define I_to_uint  I_to_uint32
   #define I_to_sint  I_to_sint32
 #endif
-#if defined(HAVE_FFI)
-  #if (long_bitsize==32)
-    #define I_to_ulong  I_to_uint32
-    #define I_to_slong  I_to_sint32
-  #else /* (long_bitsize==64) */
-    #define I_to_ulong  I_to_uint64
-    #define I_to_slong  I_to_sint64
-  #endif
+#if (long_bitsize==32)
+  #define I_to_ulong  I_to_uint32
+  #define I_to_slong  I_to_sint32
+#else /* (long_bitsize==64) */
+  #define I_to_ulong  I_to_uint64
+  #define I_to_slong  I_to_sint64
 #endif
 /* used by FFI, STREAM, modules */
 %% export_def(I_to_uint8(obj));
@@ -16815,37 +16811,37 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       gcv_object_t* _STACK;
       uintC _mv_count;
       p_backtrace_t _back_trace;
-
 #ifdef DEBUG_GCSAFETY
     uintL _alloccount; /* alloccount for this thread */
 #endif
-
       /* GC suspend/resume machinery */
       spinlock_t _gc_suspend_request; /*always signalled unless there is a suspend request. */
       spinlock_t _gc_suspend_ack; /* always signalled unless it can be assumed the the thread is suspended */
       xmutex_t _gc_suspend_lock; /* the mutex on which the thread waits. */
-
       /* VTZ:TODO this belongs to the end of the structure, but since i am lazy and just wanted
          to compile the system I put it here. Otherwise quite bigger exported definiton (for modules) is required */
       object _mv_space [mv_limit-1]; 
-
       #ifndef NO_SP_CHECK
         void* _SP_bound;
       #endif
       void* _SP_anchor;
-
       gcv_object_t* _STACK_bound;
       gcv_object_t* _STACK_start;
       unwind_protect_caller_t _unwind_protect_to_save;
-
+#if !defined(HAVE_PINNED_BIT)
+    /* if we do not have pin bit to mark pinned varobjects
+       every thread supports max 1 pin object at a time. 
+       This object will "survive" GC */
+      gcv_object_t _pinned; 
+#endif
       uintC _index; /* this thread's index in allthreads[] */
     /* Used for exception handling only: */
       handler_args_t _handler_args;
       stack_range_t* _inactive_handlers;
-    /* Big, rarely used arrays come last: */
+    /* the current thread. NOT GC VISIBLE. Here for performance 
+     reasons. */
+      gcv_object_t _lthread; 
     /* Now the lisp objects (seen by the GC). */
-      /* The Lisp object representing this thread: */
-      gcv_object_t _lthread;
       /* The lexical environment: */
       gcv_environment_t _aktenv;
       /* The values of per-thread symbols: */
@@ -16854,9 +16850,9 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
   #define thread_size(nsymvalues)  \
     (offsetofa(clisp_thread_t,_symvalues)+nsymvalues*sizeof(gcv_object_t))
   #define thread_objects_offset()  \
-    (offsetof(clisp_thread_t,_lthread))
+    (offsetof(clisp_thread_t,_aktenv))
   #define thread_objects_count(nsymvalues)  \
-    ((offsetofa(clisp_thread_t,_symvalues)-offsetof(clisp_thread_t,_lthread))/sizeof(gcv_object_t)+(nsymvalues))
+    ((offsetofa(clisp_thread_t,_symvalues)-offsetof(clisp_thread_t,_aktenv))/sizeof(gcv_object_t)+(nsymvalues))
   
   #if defined(__GNUC__)
     #if defined (UNIX_LINUX) /* || defined() - add more - the GCC should have built-in support for TLS */
@@ -16966,7 +16962,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 global clisp_thread_t* create_thread(uintM lisp_stack_size);
 /* removes the current_thread from the list (array) of threads. 
    Also frees any allocated resource. */
-global void delete_thread(clisp_thread_t *thread);
+global void delete_thread(clisp_thread_t *thread, bool full);
 /* register a clisp-thread_t in global thread array 
    thread - the new allocated thread. 
    When called the global thread lock should be held. */
@@ -16983,9 +16979,9 @@ global void gc_suspend_all_threads(bool lock_heap);
 /* Resumes all suspended threads /besides the current/ 
    should match a call to suspend_all_threads() */
 global void gc_resume_all_threads(bool unlock_heap);
-/* pushes all active LISP thread records on the current LISP stack. 
-   returns the items pushed on the stack. */
-global uintC push_threads_on_stack();
+/* releases the clisp_thread_t memory of the list of Thread records */
+global void release_threads (object list);
+
 
 #define GC_STOP_WORLD(lock_heap) gc_suspend_all_threads(lock_heap) 
 #define GC_RESUME_WORLD(unlock_heap) gc_resume_all_threads(unlock_heap)
@@ -17013,15 +17009,30 @@ global uintC push_threads_on_stack();
       }while(0) 
     extern uintL* current_thread_alloccount();
   #endif
+
+/* pin/unpin varobject in lisp heap */
+  #if defined(HAVE_PINNED_BIT)
+    #error "define macros to pin/unpin varobjects."
+  #else
+    /* it would be nice to have asserts here in order to be sure what we 
+      pin/unpin - but clisp-test.c make target compain very badly on ASSERT().*/
+    #define pin_varobject(vo) current_thread()->_pinned=vo; 
+    #define unpin_varobject(vo) current_thread()->_pinned=NIL;
+  #endif
+
 #else /* ! MULTITHREAD */
 %% #else
+  #define pin_varobject(vo)
+  #define unpin_varobject(vo)
   #define PERFORM_GC(statement,lock_heap) statement
 #endif
 %% #endif
 
+%% export_def(pin_varobject(vo));
+%% export_def(unpin_varobject(vo));
 
 #ifdef DEBUG_GCSAFETY
-  /* Add support for the 'mv_space' expression to the GCTRIGGER1/2/... macros. */
+  /* Add support for the 'mv_space' expression to the GCTRIGGER1/2/... macros.*/
   inline void inc_allocstamp (object (&mvsp)[mv_limit-1]) {
     inc_allocstamp(value1);
     var uintC count = mv_count;
