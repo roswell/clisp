@@ -985,7 +985,7 @@ local void gc_sweep1_instance_target (aint p2, aint p1) {
 typedef struct varobj_mem_region {
   aint start;
   aint size;
-#ifdef SVPW_PURE
+#ifdef SPVW_PURE
   uintL heapnr; /* used for hole filling only */
 #endif
 } varobj_mem_region;
@@ -1588,7 +1588,10 @@ local void fill_relocation_memory_regions(aint start,aint end,
   *count=1;
   for_all_threads({
     /* is this varobject? */
-    if (varobjectp(thread->_pinned)) {
+    #ifndef TYPECODES
+    if (varobjectp(thread->_pinned)) 
+    #endif
+      {
       vs=(aint)TheVarobject(thread->_pinned);
       /* are we inside range? */
       if (start<=vs && end>vs) {
@@ -1640,7 +1643,7 @@ local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
      #endif
     #else 
      /* depending on the heap type we have to allocate differently*/
-     #error "VTZ: still not implemented!!! Which kind of object should be supported? "
+      /* VTZ:TODO - implement it.*/
     #endif
     holes++;
   }
