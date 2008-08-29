@@ -1,3 +1,13 @@
+2008-08-30  Vladimir Tzankov  <vtzankov@gmail.com>
+	GC fixes.
+
+	* lispbibl.d: Enabled multithreading when NO_ASYNC_INTERRUPTS.
+	* spvw_garcol.d: comments cleanup
+	(gc_sweep1_varobject_page): mark the last pinned object in case
+	we have not iterated through it.
+	(fill_varobject_heap_holes): implementation for simple bit 
+	vectors (1/2/4/8/16/32) with SPVW_PURE memory model.
+	
 2008-08-26  Vladimir Tzankov  <vtzankov@gmail.com>
 	Fixed TYPECODES build.
 

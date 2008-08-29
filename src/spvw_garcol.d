@@ -985,9 +985,6 @@ local void gc_sweep1_instance_target (aint p2, aint p1) {
 typedef struct varobj_mem_region {
   aint start;
   aint size;
-#ifdef SPVW_PURE
-  uintL heapnr; /* used for hole filling only */
-#endif
 } varobj_mem_region;
 
 /* how to calculate good value for this ??? */
@@ -1083,20 +1080,12 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       /* if the whole remaining area is small enough - just fill it with 
 	 nullobjects and move to next regions */
       if (cur->size < ACCEPTABLE_VAROBJECT_HEAP_HOLE) {
-	/* fill with nullobj the hole begore the pinned object.
+	/* fill with valid object(s) the hole before the pinned object.
 	   this should be done in AFTER sweep second phase.
-	   ---------------------------------
-	   var int count=cur->size/sizeof(gcv_object_t);
-	   var gcv_object_t *ptr=(gcv_object_t *)cur->start;
-	   dotimesL(count,count, { *ptr++ = nullobj; } ); 
-	   ---------------------------------
-	So just record what we have to do (if any). */
+	   So just record what we have to do (if any). */
 	if (cur->size) {
 	  holes[*holes_count].start=cur->start;
 	  holes[*holes_count].size=cur->size;
-	  #ifdef SPVW_PURE
-	  holes[*holes_count].heapnr=heapnr;
-          #endif
 	  (*holes_count)++;
 	}
 	cur++;  /* advanace to next free buffer */
@@ -1117,7 +1106,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       }
       /* we have not found big enough place for this object. 
 	 just pin it at it's current location. */
-#if !defined(HAVE_PINNED_BIT)
+     #if !defined(HAVE_PINNED_BIT)
       /* in this case we have insert it in the appropriate
        place in the list. */
       memmove(pin_watch+1,pin_watch,
@@ -1127,7 +1116,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       (pin_watch+1)->start=p2+objlen;
       pin_watch->size=p2-pin_watch->start;
       next_pinned=p2;
-#endif
+     #endif
       goto pin;
     }
   advance:
@@ -1207,10 +1196,14 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
     if (holes[*holes_count].size) { /* is there a hole really?  */
       holes[*holes_count].start=cur->start;
       (*holes_count)++;
-      #ifdef SPVW_PURE
-      holes[*holes_count].heapnr=heapnr;
-      #endif
     }
+    /* we should mark this object as well. 
+       btw: it should be makred - there is no way to be pinned 
+       and not marked (unless in some extraordinary cases which 
+       should happen).
+       Still while we are testing - we should 
+       mark it !!!*/
+    mark(lastlast->start + lastlast->size);
     return (lastlast+1)->start; /* return first free address */
   } else 
     return cur->start; /* used only if GENERATIONAL_GC || SPVW_PURE */
@@ -1590,6 +1583,8 @@ local void fill_relocation_memory_regions(aint start,aint end,
     /* is this varobject? */
     #ifndef TYPECODES
     if (varobjectp(thread->_pinned)) 
+    #else
+    if (!gcinvariant_object_p(thread->_pinned))
     #endif
       {
       vs=(aint)TheVarobject(thread->_pinned);
@@ -1635,15 +1630,36 @@ local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
     #ifdef SPVW_MIXED
     /* single heap for varobjects - so just reserve simple-8bit-vector */
      set_GCself(ptr,Array_type_simple_bit_vector(Atype_8Bit),ptr); 
-     var int len = holes->size - offsetofa(sbvector_,data);
+     var uintL len = holes->size - offsetofa(sbvector_,data);
      #ifdef TYPECODES
       ptr->length = len;
      #else
       ptr->tfl = vrecord_tfl(Rectype_Sb8vector,len);
      #endif
-    #else 
-     /* depending on the heap type we have to allocate differently*/
-      /* VTZ:TODO - implement it.*/
+    #else  /* SPVW_PURE ==> TYPECODES */
+      /* depending on the heap type we have to allocate differently. since 
+	 all varobjects have length/type encoded in their header - we will
+	 look at the type of the pinned object (the one after the end of 
+	 the hole). We have to "allocate" the same type with length of the 
+	 hole.*/
+      /*VTZ: TODO: currently only simple vectors are implemented */
+      var Varobject ptr=(Varobject)holes->start;
+      var Varobject pinned=(Varobject)(holes->start+holes->size);
+      uintL len = holes->size - offsetofa(sbvector_,data);
+      set_GCself(holes->start,mtypecode(pinned->GCself),holes->start);
+      /* hmm there will be mess with alignments of VAROBJECT_HEADER ???*/
+      switch (typecode_at(holes->start)) {
+      case_sbvector: len<<=3; break;
+      case_sb2vector: len<<=2; break;
+      case_sb4vector: len<<=1; break;
+      case_sb8vector:  break;
+      case_sb16vector: len>>=1; break;
+      case_sb32vector: len>>=2; break;
+      default:
+	fprintf(stderr,"VTZ: unsupported type of pinned object !!!\n"); 
+	abort();
+      }
+      ((Sbvector)ptr)->length = len;
     #endif
     holes++;
   }

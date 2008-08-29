@@ -2240,7 +2240,10 @@ typedef enum {
   #define NO_ASYNC_INTERRUPTS
 #endif
 #if defined(NO_ASYNC_INTERRUPTS) && defined(MULTITHREAD)
-  #error No multithreading possible with this memory model!
+/*#error No multithreading possible with this memory model!*/
+/* VTZ: we do not care about atomic pointer operations. We are not going 
+   to interrupt any thread without it's cooperation. 
+   TODO: For signal handling it's possible to have bad case however*/
 #endif
 /* When changed: extend SPVW, write a interruptp(). */
 
