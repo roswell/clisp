@@ -1,7 +1,21 @@
+2008-08-31  Vladimir Tzankov  <vtzankov@gmail.com>
+	GC fixes. SPVW_PAGES pinned varobjects support.
+	
+	* spvw_garcol.d 
+	(gc_sweep1_varobject_page): code cleanup. fixed the case of multiple
+	holes at the end of memory regions.
+	(gc_sweep2_varobject_page): code cleanup and fix. moves the objects 
+	to calculated addresses in sweep1 phase (not by fill pointer anymore). 
+	(fill_relocation_memory_regions): fixed sorting of memory regions
+	(page_contains_pinned_object): returns true if there is a pinned object
+	in the page.
+	(gc_compact_from_varobject_page): do no compact pages that contain
+	pinned varobjects.
+	
 2008-08-30  Vladimir Tzankov  <vtzankov@gmail.com>
 	GC fixes.
 
-	* lispbibl.d: Enabled multithreading when NO_ASYNC_INTERRUPTS.
+	* lispbibl.d: enabled multithreading when NO_ASYNC_INTERRUPTS.
 	* spvw_garcol.d: comments cleanup
 	(gc_sweep1_varobject_page): mark the last pinned object in case
 	we have not iterated through it.

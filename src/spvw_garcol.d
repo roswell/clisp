@@ -1019,13 +1019,12 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
   var varobj_mem_region *pin_watch=dest;
   var aint next_pinned=pin_watch->start+pin_watch->size;
 #endif
+#ifdef TYPECODES
+  var tint flags; /* save typeinfo (and flags for symbols) */
+#endif
 
   while (1) {
     if (p2==end) break; /* we have finishd */
-  #ifdef TYPECODES
-    var tint flags = mtypecode(((Varobject)p2)->GCself);
-    /* save typeinfo (and flags for symbols) */
-  #endif
     objlen=objsize((Varobject)p2);
 
     /* Check for pinned object. Currently we assume that it is
@@ -1043,8 +1042,8 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       rnew->start=p2+objlen; /* new region beginning */
       rnew->size=end-rnew->start; /* set the size */
       /* nothing more to do with this object */
-      mark(p2); /* marked it in case it is not*/
       new_loc=p2; /* stay where you are !!! */
+      mark(p2); /* marked it in case it is not*/
       goto advance;
     }
   #else 
@@ -1120,6 +1119,10 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       goto pin;
     }
   advance:
+    #ifdef TYPECODES
+     flags = mtypecode(((Varobject)p2)->GCself);
+    /* save typeinfo (and flags for symbols) */
+    #endif
     /* object marked
      Elimination of forward pointers: */
    #ifdef HAVE_SMALL_SSTRING
@@ -1170,7 +1173,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
           }
         }
       else {
-	set_GCself(p2, flags,new_loc); /* enter new address, with old */
+	set_GCself(p2,flags,new_loc); /* enter new address, with old */
 	/* typeinfo (the mark bit is contained within) */
   #ifndef TYPECODES
 	mark(p2);
@@ -1187,26 +1190,18 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       *last_open_ptr = pointer_as_object(p2); 
   }
   /* did we reach the end of mem regions? 
-     if not - there is a hole to be filled. */
-  if (cur != dest+dest_count-1) {
-    /* get the region before the last one. Pinned object is located 
-       before the beginning of the last region. */
-    var varobj_mem_region *lastlast=dest+dest_count-2;
-    holes[*holes_count].size=lastlast->start + lastlast->size - cur->start;
-    if (holes[*holes_count].size) { /* is there a hole really?  */
+     if not - there are holes to be filled. */
+  var varobj_mem_region *last=dest+dest_count-1;
+  while (cur != last) {
+    if (cur->size) { /* is there a hole really?  */
+      holes[*holes_count].size=cur->size;
       holes[*holes_count].start=cur->start;
       (*holes_count)++;
     }
-    /* we should mark this object as well. 
-       btw: it should be makred - there is no way to be pinned 
-       and not marked (unless in some extraordinary cases which 
-       should happen).
-       Still while we are testing - we should 
-       mark it !!!*/
-    mark(lastlast->start + lastlast->size);
-    return (lastlast+1)->start; /* return first free address */
-  } else 
-    return cur->start; /* used only if GENERATIONAL_GC || SPVW_PURE */
+    mark(cur->start+cur->size); /* mark next pinned */
+    cur++;
+  }
+  return cur->start; /* used only if GENERATIONAL_GC || SPVW_PURE */
 }
 
 
@@ -1410,8 +1405,7 @@ local void gc_sweep2_varobject_page (Page* page)
   /* peruse from below and shift down: */
   var aint p1 = (aint)pointer_was_object(page->page_gcpriv.firstmarked); /* source-pointer, first marked object */
   var aint p1end = page->page_end;
-  var aint p2 = page->page_start; /* destination-pointer */
-  var aint last_pinned_end=p2;
+  var aint fill_end=page->page_start;
   var_prepare_objsize;
   while (p1!=p1end) {           /* upper bound reached -> finished */
     /* next object has address p1 */
@@ -1419,36 +1413,19 @@ local void gc_sweep2_varobject_page (Page* page)
       unmark(p1);               /* delete mark */
       /* keep object and relocate: */
       var uintM count = objsize((Varobject)p1); /* length (divisible by varobject_alignment , >0) */
+      var aint p2=(aint)ThePointer(((Varobject)p1)->GCself); /* where we should go ? */
       if (p1!=p2) {             /* if relocation is necessary */
-	/* check for pinned objec. */
-      #if defined(MULTITHREAD)
-       #if defined(HAVE_PINNED_BIT)
-	if (varobject_pinnedp(p1))
-       #else
-	  /* GCself of p1 should point to p2 if the object is not pinned. 
-	     It should point to p1 if it is pinned.*/
-	  /* VTZ:TODO: probably just ((Varobject)p1)->GCself is correct as well ???*/
-	var aint pn = (aint)ThePointer(((Varobject)p1)->GCself);
-	if (pn==p1) 
-       #endif
-	{
-	  /* hehe - pinned object. we should not move it it any case */
-	  p1 += count; 
-	  last_pinned_end = p1;
-	} else 
-      #endif
-	  move_aligned_p1_p2(count); /* relocate and advance */
+	move_aligned_p1_p2(count); /* relocate and advance */
       } else {                     /* else only advance: */
-	/* we do nay care whether the object is pinned - it is not 
-	   going to move anyway */
         p1 += count; p2 += count;
       }
+      fill_end=MAX(fill_end,p2); /* too slow.*/
     } else {
       p1 = (aint)pointer_was_object(*(gcv_object_t*)p1); /* with pointer (typeinfo=0) to the next marked object */
     }
   }
   /* set upper bound of the objects of variable length */
-  page->page_end = MAX(p2,last_pinned_end);
+  page->page_end = fill_end;
 }
 
 #if defined(DEBUG_SPVW) && !defined(GENERATIONAL_GC) && !defined(TYPECODES)
@@ -1602,7 +1579,7 @@ local void fill_relocation_memory_regions(aint start,aint end,
     var varobj_mem_region val;
     for (i=1;i<*count;i++) {
       val=regs[i];
-      for (j=i-1;regs[j].start>regs[i].start;j--) regs[j+1]=regs[j];
+      for (j=i-1;regs[j].start>val.start;j--) regs[j+1]=regs[j];
       regs[j+1]=val;
     }
   }
@@ -1626,10 +1603,10 @@ local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
 #if defined(MULTITHREAD) /* only in MT we may have pinned objects */
   while (holes_count--) {
     var Sbvector ptr=(Sbvector)holes->start;
-     /* we always have a plce in the hole for at least an varobject header*/
+     /* we always have a place in the hole for at least the varobject header*/
     #ifdef SPVW_MIXED
     /* single heap for varobjects - so just reserve simple-8bit-vector */
-     set_GCself(ptr,Array_type_simple_bit_vector(Atype_8Bit),ptr); 
+     set_GCself(ptr,Array_type_simple_bit_vector(Atype_8Bit),ptr);
      var uintL len = holes->size - offsetofa(sbvector_,data);
      #ifdef TYPECODES
       ptr->length = len;
@@ -1826,7 +1803,7 @@ local void gar_col_normal (void)
  #endif
   /* prepare objects of variable length for compacting below: */
 
-  /* we cannot have more pinned objeects than the number of active threads
+  /* we cannot have more pinned objects than the number of active threads
      multiply by 4 since large blocks that may not be moved may introduce
      new pinned objects (actually not sure that 4 is fine)*/
 #if !defined(MULTITHREAD)
@@ -2303,6 +2280,41 @@ local var Page* delayed_pages = NULL;
     delayed_pages = NULL;                               \
   }
 
+/* checks whether the page contains pinned object.
+   inefficient (esp. with HAVE_PINNED_BIT) but working 
+   implementation.*/
+#ifdef SPVW_PURE
+local bool page_contains_pinned_object(uintL heapnr, Page *page)
+#else
+local bool page_contains_pinned_object(Page *page)
+#endif
+{
+var_prepare_objsize;
+#ifdef HAVE_PINNED_BIT
+  var aint p1 = page->page_start;
+  while (p1!=page->page_end) {
+    if (pinned(p1))
+      return true;
+    p1+=objsize((Varobject)p1);
+  }
+#else
+  for_all_threads({
+    /* is this varobject? */
+    #ifndef TYPECODES
+    if (varobjectp(thread->_pinned)) 
+    #else
+    if (!gcinvariant_object_p(thread->_pinned))
+    #endif
+      {
+      var aint vs=(aint)TheVarobject(thread->_pinned);
+      /* are we inside range? */
+      if (page->page_start<=vs && page->page_end>vs) 
+	return true;
+      }});
+#endif
+  return false;
+}
+
 /* compacting of a page by "decanting" into other pages of the same kind: */
 #ifdef SPVW_PURE
 local void gc_compact_from_varobject_page (Heap* heapptr, Page* page, uintL heapnr)
@@ -2310,6 +2322,15 @@ local void gc_compact_from_varobject_page (Heap* heapptr, Page* page, uintL heap
 local void gc_compact_from_varobject_page (Heap* heapptr, Page* page)
 #endif
 {
+#if defined MULTITHREAD
+ #ifdef SPVW_PURE
+  if (page_contains_pinned_object(heapnr,page))
+ #else /* SPVW_MIXED */
+  if (page_contains_pinned_object(page))
+ #endif  
+    { page->page_gcpriv.d=0;return; }
+#endif /* MULTITHREAD */
+
   var aint p1 = page->page_start;
   var aint p1end = page->page_end;
   var_prepare_objsize;
