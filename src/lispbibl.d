@@ -17018,7 +17018,8 @@ global void release_threads (object list);
     #error "define macros to pin/unpin varobjects."
   #else
     /* it would be nice to have asserts here in order to be sure what we 
-      pin/unpin - but clisp-test.c make target compain very badly on ASSERT().*/
+      pin/unpin - but clisp-test.c make target complain very badly on ASSERT().
+      TODO: move as global functions and perform the checks there. */
     #define pin_varobject(vo) current_thread()->_pinned=vo; 
     #define unpin_varobject(vo) current_thread()->_pinned=NIL;
   #endif

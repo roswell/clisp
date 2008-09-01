@@ -981,11 +981,67 @@ local void gc_sweep1_instance_target (aint p2, aint p1) {
 }
 
 /* defines memory region in the varobject heap page.
- used during sweep phase (and holes filling with nullobj)*/
+ used during sweep phase and holes filling. */
 typedef struct varobj_mem_region {
   aint start;
   aint size;
 } varobj_mem_region;
+
+/* returns whether ptr points to simple string 
+   (that can be possibly reallocated).
+   used by gc_sweep1_varobject_page/gc_sweep2_varobject_page*/
+#ifdef SPVW_PURE
+local inline bool sstring_p(uintL heapnr, aint ptr)
+#else
+local inline bool sstring_p(aint ptr)
+#endif
+{
+ #ifdef HAVE_SMALL_SSTRING
+  #ifdef SPVW_PURE
+  return (heapnr == sstring_type);
+  #else
+   #ifdef TYPECODES
+    var tint flags =  mtypecode(((Varobject)ptr)->GCself);
+   /* in any case let's strip the garcol bit */
+    return ((flags & ~bit(garcol_bit_t)) == sstring_type);
+   #else /* HEAPCODES */
+    /* NB: No need to handle Rectype_[Imm_]S8string here. */
+    return ((uintB)(record_type((Record)ptr) - Rectype_S16string)
+	    <= Rectype_reallocstring - Rectype_S16string);
+   #endif
+  #endif 
+ #endif
+  return false;
+}
+
+/* returns whether ptr points to clos instance (or closure).
+ (that can be redefined)
+ used by gc_sweep1_varobject_page/gc_sweep2_varobject_page*/
+#ifdef SPVW_PURE
+local inline bool instance_p(uintL heapnr, aint ptr)
+#else
+local inline bool instance_p(aint ptr)
+#endif
+{
+ #ifdef SPVW_PURE
+  return (heapnr == instance_type
+	  || (heapnr == closure_type
+	      && (closure_flags((Closure)ptr) & closflags_instance_B)));
+ #else
+  #ifdef TYPECODES
+    var tint flags =  mtypecode(((Varobject)ptr)->GCself);
+    /* in any case let's strip the garcol bit */
+    return ((flags & ~bit(garcol_bit_t)) == instance_type
+	    || ((flags & ~bit(garcol_bit_t)) == closure_type
+		&& (closure_flags((Closure)ptr) & closflags_instance_B)));
+  #else
+    return (record_type((Record)ptr) == Rectype_Instance
+	    || (record_type((Record)ptr) == Rectype_Closure
+		&& (closure_flags((Closure)ptr) & closflags_instance_B)));
+  #endif
+ #endif
+}
+
 
 /* how to calculate good value for this ??? */
 #define ACCEPTABLE_VAROBJECT_HEAP_HOLE  128*sizeof(gcv_object_t)
@@ -1024,7 +1080,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 #endif
 
   while (1) {
-    if (p2==end) break; /* we have finishd */
+    if (p2==end) break; /* we have finished */
     objlen=objsize((Varobject)p2);
 
     /* Check for pinned object. Currently we assume that it is
@@ -1049,7 +1105,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
   #else 
     if (p2==next_pinned) { /* is the current object pinned? */
     pin:;
-      /* advanace to next pinned object */
+      /* advance to next pinned object */
       pin_watch++; next_pinned=pin_watch->start+pin_watch->size;
       new_loc=p2; /* stay here */
       mark(p2); /* mark it: VTZ: currently for testing - should be marked! */
@@ -1058,7 +1114,8 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
   #endif
     if (!marked(p2)) { 
       /* in the original implementation the loops were unrolled
-	 but here we will pay the price for pin object support :( */
+	 but here we will pay the price for pin object support :( 
+         Later on we will optimize it.*/
       if (last_was_marked) {
 	last_open_ptr = (gcv_object_t*)p2;
 	last_was_marked = false;
@@ -1076,18 +1133,15 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       cur->start+=objlen; cur->size-=objlen;
     } else {
       /* no place in current region. */
-      /* if the whole remaining area is small enough - just fill it with 
-	 nullobjects and move to next regions */
+      /* if the whole remaining area is small enough - just create new hole
+	 to be filled after sweep second phase.*/
       if (cur->size < ACCEPTABLE_VAROBJECT_HEAP_HOLE) {
-	/* fill with valid object(s) the hole before the pinned object.
-	   this should be done in AFTER sweep second phase.
-	   So just record what we have to do (if any). */
-	if (cur->size) {
+	if (cur->size) { /* is there really hole? */
 	  holes[*holes_count].start=cur->start;
 	  holes[*holes_count].size=cur->size;
 	  (*holes_count)++;
 	}
-	cur++;  /* advanace to next free buffer */
+	cur++;  /* advance to next free buffer */
 	goto relocate;
       }
       /* loop over all free regions and try to find enough place at the
@@ -1095,7 +1149,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 	 there the current object.*/
       var varobj_mem_region *r=cur+1;
       var int i;
-      for (i=0;i<dest_count-1;i++) {
+      for (i=cur-dest;i<dest_count-1;i++) {
 	if (r->size > objlen) {
 	  new_loc=r->start;
 	  /* shrink the region */
@@ -1106,7 +1160,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       /* we have not found big enough place for this object. 
 	 just pin it at it's current location. */
      #if !defined(HAVE_PINNED_BIT)
-      /* in this case we have insert it in the appropriate
+      /* in this case we have to insert it in the appropriate
        place in the list. */
       memmove(pin_watch+1,pin_watch,
 	      sizeof(varobj_mem_region)*(dest_count-(pin_watch-dest)));
@@ -1125,65 +1179,52 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
     #endif
     /* object marked
      Elimination of forward pointers: */
-   #ifdef HAVE_SMALL_SSTRING
+     /* smart compiler should eliminate this branch when 
+      HAVE_SMALL_SSTRINGS is not defined. */
     #ifdef SPVW_PURE
-    if (heapnr == sstring_type)
+     if (sstring_p(heapnr,p2)) 
     #else
-     #ifdef TYPECODES
-    if ((flags & ~bit(garcol_bit_t)) == sstring_type)
-     #else
-    /* NB: No need to handle Rectype_[Imm_]S8string here. */
-    if ((uintB)(record_type((Record)p2) - Rectype_S16string)
-        <= Rectype_reallocstring - Rectype_S16string)
-     #endif
+     if (sstring_p(p2)) 
     #endif
-      {
-        if (sstring_reallocatedp((Sstring)p2)) {
-          /* A forward pointer. */
-          gc_sweep1_sstring_forward(p2);
-        } else {
-          /* Possibly the target of a forward pointer. */
-          gc_sweep1_sstring_target(p2,new_loc);
-        }
-      }
-    else
-   #endif
-   #ifdef SPVW_PURE
-      if (heapnr == instance_type
-          || (heapnr == closure_type
-              && (closure_flags((Closure)p2) & closflags_instance_B)))
-   #else
-    #ifdef TYPECODES
-      if ((flags & ~bit(garcol_bit_t)) == instance_type
-          || ((flags & ~bit(garcol_bit_t)) == closure_type
-              && (closure_flags((Closure)p2) & closflags_instance_B)))
+     {	 
+       if (sstring_reallocatedp((Sstring)p2)) {
+	 /* A forward pointer. */
+	 gc_sweep1_sstring_forward(p2);
+	 /* this object will not survive the GC */
+	 cur->start-=objlen; cur->size+=objlen;
+       } else {
+	 /* Possibly the target of a forward pointer. */
+	 gc_sweep1_sstring_target(p2,new_loc);
+       }
+     } 
+     else 
+    #ifdef SPVW_PURE
+     if (instance_p(heapnr,p2)) 
     #else
-      if (record_type((Record)p2) == Rectype_Instance
-          || (record_type((Record)p2) == Rectype_Closure
-              && (closure_flags((Closure)p2) & closflags_instance_B)))
+     if (instance_p(p2)) 
     #endif
-   #endif
-        {
-          if (record_flags((Instance)p2) & instflags_forwarded_B) {
-            /* A forward pointer. */
-            gc_sweep1_instance_forward(p2);
-          } else {
-            /* Possibly the target of a forward pointer. */
-            gc_sweep1_instance_target(p2,new_loc);
-          }
-        }
-      else {
-	set_GCself(p2,flags,new_loc); /* enter new address, with old */
-	/* typeinfo (the mark bit is contained within) */
-  #ifndef TYPECODES
-	mark(p2);
-  #endif
-      }
-    if (!last_was_marked) {
-      last_was_marked = true;
-      *last_open_ptr = pointer_as_object(p2); /* store address */
-    }
-    p2 += objlen;               /* source address for next object */    
+     {
+       if (record_flags((Instance)p2) & instflags_forwarded_B) {
+	 /* A forward pointer. */
+	 gc_sweep1_instance_forward(p2);
+	 /* this object will not be relocated. */
+	 cur->start-=objlen; cur->size+=objlen;
+       } else {
+	 /* Possibly the target of a forward pointer. */
+	 gc_sweep1_instance_target(p2,new_loc);
+       }
+     } else {
+       set_GCself(p2,flags,new_loc); /* enter new address, with old */
+       /* typeinfo (the mark bit is contained within) */
+       #ifndef TYPECODES
+        mark(p2);
+       #endif
+     }
+     if (!last_was_marked) {
+       last_was_marked = true;
+       *last_open_ptr = pointer_as_object(p2); /* store address */
+     }
+     p2 += objlen;               /* source address for next object */    
   }
   /* add the last link if needed. */
   if (!last_was_marked) {
@@ -1394,6 +1435,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       count -= varobject_alignment;                         \
     } while (count!=0)
 #endif
+
 /* the objects of variable length are moved into the preordained
  new places. */
 #ifdef SPVW_PURE
@@ -1407,12 +1449,65 @@ local void gc_sweep2_varobject_page (Page* page)
   var aint p1end = page->page_end;
   var aint fill_end=page->page_start;
   var_prepare_objsize;
+
+  /* special case for symbols heap in SPVW_PURE model. 
+   The lower two bits of the typecode in GCself are used for marking special
+   symbols, constants or symbol-macros. So the address is not valid for direct use.
+   In order to avoid many if statements in the loop for unmasking the GCself and since 
+   symbol cannot/should not be pinned (so no holes in the heap) - 
+   we have special case for it here.*/
+  #ifdef SPVW_PURE
+    if (heapnr == symbol_type) {
+      #define p2 fill_end
+      while (p1!=p1end) {
+	if (marked(p1)) {
+	  unmark(p1);
+	  var uintM count = objsize((Varobject)p1); /* length (divisible by varobject_alignment , >0) */
+	  if (p1!=p2) {             /* if relocation is necessary */
+	    move_aligned_p1_p2(count); /* relocate and advance */
+	  } else {                     /* else only advance: */
+	    p1 += count; p2 += count;
+	  }
+	} else {
+	  p1 = (aint)pointer_was_object(*(gcv_object_t*)p1); /* with pointer (typeinfo=0) to the next marked object */
+	}
+      }
+      #undef p2
+      /* set upper bound of the objects of variable length */
+      page->page_end = fill_end;
+      return;
+    }
+  #endif
+    /* here goes the general case */  
   while (p1!=p1end) {           /* upper bound reached -> finished */
     /* next object has address p1 */
     if (marked(p1)) {           /* marked? */
       unmark(p1);               /* delete mark */
       /* keep object and relocate: */
       var uintM count = objsize((Varobject)p1); /* length (divisible by varobject_alignment , >0) */
+
+      /* do not relocate the forwarded objects */
+     #ifdef SPVW_PURE
+      if (sstring_p(heapnr,p1)) 
+     #else
+      if (sstring_p(p1)) 
+     #endif
+      {
+	if (sstring_reallocatedp((Sstring)p1)) {
+	  p1+=count; continue;
+	}
+      }
+      /* do not relocate the forwarded objects */
+     #ifdef SPVW_PURE
+      if (instance_p(heapnr,p1)) 
+     #else
+      if (instance_p(p1)) 
+     #endif
+      {
+	if (record_flags((Instance)p1) & instflags_forwarded_B) {
+	  p1+=count; continue;
+	}
+      }
       var aint p2=(aint)ThePointer(((Varobject)p1)->GCself); /* where we should go ? */
       if (p1!=p2) {             /* if relocation is necessary */
 	move_aligned_p1_p2(count); /* relocate and advance */
@@ -1529,7 +1624,7 @@ local void free_some_unused_pages (void)
 #endif
 
 /* checks whether there are pinned objects in the start/end rannge. 
- fills the approriate varobj_mem_regions and count based on this. */
+ fills the appropriate varobj_mem_regions and count based on this. */
 #ifdef SPVW_PURE
 local void fill_relocation_memory_regions(uintL heapnr, aint start,aint end,
 					  varobj_mem_region *regs, uintC *count)
@@ -1595,11 +1690,11 @@ local void fill_relocation_memory_regions(aint start,aint end,
   regs->size=end-regs->start; 
 #endif
 }
-/* filles all holes specified by holes structures.*/
+/* fills all holes specified by holes structures.*/
 local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
 					    uintC holes_count)
 {
-  /* compiler shouls optimize this to nop if not MT!*/
+  /* compiler should optimize this to nop if not MT!*/
 #if defined(MULTITHREAD) /* only in MT we may have pinned objects */
   while (holes_count--) {
     var Sbvector ptr=(Sbvector)holes->start;
@@ -1835,7 +1930,7 @@ local void gar_col_normal (void)
 	fill_relocation_memory_regions(heapnr,
 				       heap->heap_gen1_start,heap->heap_end,
 				       regions,&regions_count);
-	/* adjust the first region to merge with previos generation */
+	/* adjust the first region to merge with previous generation */
 	regions->size+=regions->start - tmp;
 	regions->start=tmp;
 	gc_sweep1_varobject_page(heapnr,
@@ -1844,15 +1939,14 @@ local void gar_col_normal (void)
 				 regions,regions_count,
 				 holes_to_fill,&holes_count);
       } else {                  /* no gap */
-	for_each_varobject_page(page, { 
-	  fill_relocation_memory_regions(heapnr,
-					 heap->heap_gen0_start,heap->heap_end,
-					 regions,&regions_count);
-	  gc_sweep1_varobject_page(heapnr,
-				   heap->heap_gen0_start,heap->heap_end,
-				   &heap->pages.page_gcpriv.firstmarked,
-				   regions,regions_count,
-				   holes_to_fill,&holes_count);});}});
+	fill_relocation_memory_regions(heapnr,
+				       heap->heap_gen0_start,heap->heap_end,
+				       regions,&regions_count);
+	gc_sweep1_varobject_page(heapnr,
+				 heap->heap_gen0_start,heap->heap_end,
+				 &heap->pages.page_gcpriv.firstmarked,
+				 regions,regions_count,
+				 holes_to_fill,&holes_count)}});
   } else
   #endif
     for_each_varobject_page(page, { 
@@ -1879,7 +1973,7 @@ local void gar_col_normal (void)
 				   holes_to_fill, &holes_count);
 	fill_relocation_memory_regions(heap->heap_gen1_start,heap->heap_end,
 				       regions,&regions_count);
-	/* adjust the first region to merge with previos generation */
+	/* adjust the first region to merge with previous generation */
 	regions->size+=regions->start - tmp;
 	regions->start=tmp;
 	gc_sweep1_varobject_page(heap->heap_gen1_start,heap->heap_end,
@@ -1887,13 +1981,12 @@ local void gar_col_normal (void)
 				 regions,regions_count,
 				 holes_to_fill,&holes_count);
       } else {                  /* no gap */
-	for_each_varobject_page(page, { 
-	  fill_relocation_memory_regions(heap->heap_gen0_start,heap->heap_end,
-					 regions,&regions_count);
-	  gc_sweep1_varobject_page(heap->heap_gen0_start,heap->heap_end,
-				   &heap->pages.page_gcpriv.firstmarked,
-				   regions,regions_count,
-				   holes_to_fill,&holes_count);});}});
+	fill_relocation_memory_regions(heap->heap_gen0_start,heap->heap_end,
+				       regions,&regions_count);
+	gc_sweep1_varobject_page(heap->heap_gen0_start,heap->heap_end,
+				 &heap->pages.page_gcpriv.firstmarked,
+				 regions,regions_count,
+				 holes_to_fill,&holes_count);}});
   } else
  #endif
     for_each_varobject_page(page, { 

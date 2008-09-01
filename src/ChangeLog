@@ -1,4 +1,21 @@
 2008-08-31  Vladimir Tzankov  <vtzankov@gmail.com>
+	GC fixes for CLOS/SMALL_SSTRING forward pointers and SPVW_PURE.
+
+	* spvw_garcol.d 
+	(instance_p): returns true if the argument points to CLOS instance.
+	(sstring_p): return true if the argument points to sstring (and 
+	HAVE_SMALL_SSTRINGS is defined).
+	(gc_sweep1_varobject_page): do not reserve memory for 
+	forwarded/reallocated objects (CLOS instances/small strings). Use
+	sstring_p/instance_p instead of many ifdefs.
+	(gc_sweep2_varobject_page): do not relocate marked objects that
+	have been forwarded (CLOS instances and small strings). Special case
+	for symbols heap in SPVW_PURE memory model.
+	(gar_col_normal): fixed multiple iteration bug over varobject heaps when 
+	GENERATIONAL_GC is defined and generation is 1.
+	* lispbibl.d: added TODO for pin_varobject
+
+2008-08-31  Vladimir Tzankov  <vtzankov@gmail.com>
 	GC fixes. SPVW_PAGES pinned varobjects support.
 	
 	* spvw_garcol.d 
