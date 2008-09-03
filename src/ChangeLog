@@ -1,3 +1,42 @@
+2008-09-03  Vladimir Tzankov  <vtzankov@gmail.com>
+	Fast thread local storage w/o compiler support (32 bit platforms only).
+	
+	* lispbibl.d: new CFLAGS - USE_CUSTOM_TLS={1,2,3}
+	(set_current_thread): redefined for different types of TLS.
+	(current_thread): redefined for different types of TLS.
+	(roughly_SP): returns the current stack pointer (used when
+	USE_CUSTOM_TLS=2,3).
+	(thread_specific_entry/thread_specific_data): cache/hash for 
+	SP to clisp_thread_t pointer mapping.
+	(tsd_getspecific): fast lookup for TLS when USE_CUSTOM_TLS=2
+	* spvw.d
+	(threads_tls): global variable holding pointers to threads local storage.
+	(tsd_initialize): initialize TLS when USE_CUSTOM_TLS=2
+	(tsd_setspecific): adds per thread variable to global storage when 
+	USE_CUSTOM_TLS=2
+	(tsd_remove_specific): removes thread specific data for the calling 
+	thread (USE_CUSTOM_TLS=2).
+	(tsd_slow_getspecific): gets the per thread variable value when there 
+	is cache miss in the fast version  (USE_CUSTOM_TLS=2).
+	(current_stack_base): returns the stack bottom of the current thread.
+	Used when USE_CUSTOM_TLS=3.
+	(current_stack_size): returns the max. stack size of the current thread.
+	Used when USE_CUSTOM_TLS=3.
+	(get_stack_region): helper function when POSIX_THREADS are defined. Gets
+	the stack regions of threads created via pthreads.
+	(set_current_thread): implemented as function when USE_CUSTOM_TLS=3
+	(threads_maps): global table mapping stack pointer to appropriate 
+	clisp_thread_t (indexed with  SP shifted by page size - 12 bits).
+	(init_multithread): initialize the custom thread local storage (if any).
+	(get_reserved_memory_regions): removed.
+	(is_safe_region): removed.
+	(main): special declaration when USE_CUSTOM_TLS=2
+	* zthread.d
+	(thread_stub/exec_timeout_call): special declaration when 
+	USE_CUSTOM_TLS=2
+	* constobj.d: initial commit (added all_threads and 
+	threads_to_release).
+	
 2008-08-31  Vladimir Tzankov  <vtzankov@gmail.com>
 	GC fixes for CLOS/SMALL_SSTRING forward pointers and SPVW_PURE.
 

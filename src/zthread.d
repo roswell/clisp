@@ -8,16 +8,16 @@
 
 #ifdef MULTITHREAD
 
-/* VTZ: probably this should be merged with the ones in the lispbibl.d 
- however at this stage i prefer to leave it here.
- operations on a lisp stack that is not the current one (NC) - ie. belongs to other not yet started threads */
+/* operations on a lisp stack that is not the current one (NC) 
+   - ie. belongs to other not yet started threads */
 #ifdef STACK_DOWN
   #define NC_STACK_(non_current_stack,n)  (non_current_stack[(sintP)(n)])
 #endif
 #ifdef STACK_UP
   #define NC_STACK_(non_current_stack,n)  (non_current_stack[-1-(sintP)(n)])
 #endif
-#define NC_pushSTACK(non_current_stack,obj)  (NC_STACK_(non_current_stack,-1) = (obj), non_current_stack skipSTACKop -1)
+#define NC_pushSTACK(non_current_stack,obj)  \
+  (NC_STACK_(non_current_stack,-1) = (obj), non_current_stack skipSTACKop -1)
 
 
 /* releases the clisp_thread_t memory of the list of Thread records */
@@ -30,10 +30,13 @@ global void release_threads (object list) {
 }
 
 
-/* VTZ: All newly created threads start here.
- since we are replacing the C stack here - we do not want compiler to optimize this function in any way */
+/* VTZ: All newly created threads start here.*/
 local /*maygc*/ void *thread_stub(void *arg)
 {
+  #if USE_CUSTOM_TLS == 2
+  tse __tse_entry;
+  tse *__thread_tse_entry=&__tse_entry;
+  #endif
   clisp_thread_t *me=(clisp_thread_t *)arg;
   set_current_thread(me);
   me->_SP_anchor=(void*)SP();
@@ -104,6 +107,10 @@ struct call_timeout_data_t {
 /* the thread the executes the call-with-timeout body function*/
 local maygc void *exec_timeout_call (void *arg)
 {
+  #if USE_CUSTOM_TLS == 2
+  tse __tse_entry;
+  tse *__thread_tse_entry=&__tse_entry;
+  #endif
   var struct call_timeout_data_t *pcd = (struct call_timeout_data_t*)arg;
   /* simply reuse the calling thread stack. 
    the calling thread does not have a lot of job to do until we work so it seems safe. */
@@ -244,7 +251,14 @@ LISPFUNN(list_threads,0)
   begin_system_call();
   unlock_threads();
   end_system_call();
+  /*
   VALUES1(listof(count));
+  */
+
+  var object vec=allocate_bit_vector(Atype_8Bit,20);
+  current_thread()->_pinned=vec;
+  VALUES2(listof(count),vec);
+
 }
 
 #endif  /* MULTITHREAD */

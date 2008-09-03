@@ -35,6 +35,9 @@
      CONS_HEAP_GROWS_UP, NO_MORRIS_GC, NO_GENERATIONAL_GC
    String representation:
      NO_SMALL_SSTRING
+   Thread local storage storage when no compiler support is available (32 bit 
+   platforms only). The SP is mapped to clisp_thread_t pointer:
+     USE_CUSTOM_TLS={1,2,3}  - see comments for the options
 
 
  Implementation is prepared for the following computers,
@@ -8927,9 +8930,6 @@ All other long words on the LISP-Stack are LISP-objects.
     #define SP_register "15"
   #endif
 #endif
-/* VTZ: in multithreaded builds we really need a way to change stack pointer. 
- So even in case we have NO_ASM - we will use this (with simple search it apears that 
- these macros are used only in MT anyway) */
 #if (defined(GNU) || defined(INTEL)) && !defined(NO_ASM)
   /* Assembler-instruction that copies the SP-register into a variable. */
   #ifdef MC680X0
@@ -8960,7 +8960,6 @@ All other long words on the LISP-Stack are LISP-objects.
   #endif
   #ifdef POWERPC
     #define ASM_get_SP_register(resultvar)  ("mr %0,r1" : "=r" (resultvar) : )
-    #define set_SP_register(newval)  ({ __asm__ __volatile__ ("mr r1,%0" : : "r" (newval) ); })
   #endif
   #ifdef ARM
     #define ASM_get_SP_register(resultvar)  ("mov\t%0, sp" : "=r" (resultvar) : )
@@ -8970,14 +8969,12 @@ All other long words on the LISP-Stack are LISP-objects.
   #endif
   #ifdef I80386
     #define ASM_get_SP_register(resultvar)  ("movl %%esp,%0" : "=g" (resultvar) : )
-    #define set_SP_register(newval)  ({ __asm__ __volatile__ ("movl %0,%%esp" : : "r" (newval) ); })
   #endif
   #ifdef IA64
     #define ASM_get_SP_register(resultvar)  ("mov %0 = r12" : "=r" (resultvar) : )
   #endif
   #ifdef AMD64
     #define ASM_get_SP_register(resultvar)  ("movq %%rsp,%0" : "=g" (resultvar) : )
-    #define set_SP_register(newval)  ({ __asm__ __volatile__ ("movq %0,%%rsp" : : "r" (newval) ); })
   #endif
   #ifdef S390
     #define ASM_get_SP_register(resultvar)  ("lr %0,%%r15" : "=r" (resultvar) : )
@@ -16856,31 +16853,145 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
     (offsetof(clisp_thread_t,_aktenv))
   #define thread_objects_count(nsymvalues)  \
     ((offsetofa(clisp_thread_t,_symvalues)-offsetof(clisp_thread_t,_aktenv))/sizeof(gcv_object_t)+(nsymvalues))
-  
+ 
+  /* try to use the compiler support for thread local storage */
   #if defined(__GNUC__)
-    #if defined (UNIX_LINUX) /* || defined() - add more - the GCC should have built-in support for TLS */
+    #if defined (UNIX_LINUX) /* && defined() - add more - the GCC should have built-in support for TLS */
       #define per_thread __thread
     #endif
   #elif defined(__WIN32__) && defined (MICROSOFT)
     #define  per_thread __declspec(thread)
   #endif
-  #ifdef per_thread
-    extern per_thread clisp_thread_t* _current_thread; /* current_thread pointer */
-    #define current_thread() _current_thread
-  #else
-    /* VTZ: We want MT, but our compiler does not provide built in support for TLS. 
-      So use explicit TLS functions for this - xthread_get_key()
-    */
-    extern xthread_key_t current_thread_tls_key;
-    #define current_thread() ({clisp_thread_t *__thr=(clisp_thread_t *)xthread_key_get(current_thread_tls_key); __thr;})
+  /* If asked for USE_CUSTOM_TLS - it overrides the compiler TLS
+   support - if any. Warn the user. */
+  #if defined(per_thread) && defined(USE_CUSTOM_TLS)
+   #warning "USE_CUSTOM_TLS overrides the compiler per_thread support."
+   #undef per_thread
   #endif
 
   #ifdef per_thread
+    extern per_thread clisp_thread_t* _current_thread; /* current_thread pointer */
+    #define current_thread() _current_thread
     #define set_current_thread(thread) _current_thread=thread
   #else
-    #define set_current_thread(thread) \
-      xthread_key_set(current_thread_tls_key,(void *)thread)
-  #endif
+   /* We want MT, but our compiler does not provide built in support for TLS. */
+   /*
+     USE_CUSTOM_TLS={1,2,3}
+     1 - using xthread_key_get/set - slowest one (and probably safest) 
+     2 - using slightly modified version of TLS found in Boehm GC for C/C++.
+     3 - using full page map of address space (4 MB).
+     Basically it is trade-off between performance/memory usage:
+     {1} - xthread_key_get/set is 200-500% slower then native compiler TLS.
+     {2} is about 50-100% slower than compiler TLS support and uses 
+     just 16 KB. 
+     {3} is almost as fast as single threaded and compiler TLS but uses 4 MB.
+
+     NB: {2} and {3} assume 32 bit address space and 4 KB page size (anything other 
+     will cause problems).
+   */
+   
+   /* If there is no prefered way to perform TLS - fall back to the slowest 
+      one (and probably safest).*/
+   #if !defined(USE_CUSTOM_TLS)
+    #define USE_CUSTOM_TLS 1
+   #endif
+
+   /* custom TLS > 1 is available only on 32 bit platforms */
+   #if USE_CUSTOM_TLS > 1 && defined(WIDE_HARD)
+    #error "USE_CUSTOM_TLS > 1  asked on 64 bit machine."
+   #endif
+
+   /* for {2} and {3} we will need access to the stack pointer */
+   #if USE_CUSTOM_TLS >=2
+    #define TLS_SP_SHIFT  12
+    #define TLS_PAGE_SIZE 4096
+    #if defined(ASM_get_SP_register)
+     #define roughly_SP()  \
+        ({ var aint __SP; __asm__ ASM_get_SP_register(__SP); __SP; })
+    #else
+     /* TODO: Win32 MSVC implementation should be here as well (when NO_ASM) */
+     #define roughly_SP()  (aint)__builtin_frame_address(0)
+    #endif
+   #endif
+
+   /* xthread_key_get/set - slowest way to do things.*/
+   #if USE_CUSTOM_TLS == 1
+     extern xthread_key_t current_thread_tls_key;
+     #define current_thread() \
+       ({clisp_thread_t *__thr=(clisp_thread_t *)xthread_key_get(current_thread_tls_key); __thr;})
+     #define set_current_thread(thread) \
+       xthread_key_set(current_thread_tls_key,(void *)thread)
+
+   /* modified version of the code in Boehm C/C++ GC. 
+      much faster just 16 KB mem usage.*/
+   #elif USE_CUSTOM_TLS == 2
+     #define TS_CACHE_SIZE 1024
+     #define TSD_CACHE_HASH(n) (((((long)n) >> 8) ^ (long)n) & (TS_CACHE_SIZE - 1))
+     #define TS_HASH_SIZE 1024
+     #define TSD_HASH(n) (((((long)n) >> 8) ^ (long)n) & (TS_HASH_SIZE - 1))
+     #define INVALID_QTID ((unsigned long)0)
+
+     typedef struct thread_specific_entry {
+       volatile long qtid; /*quick thread id, only for cache - atomic store*/
+       void *value; /* clisp_thread_t actually */
+       struct thread_specific_entry *next;
+       xthread_t thread;
+     } tse;
+     typedef struct thread_specific_data {
+       /* A faster index to the hash table */
+       tse * volatile cache[TS_CACHE_SIZE];
+       tse *hash[TS_HASH_SIZE];
+       xmutex_t lock;
+     } tsd;
+     /* global variable the keeps all active threads TLS values */
+     extern tsd threads_tls;
+     /* the slow version for accessing the TLS when the quick cache 
+	misses (when the thread stack crosses the VM page boundary). */
+     global void* tsd_slow_getspecific(unsigned long qtid,
+				       tse * volatile *cache_ptr);
+     /* removes the TLS - should be called on thread exit. 
+      NB: It seems not a big deal if not called - but should 
+      be tested.*/
+     global void tsd_remove_specific();
+     /* initializes the current thread storage with supplied value. 
+       entry should be pre-allocated. May reside on the stack as 
+       well - but we have to be sure that it will be valid during 
+       the thread lifespan. */
+     global void tsd_setspecific(tse *entry, void *value);
+     /* quick TLS lookup. If there is cache miss - falls back to the slow 
+       version (which updates the cache as well). */
+     static inline void *tsd_getspecific() 
+     {
+       long qtid = roughly_SP() >> TLS_SP_SHIFT; 
+       unsigned hash_val = TSD_CACHE_HASH(qtid);
+       tse * volatile * entry_ptr = threads_tls.cache + hash_val;
+       tse * entry = *entry_ptr;   /* Must be loaded only once.	*/
+       if (entry->qtid == qtid) {
+         return entry->value;
+       }
+       return tsd_slow_getspecific(qtid, entry_ptr);
+     }
+     #define current_thread() \
+       ({clisp_thread_t *__thr=(clisp_thread_t *)tsd_getspecific(); __thr;})
+     /* NB: really nasty thing in order to have nice build. 
+      the __thread_tse_entry should be declared before using the 
+      set_current_thread macro !!!! So actually on the entry point of 
+      any LISP thread we have to declare it if needed. Fortunately there
+      are just 3 places and no plans for more. */
+     #define set_current_thread(thread)		\
+       tsd_setspecific(__thread_tse_entry,(void *)thread)
+
+    /* fastest TLS - almost matches compiler provided TLS support.
+      maps the SP >> 12 to clisp_thread_t. */
+   #elif USE_CUSTOM_TLS == 3
+     /* the array below is indexed by SP >> 12 (TLS_SP_SHIFT)*/
+     extern clisp_thread_t *threads_map[];
+     #define current_thread() threads_map[roughly_SP() >> TLS_SP_SHIFT]
+     global void set_current_thread(clisp_thread_t *thr);
+   #else 
+     #error "USE_CUSTOM_TLS should be defined as 1,2 or 3. See comment."
+   #endif
+  #endif /* !defined(per_thread)*/
 
   #ifdef STACK_DOWN
     #define THREAD_LISP_STACK_START(thread) \
@@ -16894,18 +17005,22 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 %%   #if defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)
 %%      emit_typedef ("pthread_key_t","xthread_key_t");
 %%      emit_typedef ("pthread_mutex_t","xmutex_t");
+%%      emit_typedef ("pthread_t","xthread_t");
 %%   #endif
 %%   #if defined(SOLARIS_THREADS)
 %%      emit_typedef ("thread_key_t","xthread_key_t");
 %%      emit_typedef ("mutex_t","xmutex_t");
+%%      emit_typedef ("thread_t","xthread_t");
 %%   #endif
 %%   #if defined(WIN32_THREADS)
 %%      emit_typedef ("DWORD","xthread_key_t");
 %%      emit_typedef ("CRITICAL_SECTION","xmutex_t");
+%%      emit_typedef ("DWORD","xthread_t");
 %%   #endif
 %%   #if defined(C_THREADS)
 %%      #error "C_THREADS do not have TLS"
 %%      emit_typedef ("struct mutex","xmutex_t");
+%%      emit_typedef ("cthread_t","xthread_t");
 %%   #endif
 
 %% emit_typedef("int","spinlock_t");
@@ -16926,10 +17041,45 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 %%  puts("} clisp_thread_t;");
 
 %% #ifdef per_thread
-%%   export_def(per_thread);
-%%   puts("extern per_thread clisp_thread_t* _current_thread;");
+%%  export_def(per_thread);
+%%  puts("extern per_thread clisp_thread_t* _current_thread;");
 %% #else
+%%  #if USE_CUSTOM_TLS == 1
 %%   puts("extern xthread_key_t current_thread_tls_key;");
+%%  #elif USE_CUSTOM_TLS == 2
+%%   export_def(TS_CACHE_SIZE);
+%%   export_def(TS_HASH_SIZE);
+%%   export_def(TSD_CACHE_HASH(qtid));
+%%   export_def(roughly_SP());
+%%   export_def(TLS_SP_SHIFT);
+%%   puts("typedef struct thread_specific_entry {");
+%%   puts("  volatile long qtid;");
+%%   puts("  void *value; ");
+%%   puts("  struct thread_specific_entry *next;");
+%%   puts("  xthread_t thread;");
+%%   puts("} tse;");
+%%   puts("typedef struct thread_specific_data {");
+%%   puts("  tse * volatile cache[TS_CACHE_SIZE];");
+%%   puts("  tse *hash[TS_HASH_SIZE];");
+%%   puts("  xmutex_t lock;");
+%%   puts("} tsd;");
+%%   puts("extern tsd threads_tls;");
+%%   puts("extern void tsd_setspecific(tse *entry, void *value);");
+%%   puts("extern void* tsd_slow_getspecific(unsigned long qtid,tse * volatile *cache_ptr);");
+%%   puts("static inline void *tsd_getspecific() {");
+%%   puts("  long qtid = roughly_SP() >> 12;");
+%%   puts("  unsigned hash_val = TSD_CACHE_HASH(qtid);");
+%%   puts("  tse * volatile * entry_ptr = threads_tls.cache + hash_val;");
+%%   puts("  tse * entry = *entry_ptr;");
+%%   puts("  if (entry->qtid == qtid) {");
+%%   puts("    return entry->value;");
+%%   puts("  }");
+%%   puts("  return tsd_slow_getspecific(qtid, entry_ptr);");
+%%   puts("}");
+%%  #elif USE_CUSTOM_TLS == 3
+%%   export_def(TLS_SP_SHIFT);
+%%   puts("extern clisp_thread_t *threads_map[];");
+%%  #endif
 %% #endif
 
   #define inactive_handlers current_thread()->_inactive_handlers

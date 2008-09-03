@@ -330,10 +330,273 @@ local uintL num_symvalues = 0;
 global uintL maxnum_symvalues; 
 
 #ifdef per_thread
-global per_thread clisp_thread_t *_current_thread;
+ global per_thread clisp_thread_t *_current_thread;
 #else
-global xthread_key_t current_thread_tls_key;
-#endif
+ #if USE_CUSTOM_TLS == 1
+  global xthread_key_t current_thread_tls_key;
+ #elif USE_CUSTOM_TLS == 2
+
+  global tsd threads_tls;
+
+  /* A thread-specific data entry which will never    */
+  /* appear valid to a reader.  Used to fill in empty */
+  /* cache entries to avoid a check for 0.	    */
+  local tse invalid_tse = {INVALID_QTID, 0, 0, 0};
+
+  local void tsd_initialize()
+  {
+    var int i;
+    xmutex_init(&(threads_tls.lock));
+    for (i = 0; i < TS_CACHE_SIZE; ++i) {
+      threads_tls.cache[i] = &invalid_tse;
+    }
+    memset(threads_tls.hash,0,sizeof(threads_tls.hash));
+  }
+
+  /* entry should be allocated by the caller (or reside on
+     the stack at a location that will survive the thread
+     lifespan) */
+  global void tsd_setspecific(tse *entry, void *value) 
+  {
+    var xthread_t self = xthread_self();
+    var int hash_val = TSD_HASH(self);
+    xmutex_lock(&(threads_tls.lock));
+    /* Could easily check for an existing entry here.	*/
+    entry -> next = threads_tls.hash[hash_val];
+    entry -> thread = self;
+    entry -> value = value;
+    entry -> qtid = INVALID_QTID; 
+    /* There can only be one writer at a time, but this needs to be	*/
+    /* atomic with respect to concurrent readers.			*/ 
+    /****** TODO TODO TODO TODO: WAS ATOMIC *******/
+    /* since we call it only during thread creation - we even may go without
+      atomic operation - but I am not sure - should check it carefully */
+    /*AO_store_release((volatile AO_t *)(threads_tls.hash + hash_val), (AO_t)entry);*/
+    *(threads_tls.hash + hash_val)=entry;
+    xmutex_unlock(&(threads_tls.lock));
+  }
+
+  /* Remove thread-specific data for this thread.  Should be called on	*/
+  /* thread exit.						    */
+  global void tsd_remove_specific() 
+  {
+    xthread_t self = xthread_self();
+    unsigned hash_val = TSD_HASH(self);
+    tse *entry;
+    tse **link = threads_tls.hash + hash_val;
+    xmutex_lock(&(threads_tls.lock));
+    entry = *link;
+    while (entry != NULL && entry->thread != self) {
+      link = &(entry->next);
+      entry = *link;
+    }
+    /* Invalidate qtid field, since qtids may be reused, and a later 	*/
+    /* cache lookup could otherwise find this entry.			*/
+    entry -> qtid = INVALID_QTID;
+    if (entry != NULL) {
+      *link = entry->next;
+      /* Atomic! concurrent accesses still work.	*/
+      /* They must, since readers don't lock.		*/
+      /* We shouldn't need a volatile access here,	*/
+      /* since both this and the preceding write 	*/
+      /* should become visible no later than		*/
+      /* the pthread_mutex_unlock() call.		*/
+    }
+    xmutex_unlock(&(threads_tls.lock));
+  }
+
+  /* Note that even the slow path doesn't lock.	*/
+  global void* tsd_slow_getspecific(unsigned long qtid,
+				  tse * volatile *cache_ptr) 
+  {
+    xthread_t self = xthread_self();
+    unsigned hash_val = TSD_HASH(self);
+    tse *entry = threads_tls.hash[hash_val];
+    ASSERT(qtid != INVALID_QTID);
+    while (entry != NULL && entry->thread != self) {
+      entry = entry->next;
+    } 
+    if (entry == NULL) return NULL;
+    /* Set cache_entry.		*/
+    entry->qtid = qtid;
+    /* It's safe to do this asynchronously.  Either value 	*/
+    /* is safe, though may produce spurious misses.		*/
+    /* We're replacing one qtid with another one for the	*/
+    /* same thread.						*/
+    *cache_ptr = entry;
+    /* Again this is safe since pointer assignments are 	*/
+    /* presumed atomic, and either pointer is valid.	*/
+    return entry->value;
+  }
+ #elif USE_CUSTOM_TLS == 3
+  /* Currently only POSIX_THREADS and Win32 are supported. 
+     For other platforms we have to find a way to locate the 
+     current thread's stack base and size. These two functions
+     are useful not only for threading but for general stack
+     checking (but currently defined only in this case).
+  */
+
+
+  /* libsigsegv can be used to obtain the stack region (stack-vma). 
+   I do not use it since: 
+     1. No exported interface to use stackvma-xxx functions.
+     2. It may not be available - for some reason no generational GC is needed.
+     3. There is a problem on linux. /proc may not exist if we are running 
+        as a chroot program, so reading /proc/self/maps could fail.
+
+     NB: correct me if i am wrong and it's better to use libsigsegv.
+  */
+
+  #if defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)
+  /* there is difference between the main thread stack base/size and 
+   the ones created via pthread_create(). For the latter we will use
+   pthread_getattr_np(), however it returns bogus values for the main thread
+   (seems only with LinuxThreads).
+   So we have to find out whether the current thread is the main one and 
+   get values in other way.*/
+
+  /* for practical reasons - not to have too much code that anyway will
+   not make big difference - we just use the current SP. This is basically
+   good guess. The only way to fail is if the threads globals are accessed by
+   the  caller of this function and the SP is exactly/near page border. 
+   The caller of this function however is main() and thread_stubs - so it seems
+   fine. In any case  we have STACK_PAGE_THRESHOLD (128 is just a guess -
+   works fine) */
+
+  #define STACK_PAGE_THRESHOLD 128
+
+  /* helper function for threads created by pthread_create() */
+  local bool get_stack_region(aint *base, size_t *size)
+  {
+    #ifdef UNIX_DARWIN
+     var pthread_t self_id;
+     self_id = pthread_self();
+     *base = (aint)pthread_get_stackaddr_np(self_id);	
+     *size = pthread_get_stacksize_np(self_id); 
+     return true;
+    #else /* assume fairly recent pthreads implementation */
+     var pthread_attr_t attr;
+     var void *start;
+     pthread_getattr_np(pthread_self(), &attr);
+     pthread_attr_getstack(&attr, &start, size);
+     /* the start is the top of the stack (at least on x86) */
+     *base=(aint)start + *size;
+     return true;
+    #endif
+    return false;
+  }
+
+  local aint current_stack_base() 
+  {
+    if (!nthreads) { /* main thread ? */
+      /* for practical reasons - not to have too much code that anyway will
+	 not make big difference - just use the current SP. This is basically
+	 good guess. It may fail if the threads globals are accessed by
+	 the caller of this function and the SP is exactly/near page border. 
+	 The caller here may be only main() - so it should be safe.
+	 In any case there is STACK_PAGE_THRESHOLD (128 is just a guess -
+	 works fine) */
+     #define STACK_PAGE_THRESHOLD 128
+     #ifdef SP_UP
+      return roughly_SP() - STACK_PAGE_THRESHOLD;
+     #else /* SP_DOWN */
+      return roughly_SP() + STACK_PAGE_THRESHOLD;
+     #endif
+     #undef STACK_PAGE_THRESHOLD
+    } else {
+      /* created by pthread_create. */
+      var aint base;
+      var size_t size;
+      if (get_stack_region(&base,&size))
+	return base;
+    }
+    fprintf(stderr,"FATAL: current_stack_base(): cannot find stack base address.");
+    return 0; /* certinaly will cause problems */
+  }
+  /* should return maximum possible thread stack size */
+  local size_t current_stack_size() 
+  {
+    var size_t stack_size=0;
+    if (!nthreads) {
+      /* This is the main thread - the only one that is initialized
+       before being registered (and thus nthreads=0). Use getrlimit().
+      What to do if we do not have getrlimit()? Currently we will crash.*/
+      var struct rlimit rl;
+      if (getrlimit(RLIMIT_STACK, &rl) == 0)
+	stack_size = (rl.rlim_max == RLIM_INFINITY) ? rl.rlim_cur : rl.rlim_max;
+        /*NB: there is a chance this value to be larger that needed and to 
+	  fill more items in threads_map. However since we are the first thread
+	  there is no problem - other threads will overwrite these mapping later.*/
+    } else {
+      /* we are in a thread created by pthread_create() */
+      var aint base;
+      var size_t size;
+      if (get_stack_region(&base,&size))
+	return stack_size=size;
+    }
+
+    /* after all "computation"/guessing about the stack size let's check*/
+    if (stack_size <= TLS_PAGE_SIZE) {
+      fprintf(stderr,"FATAL: current_stack_size(): cannot find stack size.");
+      abort();
+    }
+
+    return stack_size - TLS_PAGE_SIZE; 
+  }
+  #endif /* POSIX_THREADS */
+  #ifdef WIN32_THREADS
+  /* taken from Sun's Hotspot JVM */
+  local aint current_stack_base() 
+  {
+    MEMORY_BASIC_INFORMATION minfo;
+    aint stack_bottom;
+    size_t stack_size;
+    VirtualQuery(&minfo, &minfo, sizeof(minfo));
+    stack_bottom =  (aint)minfo.AllocationBase;
+    stack_size = minfo.RegionSize;
+    /* Add up the sizes of all the regions with the same */
+    /* AllocationBase. */
+    while( 1 ) {
+      VirtualQuery(stack_bottom+stack_size, &minfo, sizeof(minfo));
+      if ( stack_bottom == (aint)minfo.AllocationBase )
+        stack_size += minfo.RegionSize;
+      else
+        break;
+    }
+    return stack_bottom + stack_size;
+  }
+  local size_t current_stack_size() 
+  {
+    size_t sz;
+    MEMORY_BASIC_INFORMATION minfo;
+    VirtualQuery(&minfo, &minfo, sizeof(minfo));
+    sz = (size_t)current_stack_base() - (size_t)minfo.AllocationBase;
+    return sz;
+  }
+  #endif /* WIN32_THREADS */
+
+  global clisp_thread_t *threads_map[1UL << (32 - TLS_SP_SHIFT)]={0};
+  global void set_current_thread(clisp_thread_t *thr)
+  {
+    /* we should initialize the threads_map items in the 
+     stack range of the current thread to point to thr. */
+    var aint stack_top = current_stack_base(),p;
+    var size_t stack_size = current_stack_size(), mapped=0;
+    var int page_size=TLS_PAGE_SIZE ,signed_ps; 
+    signed_ps=page_size;
+    #ifdef SP_DOWN
+     signed_ps*=-1; 
+    #endif
+    for (p=stack_top, mapped=0;
+         mapped < stack_size;
+         p+=signed_ps, mapped+=page_size) {
+      threads_map[(unsigned long)p >> TLS_SP_SHIFT] = thr;
+    }  
+  }
+ #else /* bad value for USE_CUSTOM_TLS */
+  #error "USE_CUSTOM_TLS should be defined as 1,2 or 3."
+ #endif
+#endif /* !per_thread */
 
 /* Initialization. */
 local void init_multithread (void) {
@@ -345,11 +608,15 @@ local void init_multithread (void) {
                            -offsetofa(clisp_thread_t,_symvalues),
                            sizeof(gcv_object_t));
   #if !defined(per_thread)
+   #if USE_CUSTOM_TLS == 1
     xthread_key_create(&current_thread_tls_key);
+   #elif USE_CUSTOM_TLS == 2
+    tsd_initialize();
+   #elif USE_CUSTOM_TLS == 3
+   #endif
   #endif
 }
 
-local inline void get_reserved_memory_regions(uintM *addr_start, uintM *addr_end);
 
 /* VTZ: allocates a LISP stack for new thread (except for the main one) 
  The stack_size parameters is in bytes. 
@@ -521,54 +788,6 @@ local uintL make_symvalue_perthread (object value) {
 /* A dummy-page for lastused: */
   local NODE dummy_NODE;
   #define dummy_lastused  (&dummy_NODE)
-
-#endif
-
-#if defined(MULTITHREAD)
-/* VTZ: Tries to "detect"/"summarize" the "assumed"/"reserved" memory regions that
-   are/will_be used by CLISP heap. We should not overlap with them.
-  TODO: should be checked carefully - not sure that it is correct. */
-local inline void get_reserved_memory_regions(uintM *addr_start, uintM *addr_end)
-{
-#if defined (SPVW_MIXED_BLOCKS_OPPOSITE)
-  *addr_start=mem.heaps[0].heap_start;
-  #if !defined(TRIVIALMAP_MEMORY)
-    *addr_end=mem.MEMTOP;
-  #else
-    *addr_end=mem.conses.heap_end;
-  #endif
-#elif defined(SPVW_PURE_BLOCKS) || defined(SPVW_MIXED_BLOCKS_STAGGERED)
-  *addr_start=mem.heaps[0].heap_start;
-  *addr_end=mem.heaps[heapcount-1].heap_hardlimit;
-#else
-  /* VTZ:TODO may be additional checks ??? */
-  /* in SPVW_PAGES nothing is reserved */
-  *addr_end=0;
-  *addr_start=0;
-  return;
-#endif
-  /* VTZ:TODO in case we are called before heaps are initialized (aka - for the main thread)
-   we want to forbid some region that later on is assumed to be used by the heap.
-  Following works on 32 bit linux and osx. */
-  if (*addr_start==*addr_end) {
-    *addr_end=0x80000000;
-    *addr_start=0;
-  }
-}
-/* VTZ: returns is it safe to use [addr_start,addr_end) region of memory (since the heap may grow with MAP_FIXED in to it)
- The function examines the heap limits depending on the memory model.
- TODO: should be checked carefully. */
-local bool is_safe_region(uintM addr_start, uintM addr_end)
-{
-var uintM low; /* bottom of reserved memory ??? */
-var uintM high; /* the highest possible heap address */
- get_reserved_memory_regions(&low,&high);
-  /* we have 2 intervals - we have to check for overlap 
-   return max((uintM)addr_start,low) > min((uintM)addr_end,high) */
-  low=(low < addr_start) ? addr_start : low;
-  high=(high < addr_end) ? high : addr_end;
-  return low > high;
-}
 
 #endif
 
@@ -3345,6 +3564,11 @@ global int main (argc_t argc, char* argv[]) {
   This is also described in <doc/impext.xml#cradle-grave>! */
 
 #if defined(MULTITHREAD)
+/* if on 32 bit machine, no per_thread and asked by the user*/
+  #if USE_CUSTOM_TLS == 2
+  tse __tse_entry;
+  tse *__thread_tse_entry=&__tse_entry;
+  #endif
   /* initialize main thread */
   {
     init_multithread();
