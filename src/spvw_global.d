@@ -585,13 +585,6 @@ global void gc_resume_all_threads(bool unlock_heap)
   unlock_threads();
 }
 
-#ifdef DEBUG_GCSAFETY
-global uintL* current_thread_alloccount() 
-{ 
-  return &current_thread()->_alloccount;
-}
-#endif
-
 local void init_heap_locks()
 {
   spinlock_init(&mem.alloc_lock); 

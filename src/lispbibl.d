@@ -209,7 +209,12 @@
     #define S390
   #endif
 #endif
-
+/* this signals the xthread.d not to try to deduce the CPU again.
+ (since xthread.d is included from modules as  well and because of the 
+ spinlock implementation - it should know the CPU. )*/
+#if defined(MULTITHREAD)
+ #define TARGET_CPU_DEFINED
+#endif
 
 /* Selection of the operating system */
 #ifdef WIN32
@@ -16883,7 +16888,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
      Basically it is trade-off between performance/memory usage:
      {1} - xthread_key_get/set is 200-500% slower then native compiler TLS.
      {2} is about 50-100% slower than compiler TLS support and uses 
-     just 16 KB. 
+     just 8 KB. 
      {3} is almost as fast as single threaded and compiler TLS but uses 4 MB.
 
      NB: {2} and {3} assume 32 bit address space and 4 KB page size (anything other 
@@ -17002,28 +17007,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       ((gcv_object_t *)thread->_STACK_start)
   #endif
 
-%%   #if defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)
-%%      emit_typedef ("pthread_key_t","xthread_key_t");
-%%      emit_typedef ("pthread_mutex_t","xmutex_t");
-%%      emit_typedef ("pthread_t","xthread_t");
-%%   #endif
-%%   #if defined(SOLARIS_THREADS)
-%%      emit_typedef ("thread_key_t","xthread_key_t");
-%%      emit_typedef ("mutex_t","xmutex_t");
-%%      emit_typedef ("thread_t","xthread_t");
-%%   #endif
-%%   #if defined(WIN32_THREADS)
-%%      emit_typedef ("DWORD","xthread_key_t");
-%%      emit_typedef ("CRITICAL_SECTION","xmutex_t");
-%%      emit_typedef ("DWORD","xthread_t");
-%%   #endif
-%%   #if defined(C_THREADS)
-%%      #error "C_THREADS do not have TLS"
-%%      emit_typedef ("struct mutex","xmutex_t");
-%%      emit_typedef ("cthread_t","xthread_t");
-%%   #endif
-
-%% emit_typedef("int","spinlock_t");
+%% puts("#include \"xthread.c\"");
 
 /* VTZ: just the beginning of the structure is exported - what modules want to know about 
    (in order to build) */

@@ -329,6 +329,21 @@ local uintL num_symvalues = 0;
          -offsetofa(clisp_thread_t,_symvalues),sizeof(gcv_object_t)) */
 global uintL maxnum_symvalues; 
 
+#ifdef DEBUG_GCSAFETY
+/* used during static initialization (before main() is called)
+   at that time the multithreading has not been initialized and 
+   there is no current thread. */
+local uintL dummy_alloccount=0;
+global uintL* current_thread_alloccount() 
+{ 
+  /* if MT is initialized - return the real alloccount. 
+     otherwise (during subr_tab static initialization) the dummy one.
+     anyway after this the tabs will be re-initialized*/
+  return nthreads ? &current_thread()->_alloccount : &dummy_alloccount;
+}
+#endif
+
+
 #ifdef per_thread
  global per_thread clisp_thread_t *_current_thread;
 #else

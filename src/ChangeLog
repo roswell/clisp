@@ -1,3 +1,18 @@
+2008-09-08  Vladimir Tzankov  <vtzankov@gmail.com>
+	DEBUG_GCSAFETY fixes.
+
+	* lispbibl.d: include xthread.d in clisp.h for proper module build.
+	(TARGET_CPU_DEFINED): if defined - the inclusion of xthread.d will 
+	not try to deduce the CPU type.
+	* spvw.d
+	(current_thread_alloccount): moved from spvw_global.d. Special case
+	when called before main() (from C++ statics initializations).
+	* spvw_global.d
+	(current_thread_alloccount): moved to spvw.d
+	* xthread.d: define the CPU from compiler supplied definitions if not
+	already done in lispbibl.d. Needed for spinlock_t functions when 
+	included from modules.
+
 2008-09-03  Vladimir Tzankov  <vtzankov@gmail.com>
 	Fast thread local storage w/o compiler support (32 bit platforms only).
 	

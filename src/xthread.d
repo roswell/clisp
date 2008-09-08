@@ -173,7 +173,7 @@ typedef pthread_key_t     xthread_key_t;
 #include <thread.h>
 #include <synch.h>
 
-typedef clisp_thread_t    xthread_t;
+typedef thread_t          xthread_t;
 typedef cond_t            xcondition_t;
 typedef mutex_t           xmutex_t;
 typedef thread_key_t      xthread_key_t;
@@ -327,7 +327,71 @@ typedef DWORD              xthread_key_t;
  - Acquiring a lock which is previously unlocked, and releasing a lock are
    fast operations. */
 
-#if defined(GNU) && (defined(MC680X0) || defined(SPARC) || defined(MIPS) || defined(I80386) || defined(DECALPHA) || defined(POWERPC))
+
+#ifndef TARGET_CPU_DEFINED
+#if defined(__vax__)
+  #define VAX
+#endif
+#if defined(arm) || defined(__arm) || defined(__arm__)
+  #define ARM
+#endif
+#if (defined(_WIN32))
+  #if defined(_M_IX86) || defined(_X86_)
+    #define I80386
+  #endif
+#else /* some unix flavour */
+  #if defined(m68k) || defined(__m68k__) || defined(mc68000)
+    #define MC680X0
+  #endif
+  #if defined(mc68020) || defined(__mc68020__) || (defined(m68k) && defined(NeXT))
+    #define MC680X0
+    #define MC680Y0
+  #endif
+  #if defined(i386) || defined(__i386) || defined(__i386__) || defined(_I386)
+    #define I80386
+  #endif
+  #if defined(sparc) || defined(__sparc__)
+    #define SPARC
+    #if defined(__sparcv9) || defined(__arch64__)
+      #define SPARC64
+    #endif
+  #endif
+  #if defined(mips) || defined(__mips) || defined(__mips__)
+    #define MIPS
+    #if defined(_MIPS_SZLONG)
+      #if (_MIPS_SZLONG == 64)
+        /* We should also check for (_MIPS_SZPTR == 64), but gcc keeps this at 32. */
+        #define MIPS64
+      #endif
+    #endif
+  #endif
+  #if defined(HP8XX) || defined(hppa) || defined(__hppa) || defined(__hppa__)
+    #define HPPA
+  #endif
+  #if defined(m88000) || defined(__m88k__)
+    #define M88000
+  #endif
+  #if defined(_IBMR2) || defined(__powerpc) || defined(__ppc) || defined(__ppc__) || defined(__powerpc__)
+    #define POWERPC
+  #endif
+  #ifdef __alpha
+    #define DECALPHA
+  #endif
+  #ifdef __ia64__
+    #define IA64
+  #endif
+  #if defined(__x86_64__) || defined(__amd64__)
+    #define AMD64
+  #endif
+  #ifdef __s390__
+    #define S390
+  #endif
+#endif
+#define TARGET_CPU_DEFINED
+#endif
+
+
+#if (defined(MC680X0) || defined(SPARC) || defined(MIPS) || defined(I80386) || defined(DECALPHA) || defined(POWERPC))
 
   typedef int spinlock_t; /* A value 0 means unlocked, != 0 means locked. */
 
@@ -394,6 +458,7 @@ typedef DWORD              xthread_key_t;
     { *spinlock = 0; }
   #endif
   #ifdef I80386
+/* TODO: special version of assembler syntax when compiling with MSVC !!!*/
     static inline long testandset (int* spinlock)
     { int ret;
       __asm__ __volatile__("xchgl %0,%1"
