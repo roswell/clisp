@@ -1,3 +1,23 @@
+2008-09-13  Vladimir Tzankov  <vtzankov@gmail.com>
+	MT signal handling. Streams system calls safe for GC.
+
+	* lispbibl.d: disabled multithreading when NO_ASYNC_INTERRUPTS.
+	(handle_length): maygc, accepts pointer to gcv_object_t.
+	(main_threadp): macro - true if we are in the main thread.
+	(SEMA_/SEGV_SEMA_): macro for conditional expansion of signal 
+	"semaphores" depending on the platform/build (for OSX is wrong).
+	* zthread.d: disable the asynchronous signals for newly created threads.
+	(disable_thread_async_signals): disables the async signals for the 
+	current thread. 
+	(thread_stub/exec_timeout_call): disable async signals at beginning.
+	* spvw_sigint.d
+	(react_on_sigint): unpin possibly pinned object for the main thread.
+	* stream.d: make all system calls "safe for gc". GC may run while 
+	waiting for input.
+	* spvw_memfile.d
+	(savemem): handle_length() expects pointer to stream now.
+
+
 2008-09-08  Vladimir Tzankov  <vtzankov@gmail.com>
 	DEBUG_GCSAFETY fixes.
 

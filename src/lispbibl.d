@@ -2248,10 +2248,7 @@ typedef enum {
   #define NO_ASYNC_INTERRUPTS
 #endif
 #if defined(NO_ASYNC_INTERRUPTS) && defined(MULTITHREAD)
-/*#error No multithreading possible with this memory model!*/
-/* VTZ: we do not care about atomic pointer operations. We are not going 
-   to interrupt any thread without it's cooperation. 
-   TODO: For signal handling it's possible to have bad case however*/
+#error No multithreading possible with this memory model!
 #endif
 /* When changed: extend SPVW, write a interruptp(). */
 
@@ -10472,7 +10469,7 @@ extern uintM varobject_bytelength (object obj);
  - Non-reentrant Data-Structures (like e.g. DTA_buffer) can not
    be used recursively. */
 typedef union {uintB einzeln[8]; uintL gesamt[2]; } break_sems_;
-extern break_sems_ break_sems;
+extern break_sems_ break_sems; 
 #define break_sem_0  break_sems.einzeln[0]
 #define break_sem_1  break_sems.einzeln[1]
 #define break_sem_2  break_sems.einzeln[2]
@@ -10482,6 +10479,49 @@ extern break_sems_ break_sems;
 #define break_sem_6  break_sems.einzeln[6]
 #define break_sem_7  break_sems.einzeln[7]
 /* is used by SPVW, Macros set/clr_break_sem_0/1/2/3/4/5/6/7 */
+
+/* MULTITHREAD: 
+   The break semaphores were designed for single threaded CLSIP. 
+   For multithread the following changes are implemented.
+   1. The only thread that responds to asynchronous signals
+   (SIGINT,SIGTERM,SIGWINCH,SIGALRM) is the main thread - the one 
+   registered first (from main()). All other threads disable these
+   signals (on UNIX, on Win32 - they anyway are handled within the
+   main thread).
+   2. SIGSEGV - this is sycnhronous signal and "basically" executes 
+   in the context of the thread that caused it. The only difference
+   is on MACOSX - where due to specific way MACH kernel handles it, 
+   libsigsegv calls out handled in different thread (not in the control
+   of CLISP at all).
+   As a consequence of these two items, the semaphores macros 
+   should be used only within the main thread - the only exception is 
+   SIGSEGV (sem_0). within it's handler we do not know which thread has
+   caused it - we know just the address.
+   When the main thread is breaked - we have assure that it is no within
+   critical parts of execution. The other threads continue to run and 
+   we do not care about them much.
+   Within all signal (with SIGSEGV exception) handlers we may assume that 
+   we are in the context of the main thread. In SIGSEGV exception under
+   OSX we are in different thread (and we are not sure which thread 
+   has caused the fault).
+   In order not to break the build (and keep the single thread version as 
+   is) we redefine all semaphores accessor macros in multithread.
+ */
+
+#if defined(MULTITHREAD)
+ #define SEMA_(statement) \
+   if (main_threadp()) (statement)
+ #ifdef UNIX_MACOSX
+   /* TODO: FIX. This is clearly wrong. A kind of atomic inc/dec
+    should be done probably. */
+   #define SEGV_SEMA_(statement) (statement)
+ #else
+   #define SEGV_SEMA_(statement) SEMA_(statement)
+ #endif
+#else
+   #define SAME_(statement) (statement)
+   #define SEGV_SEMA_(statement) SEMA_(statement)
+#endif
 
 /* Tests whether all break-semaphores have been cleared. */
 #define break_sems_cleared()  \
@@ -10495,67 +10535,67 @@ extern break_sems_ break_sems;
 
 /* sets break-semaphore 0 and thus protects against interrupts
  set_break_sem_0(); */
-#define set_break_sem_0()  (break_sem_0 = 1)
+#define set_break_sem_0()  SEGV_SEMA_(break_sem_0 = 1)
 /* is used by SPVW */
 
 /* clears the break-semaphore 0 and thus releases the interrupts
  clr_break_sem_0(); */
-#define clr_break_sem_0()  (break_sem_0 = 0)
+#define clr_break_sem_0()  SEGV_SEMA_(break_sem_0 = 0)
 /* is used by SPVW */
 
 /* sets break-semaphore 1 and thus protects against interrupts
  set_break_sem_1(); */
-#define set_break_sem_1()  (break_sem_1 = 1)
+#define set_break_sem_1()  SEMA_(break_sem_1 = 1)
 /* is used by SPVW, ARRAY */
 
 /* clears the break-semaphore 1 and thus releases the interrupts
  clr_break_sem_1(); */
-#define clr_break_sem_1()  (break_sem_1 = 0)
+#define clr_break_sem_1()  SEMA_(break_sem_1 = 0)
 /* is used by SPVW, ARRAY */
 
 /* sets break-semaphore 2 and thus protects against interrupts
  set_break_sem_2(); */
-#define set_break_sem_2()  (break_sem_2 = 1)
+#define set_break_sem_2()  SEMA_(break_sem_2 = 1)
 /* is used by PACKAGE, HASHTABL */
 
 /* clears the break-semaphore 2 and thus releases the interrupts
  clr_break_sem_2(); */
-#define clr_break_sem_2()  (break_sem_2 = 0)
+#define clr_break_sem_2()  SEMA_(break_sem_2 = 0)
 /* is used by PACKAGE, HASHTABL */
 
 /* sets break-semaphore 3 and thus protects against interrupts
  set_break_sem_3(); */
-#define set_break_sem_3()  (break_sem_3 = 1)
+#define set_break_sem_3()  SEMA_(break_sem_3 = 1)
 /* is used by PACKAGE */
 
 /* clears the break-semaphore 3 and thus releases the interrupts
  clr_break_sem_3(); */
-#define clr_break_sem_3()  (break_sem_3 = 0)
+#define clr_break_sem_3()  SEMA_(break_sem_3 = 0)
 /* is used by PACKAGE */
 
 /* sets break-semaphore 4 and thus protects against interrupts
  set_break_sem_4(); */
-#define set_break_sem_4()  (break_sem_4 = 1)
+#define set_break_sem_4()  SEMA_(break_sem_4 = 1)
 /* is used by STREAM, PATHNAME */
 
 /* clears the break-semaphore 4 and thus releases the interrupts
  clr_break_sem_4(); */
-#define clr_break_sem_4()  (break_sem_4 = 0)
+#define clr_break_sem_4()  SEMA_(break_sem_4 = 0)
 /* is used by STREAM, PATHNAME */
 
 /* increments break-semaphore 5 and thus protects against interrupts
  inc_break_sem_5(); */
-#define inc_break_sem_5()  (break_sem_5++)
+#define inc_break_sem_5()  SEMA_(break_sem_5++)
 /* is used by SPVW */
 
 /* decrements break-semaphore 5 and thus releases interrupts
  dec_break_sem_5(); */
-#define dec_break_sem_5()  (break_sem_5--)
+#define dec_break_sem_5()  SEMA_(break_sem_5--)
 /* is used by SPVW */
 
 /* clears the break-semaphore 5 and thus releases the interrupts
  clr_break_sem_5(); */
-#define clr_break_sem_5()  (break_sem_5 = 0)
+#define clr_break_sem_5()  SEMA_(break_sem_5 = 0)
 /* is used by SPVW */
 
 /* Flag, whether SYS::READ-FORM should behave compatible to ILISP */
@@ -15785,8 +15825,8 @@ extern maygc object open_file_stream_handle (object stream, Handle *fd, bool per
  < result: the length of the stream
  should be wrapped in begin_system_call()/end_system_call()
  for gdbm module */
-extern off_t handle_length (object stream, Handle fd);
-%% puts("extern off_t handle_length (object stream, Handle fd);");
+extern maygc off_t handle_length (gcv_object_t *stream_, Handle fd);
+%% puts("extern off_t handle_length (gcv_object_t *stream_, Handle fd);");
 
 /* Function: Reads several bytes from a stream.
  read_byte_array(&stream,&bytearray,start,len,persev)
@@ -16843,8 +16883,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
     /* Used for exception handling only: */
       handler_args_t _handler_args;
       stack_range_t* _inactive_handlers;
-    /* the current thread. NOT GC VISIBLE. Here for performance 
-     reasons. */
+    /* the current thread. NOT GC VISIBLE. */
       gcv_object_t _lthread; 
     /* Now the lisp objects (seen by the GC). */
       /* The lexical environment: */
@@ -17119,6 +17158,8 @@ global void gc_resume_all_threads(bool unlock_heap);
 /* releases the clisp_thread_t memory of the list of Thread records */
 global void release_threads (object list);
 
+/* true if we are in the main thread - fo signal/semaphores */
+#define main_threadp() (current_thread()->_index == 0)
 
 #define GC_STOP_WORLD(lock_heap) gc_suspend_all_threads(lock_heap) 
 #define GC_RESUME_WORLD(unlock_heap) gc_resume_all_threads(unlock_heap)

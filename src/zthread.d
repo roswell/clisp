@@ -29,6 +29,27 @@ global void release_threads (object list) {
   }
 }
 
+/* disable async signals (SIGINT,SIGALRM,SIGTERM,SIGWINCH)
+   on UNIX forthe current  thread. All these signals should be handled
+   ony in main thread.
+   On Win32 - anyway all signals are handled in the main thread */
+local void disable_thread_async_signals()
+{
+ #if (defined(HAVE_SIGNALS) && defined(UNIX))
+  var sigset_t sigblock_mask;
+  sigemptyset(&sigblock_mask);
+  sigaddset(&sigblock_mask,SIGINT);
+  sigaddset(&sigblock_mask,SIGALRM);    
+  sigaddset(&sigblock_mask,SIGTERM);
+#if defined(SIGWINCH) && !defined(NO_ASYNC_INTERRUPTS)
+  sigaddset(&sigblock_mask,SIGWINCH);;    
+#endif
+  /* we can use the pthread_sigmask() as well for pthreads 
+     but this seems better - since it's the same if we have
+     POSIX_THREADS and SOLARIS_THREADS. Waht about others ??? */
+  sigprocmask(SIG_BLOCK,&sigblock_mask,NULL);
+ #endif
+}
 
 /* VTZ: All newly created threads start here.*/
 local /*maygc*/ void *thread_stub(void *arg)
@@ -38,8 +59,10 @@ local /*maygc*/ void *thread_stub(void *arg)
   tse *__thread_tse_entry=&__tse_entry;
   #endif
   clisp_thread_t *me=(clisp_thread_t *)arg;
+  disable_thread_async_signals();
   set_current_thread(me);
   me->_SP_anchor=(void*)SP();
+
   funcall(STACK_0,0); /* call it */
   /*VTZ: may be store the return value in the thread record ??*/
   delete_thread(me,false);
@@ -112,6 +135,7 @@ local maygc void *exec_timeout_call (void *arg)
   tse *__thread_tse_entry=&__tse_entry;
   #endif
   var struct call_timeout_data_t *pcd = (struct call_timeout_data_t*)arg;
+  disable_thread_async_signals();
   /* simply reuse the calling thread stack. 
    the calling thread does not have a lot of job to do until we work so it seems safe. */
   set_current_thread(pcd->caller);  
@@ -257,7 +281,7 @@ LISPFUNN(list_threads,0)
 
   var object vec=allocate_bit_vector(Atype_8Bit,20);
   current_thread()->_pinned=vec;
-  VALUES2(listof(count),vec);
+  VALUES2(listof(count),current_thread()->_pinned);
 
 }
 

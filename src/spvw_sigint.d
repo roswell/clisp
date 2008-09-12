@@ -66,6 +66,9 @@ local void signal_handler_prepare_for_lisp (int sig) {
 local void react_on_sigint (int sig) { /* sig = SIGINT or SIGALRM */
  #ifndef NO_ASYNC_INTERRUPTS
   signal_handler_prepare_for_lisp(sig);
+  /* if the main thread has pinned object - let's unpin it. */
+  /* TODO: when HAVE_PINNED_BIT is defined - this is not good */
+  unpin_varobject(NIL);
   /* jump into a break-loop via 'error': */
   error(interrupt_condition,GETTEXT("Ctrl-C: User break"));
  #endif  /* NO_ASYNC_INTERRUPTS */

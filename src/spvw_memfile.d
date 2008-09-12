@@ -647,7 +647,9 @@ global maygc off_t savemem (object stream, bool exec_p)
   /* close stream (stream-buffer is unchanged, but thus also the
      handle at the operating system is closed): */
   var off_t res;
-  begin_system_call(); res = handle_length(STACK_0,handle); end_system_call();
+  begin_blocking_system_call(); 
+  res = handle_length(&STACK_0,handle); 
+  end_blocking_system_call();
   builtin_stream_close(&STACK_0,0);
   skipSTACK(1);
   return res;
