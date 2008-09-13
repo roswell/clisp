@@ -33,27 +33,23 @@ global void release_threads (object list) {
    on UNIX forthe current  thread. All these signals should be handled
    ony in main thread.
    On Win32 - anyway all signals are handled in the main thread */
-local void disable_thread_async_signals()
+local sigset_t disable_thread_async_signals()
 {
  #if (defined(HAVE_SIGNALS) && defined(UNIX))
-  var sigset_t sigblock_mask;
+  var sigset_t sigblock_mask, oset;
+  /* initialize the oset - in case set fails */
+  xthread_sigmask(SIG_SETMASK,NULL,&oset); 
   sigemptyset(&sigblock_mask);
   sigaddset(&sigblock_mask,SIGINT);
   sigaddset(&sigblock_mask,SIGALRM);    
   sigaddset(&sigblock_mask,SIGTERM);
-#if defined(SIGWINCH) && !defined(NO_ASYNC_INTERRUPTS)
-  sigaddset(&sigblock_mask,SIGWINCH);;    
-#endif
-  /* we can use the pthread_sigmask() as well for pthreads 
-     but this seems better - since it's the same if we have
-     POSIX_THREADS and SOLARIS_THREADS. Waht about others ??? */
-  #ifndef UNIX_MACOSX
-   sigprocmask(SIG_BLOCK,&sigblock_mask,NULL);
-  #else
-   /* apple does not follow POSIX standard */
-   pthread_sigmask(SIG_BLOCK,&sigblock_mask,NULL);
+  #if defined(SIGWINCH) && !defined(NO_ASYNC_INTERRUPTS)
+    sigaddset(&sigblock_mask,SIGWINCH);
   #endif
- #endif
+  xthread_sigmask(SIG_BLOCK,&sigblock_mask,NULL);
+  return oset;
+#endif
+  return 0; /* WIN32 */
 }
 
 /* VTZ: All newly created threads start here.*/
@@ -100,7 +96,9 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
   /* push the function to be executed */ 
   NC_pushSTACK(new_thread->_STACK,STACK_3);
   new_thread->_aktenv=aktenv; /* set it the same as current thread one */
-  new_thread->_pinned = NIL;
+  #if !defined(HAVE_PINNED_BIT)
+    new_thread->_pinned = NIL;
+  #endif
   /* VTZ:TODO we have to  copy the symvalues as well. */
   if (register_thread(new_thread)<0) {
     /* total failure */

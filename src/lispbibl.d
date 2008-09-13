@@ -1989,7 +1989,13 @@ typedef enum {
    program will be interrupted and cannot be continued. */
   #define PENDING_INTERRUPTS
   extern uintB interrupt_pending;
-  #define interruptp(statement)  if (interrupt_pending) { statement; }
+  #if defined(MULTITHREAD)
+    /* in MT we handle async signals only within main thread */
+    #define interruptp(statement) \
+      if (interrupt_pending && main_threadp()) { statement; }
+  #else
+    #define interruptp(statement)  if (interrupt_pending) { statement; }
+  #endif
 #endif
 /* used by EVAL, IO, SPVW, STREAM */
 

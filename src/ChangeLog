@@ -1,3 +1,17 @@
+2008-09-14  Vladimir Tzankov  <vtzankov@gmail.com>
+	Signal handling fixes.
+
+	* lispbibl.d 
+	(interruptp): in multithreading - act only if called within
+	the main thread (all async signals are handled in main thread).
+	* spvw.d
+	(STACK_PAGE_THRESHOLD): make it 4K. Sometimes debug builds happened
+	to sigsegv depending on default stack address (USE_CUSTOM_TLS=3).
+	* spvw_sigint.d: comments added
+	* xthread.d
+	(xthread_sigmask): sets/gets current thread signal mask
+	* zthread.d: use xthread_sigmask(). 
+
 2008-09-13  Vladimir Tzankov  <vtzankov@gmail.com>
 	SIGINT fix. Finish GC safe region (if interrupted in one). 
 

@@ -450,16 +450,12 @@ global uintL* current_thread_alloccount()
      are useful not only for threading but for general stack
      checking (but currently defined only in this case).
   */
-
-
   /* libsigsegv can be used to obtain the stack region (stack-vma). 
    I do not use it since: 
      1. No exported interface to use stackvma-xxx functions.
      2. It may not be available - for some reason no generational GC is needed.
      3. There is a problem on linux. /proc may not exist if we are running 
         as a chroot program, so reading /proc/self/maps could fail.
-
-     NB: correct me if i am wrong and it's better to use libsigsegv.
   */
 
   #if defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)
@@ -469,16 +465,6 @@ global uintL* current_thread_alloccount()
    (seems only with LinuxThreads).
    So we have to find out whether the current thread is the main one and 
    get values in other way.*/
-
-  /* for practical reasons - not to have too much code that anyway will
-   not make big difference - we just use the current SP. This is basically
-   good guess. The only way to fail is if the threads globals are accessed by
-   the  caller of this function and the SP is exactly/near page border. 
-   The caller of this function however is main() and thread_stubs - so it seems
-   fine. In any case  we have STACK_PAGE_THRESHOLD (128 is just a guess -
-   works fine) */
-
-  #define STACK_PAGE_THRESHOLD 128
 
   /* helper function for threads created by pthread_create() */
   local bool get_stack_region(aint *base, size_t *size)
@@ -509,9 +495,11 @@ global uintL* current_thread_alloccount()
 	 good guess. It may fail if the threads globals are accessed by
 	 the caller of this function and the SP is exactly/near page border. 
 	 The caller here may be only main() - so it should be safe.
-	 In any case there is STACK_PAGE_THRESHOLD (128 is just a guess -
-	 works fine) */
-     #define STACK_PAGE_THRESHOLD 128
+	 In any case there is STACK_PAGE_THRESHOLD (1 page is just a guess -
+	 works fine. even if later on another thread stack should intefere
+	 with this page - during the creation of the thread it will 
+	 fix the mapping - this threshold is used only for the main thread) */
+     #define STACK_PAGE_THRESHOLD 4096
      #ifdef SP_UP
       return roughly_SP() - STACK_PAGE_THRESHOLD;
      #else /* SP_DOWN */

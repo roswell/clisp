@@ -129,6 +129,7 @@ typedef pthread_key_t     xthread_key_t;
  currently this is disabled. */
 /*#define xthread_cancel(t) pthread_cancel(t), pthread_join(t,NULL)*/
 #define xthread_wait(t) pthread_join(t,NULL)
+#define xthread_sigmask(how,iset,oset) pthread_sigmask(how,iset,oset)
 
 #ifdef POSIX_THREADS
 #define xcondition_init(c)  pthread_cond_init(c,NULL)
@@ -203,6 +204,8 @@ typedef thread_key_t      xthread_key_t;
 #define xthread_key_get(key)  \
   ({ void* _tmp; thr_getspecific(key,&_tmp); _tmp; })
 #define xthread_key_set(key,val)  thr_setspecific(key,val)
+#define xthread_sigmask(how,iset,oset) thr_sigmask(how,iset,oset) CHECKME
+
 
 #endif  /* SOLARIS_THREADS */
 
@@ -221,6 +224,7 @@ typedef struct mutex      xmutex_t;
 #define xthread_exit(v)  cthread_exit(v)
 #define xthread_yield()  cthread_yield()
 #define xthread_equal(t1,t2)  ((t1)==(t2))
+#define xthread_sigmask(how,iset,oset) sigprocmask(how,iset,oset) CHECKME
 
 #define xcondition_init(c)  condition_init(c)
 #define xcondition_destroy(c)  condition_clear(c)
@@ -261,6 +265,8 @@ typedef DWORD              xthread_key_t;
 /*VTZ: the xthread_t is actually the ID of the thread, not it's handle - so the call below
   is not valid. We should get the HANDLE from the thread id in order to call WaitForSingleObject */
 #define xthread_wait(t) FIXME, WaitForSingleObject(t,INFINITE)
+#define xthread_sigmask(how,iset,oset) 
+
 
 #define xcondition_init(c) \
   do { InitializeCriticalSection(&(c)->cs); \
