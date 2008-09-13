@@ -66,9 +66,37 @@ local void signal_handler_prepare_for_lisp (int sig) {
 local void react_on_sigint (int sig) { /* sig = SIGINT or SIGALRM */
  #ifndef NO_ASYNC_INTERRUPTS
   signal_handler_prepare_for_lisp(sig);
+#ifdef MULTITHREAD
+  /* NB: we are in the main thread - always
+     it is possible to be in interrupted in blocking system call. So - 
+     the GC to be enabled as SAFE for the main thread. We have to check 
+     for this case and be sure to disable it before jumping to the 
+     error handler.
+  */
+  ASSERT(main_threadp()); /* main thread */
+  var clisp_thread_t *thr=current_thread(); 
+  if (!spinlock_tryacquire(&thr->_gc_suspend_ack)) {
+    /* hmmm - there is GC in progress or simply there was 
+     no GC since the beginning of the system call (if there was 
+     one at all) - and main thread already holds the lock. 
+     Te best thing we can do is to lock on suspend lock, try 
+     acquire the ack and unlock the suspend lock.
+    */
+    /* wait for GC to finish (if it is running now - otherwise 
+     no problems at all to lock) */
+    xmutex_lock(&thr->_gc_suspend_lock); 
+    /* try to acquire ack - if we succeed - great - there was really GC in 
+     progress. If not - simply there was no GC since possibly blocking call that
+     has been interrupted -  so we already hold the ack (and have never lost 
+     control over it). */
+    spinlock_tryacquire(&thr->_gc_suspend_ack);
+    /* unlock the suspend lock */
+    xmutex_unlock(&thr->_gc_suspend_lock);
+  }
   /* if the main thread has pinned object - let's unpin it. */
   /* TODO: when HAVE_PINNED_BIT is defined - this is not good */
   unpin_varobject(NIL);
+#endif
   /* jump into a break-loop via 'error': */
   error(interrupt_condition,GETTEXT("Ctrl-C: User break"));
  #endif  /* NO_ASYNC_INTERRUPTS */
