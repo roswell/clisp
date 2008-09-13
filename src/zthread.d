@@ -47,7 +47,12 @@ local void disable_thread_async_signals()
   /* we can use the pthread_sigmask() as well for pthreads 
      but this seems better - since it's the same if we have
      POSIX_THREADS and SOLARIS_THREADS. Waht about others ??? */
-  sigprocmask(SIG_BLOCK,&sigblock_mask,NULL);
+  #ifndef UNIX_MACOSX
+   sigprocmask(SIG_BLOCK,&sigblock_mask,NULL);
+  #else
+   /* apple does not follow POSIX standard */
+   pthread_sigmask(SIG_BLOCK,&sigblock_mask,NULL);
+  #endif
  #endif
 }
 
@@ -275,14 +280,7 @@ LISPFUNN(list_threads,0)
   begin_system_call();
   unlock_threads();
   end_system_call();
-  /*
   VALUES1(listof(count));
-  */
-
-  var object vec=allocate_bit_vector(Atype_8Bit,20);
-  current_thread()->_pinned=vec;
-  VALUES2(listof(count),current_thread()->_pinned);
-
 }
 
 #endif  /* MULTITHREAD */
