@@ -1,4 +1,27 @@
 2008-09-14  Vladimir Tzankov  <vtzankov@gmail.com>
+	Unwind-protect for pinned objects. Pinned object chains per thread.
+
+	* lispbibl.d: removed HAVE_PINNED_BIT 
+	(pinned_chain_t): all pinned objects within a thread are chained.
+	(pin_varobject): make unwind-protect frame and add to the thread chain.
+	(unpin_varobject_i): removes all elements from pinned chain until
+	it reaches it's argument
+	(unpin_varobject): unpin already pinned object.
+	* spvw.d
+	(main): leave the pinned chain empty.
+	* spvw_sigint.d
+	(react_on_sigint): do not unpin any object. unwind-protect will do this.
+	* spvw_garcol.d: removed HAVE_PINNED_BIT cases.
+	(fill_relocation_memory_regions): add all pinned objects from the threads
+	chains.
+	(page_contains_pinned_object): scan chains of pinned object of all 
+	threads.
+	* stream.d: adjust pin/unpin_varobject to match the unwind-protect 
+	nature of pin_varobject().
+	* zthread.d
+	(make_thread): initialize pinned object chain.
+
+2008-09-14  Vladimir Tzankov  <vtzankov@gmail.com>
 	Signal handling fixes.
 
 	* lispbibl.d 

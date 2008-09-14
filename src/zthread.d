@@ -96,9 +96,7 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
   /* push the function to be executed */ 
   NC_pushSTACK(new_thread->_STACK,STACK_3);
   new_thread->_aktenv=aktenv; /* set it the same as current thread one */
-  #if !defined(HAVE_PINNED_BIT)
-    new_thread->_pinned = NIL;
-  #endif
+  new_thread->_pinned = NULL;
   /* VTZ:TODO we have to  copy the symvalues as well. */
   if (register_thread(new_thread)<0) {
     /* total failure */

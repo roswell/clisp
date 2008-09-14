@@ -1071,10 +1071,8 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
   var uintM objlen;
   var aint new_loc;
   var_prepare_objsize;
-#if !defined(HAVE_PINNED_BIT)
   var varobj_mem_region *pin_watch=dest;
   var aint next_pinned=pin_watch->start+pin_watch->size;
-#endif
 #ifdef TYPECODES
   var tint flags; /* save typeinfo (and flags for symbols) */
 #endif
@@ -1088,21 +1086,6 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
     This is quite unlikely (at least I do not see normal
     case in which this may occur). moving this after the mark is checked
     will improve the performance of course. */
-  #ifdef HAVE_PINNED_BIT
-    if (varobject_pinnedp(p2)) { /* is current object pinned? */
-    pin:;
-      var varobj_mem_region *last=dest+dest_count-1;
-      var varobj_mem_region *rnew=last+1;
-      dest_count++; /* add another region */
-      last->size=p2-last->start; /* adjust previous region */
-      rnew->start=p2+objlen; /* new region beginning */
-      rnew->size=end-rnew->start; /* set the size */
-      /* nothing more to do with this object */
-      new_loc=p2; /* stay where you are !!! */
-      mark(p2); /* marked it in case it is not*/
-      goto advance;
-    }
-  #else 
     if (p2==next_pinned) { /* is the current object pinned? */
     pin:;
       /* advance to next pinned object */
@@ -1111,7 +1094,6 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       mark(p2); /* mark it: VTZ: currently for testing - should be marked! */
       goto advance;
     }
-  #endif
     if (!marked(p2)) { 
       /* in the original implementation the loops were unrolled
 	 but here we will pay the price for pin object support :( 
@@ -1159,9 +1141,6 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       }
       /* we have not found big enough place for this object. 
 	 just pin it at it's current location. */
-     #if !defined(HAVE_PINNED_BIT)
-      /* in this case we have to insert it in the appropriate
-       place in the list. */
       memmove(pin_watch+1,pin_watch,
 	      sizeof(varobj_mem_region)*(dest_count-(pin_watch-dest)));
       dest_count++;
@@ -1169,7 +1148,6 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       (pin_watch+1)->start=p2+objlen;
       pin_watch->size=p2-pin_watch->start;
       next_pinned=p2;
-     #endif
       goto pin;
     }
   advance:
@@ -1633,38 +1611,34 @@ local void fill_relocation_memory_regions(aint start,aint end,
 					  varobj_mem_region *regs, uintC *count)
 #endif
 {
-  /* if we have bit for marking pinned objects - just set the whole regions
-     during sweeping the objects will be found and new regions will be added.*/
-#if defined(HAVE_PINNED_BIT) || !defined(MULTITHREAD)
+#if !defined(MULTITHREAD)
   regs->start=start;
   regs->size=end-start;
   *count=1;
 #else
-  /* we do not have pinned bit support - so iterate through all active threads
+  /* iterate through all active threads
      and check whether there are pinned objects and whether they are in the 
      specified range.
-     TODO: can be implemented better. In SPVW_PURE - it will be called for each 
+     TODO: can be implemented better. In SPVW_PURE - it will be called for each
      heap. It will be better to have sorted list of pinned regions and while 
      iterating over heaps to construct mem_region array for each heap.
   */
+  var pinned_chain_t *chain;
   var varobj_mem_region *mit=regs+1;
   var aint vs; /* start address of varobject*/
   var_prepare_objsize; /* TODO: heapnr for SPVW_PURE */
   *count=1;
   for_all_threads({
-    /* is this varobject? */
-    #ifndef TYPECODES
-    if (varobjectp(thread->_pinned)) 
-    #else
-    if (!gcinvariant_object_p(thread->_pinned))
-    #endif
-      {
-      vs=(aint)TheVarobject(thread->_pinned);
+    chain = thread->_pinned;
+    while (chain) {
+      vs=(aint)TheVarobject(chain->_o);
       /* are we inside range? */
       if (start<=vs && end>vs) {
 	mit->start=vs; mit->size=objsize((Varobject)vs);
 	mit++; (*count)++;
-      }}});
+      }
+      chain = chain->_next;
+    }});
   regs->start=start; /* set the first region */
   if (*count > 2) {
     /* SORT(stable - because of the fist element) the regions by their 
@@ -2374,8 +2348,7 @@ local var Page* delayed_pages = NULL;
   }
 
 /* checks whether the page contains pinned object.
-   inefficient (esp. with HAVE_PINNED_BIT) but working 
-   implementation.*/
+   inefficient but working implementation.*/
 #ifdef SPVW_PURE
 local bool page_contains_pinned_object(uintL heapnr, Page *page)
 #else
@@ -2383,28 +2356,15 @@ local bool page_contains_pinned_object(Page *page)
 #endif
 {
 var_prepare_objsize;
-#ifdef HAVE_PINNED_BIT
-  var aint p1 = page->page_start;
-  while (p1!=page->page_end) {
-    if (pinned(p1))
-      return true;
-    p1+=objsize((Varobject)p1);
-  }
-#else
   for_all_threads({
-    /* is this varobject? */
-    #ifndef TYPECODES
-    if (varobjectp(thread->_pinned)) 
-    #else
-    if (!gcinvariant_object_p(thread->_pinned))
-    #endif
-      {
-      var aint vs=(aint)TheVarobject(thread->_pinned);
+    chain = thread->_pinned;
+    while (chain) {
+      vs=(aint)TheVarobject(chain->_o);
       /* are we inside range? */
       if (page->page_start<=vs && page->page_end>vs) 
 	return true;
-      }});
-#endif
+      chain = chain->_next;
+    }});
   return false;
 }
 

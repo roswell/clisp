@@ -5072,10 +5072,6 @@ local maygc uintB* low_read_array_unbuffered_handle (object stream,
       end_system_call(); error_interrupt();
     }
    #endif
-    /* TODO: what to do with pinned object if any ??? */
-    /* this works only if there is HAVE_PINNED_BIT - 
-       which currently is always true*/
-    unpin_varobject(NIL); 
     OS_error();
   }
   if (result==0 && error_eof_p())
@@ -5504,10 +5500,6 @@ local maygc const uintB* low_write_array_unbuffered_handle (object stream,
   /* Safety check whether persev argument was respected or EOWF was reached: */
   if ((persev == persev_full && !(result==(sintL)len))
       || (persev == persev_partial && !(result>0))) {
-    /* TODO: what to do with pinned object if any ??? */
-    /* this works only if there is HAVE_PINNED_BIT - 
-       which currently is always true*/
-    unpin_varobject(NIL); 
     error_unwritable(TheSubr(subr_self)->name,stream); 
   }
   return byteptr+result;
@@ -6943,8 +6935,6 @@ local maygc uintL rd_ch_array_buffered (const gcv_object_t* stream_,
  > b : Byte to be written
  changed in stream: index, endvalid, buffstart, position */
 local maygc void write_byte_buffered (object stream, uintB b) {
-  /* TODO: probably it is better to pass pointers 
-     which already point to LISP stack to these functions */
   pushSTACK(stream);
   buffered_writebyte(stream,b);
   stream = popSTACK();
@@ -7630,7 +7620,7 @@ local maygc void wr_by_aux_ib_buffered (object stream, uintL bitsize,
   if (BufferedStream_eofposition(stream) == BufferedStream_position(stream))
     BufferedStream_eofposition(stream) += 1;
   BufferedStream_position(stream) += 1;
-  unpin_varobject(TheStream(stream)->strm_bitbuffer); skipSTACK(1);
+  skipSTACK(1); unpin_varobject(TheStream(stream)->strm_bitbuffer);
 }
 
 /* UP for WRITE-BYTE on File-Streams of Integers, Type c :
@@ -7662,7 +7652,7 @@ local maygc void wr_by_aux_ic_buffered (object stream, uintL bitsize,
   WRITE_LAST_BYTE;
   BufferedStream_bitindex(stream) = count;
   BufferedStream_position(stream) += 1;
-  unpin_varobject(TheStream(stream)->strm_bitbuffer); skipSTACK(1);
+  skipSTACK(1); unpin_varobject(TheStream(stream)->strm_bitbuffer); 
 }
 #undef WRITE_LAST_BYTE
 
@@ -13499,18 +13489,12 @@ local void low_close_socket (object stream, object handle, uintB abort) {
   #define CHECK_INTERRUPT
 #endif
 
-/* TODO: the unpin_varobject() below is not good. currently
- it is fine since we never HAVE_PINNED_BIT - but if we had it
- major refactoring will be needed (since we do not have a track of
- pinned objects when making non-local jumps from the error 
- handlers). */
 #define SYSCALL(result,call)                         \
   do {                                               \
     begin_system_call();                             \
     begin_blocking_call();                           \
     result = (call);                                 \
     end_blocking_call();                             \
-    unpin_varobject(NIL);                            \
     if (result<0) { CHECK_INTERRUPT; SOCK_error(); } \
     end_system_call();                               \
   } while(0)
@@ -13839,8 +13823,8 @@ local maygc uintL low_fill_buffered_socket (object stream,
 					    perseverance_t persev) {
   var SOCKET handle=TheSocket(BufferedStream_channel(stream));
   var uintB *buff=BufferedStream_buffer_address(stream,0);
-  pushSTACK(stream);
   pin_varobject(BufferedStream_buffer(stream));
+  pushSTACK(stream);
   var ssize_t result;
   SYSCALL(result,sock_read(TheSocket(BufferedStream_channel(stream)),
                            BufferedStream_buffer_address(stream,0),
@@ -13866,8 +13850,8 @@ local maygc void low_flush_buffered_socket (object stream, uintL bufflen) {
  #endif
   var SOCKET handle=TheSocket(BufferedStream_channel(stream));
   var uintB *buff=BufferedStream_buffer_address(stream,0);
-  pushSTACK(stream);
   pin_varobject(BufferedStream_buffer(stream));
+  pushSTACK(stream);
   var ssize_t result =          /* flush Buffer */
     GC_SAFE_CALL(ssize_t,sock_write(handle,buff,bufflen,persev_full));
   stream = popSTACK();

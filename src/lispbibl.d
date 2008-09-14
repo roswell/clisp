@@ -10518,14 +10518,14 @@ extern break_sems_ break_sems;
  #define SEMA_(statement) \
    if (main_threadp()) (statement)
  #ifdef UNIX_MACOSX
-   /* TODO: FIX. This is clearly wrong. A kind of atomic inc/dec
-    should be done probably. */
+   /* TODO: FIX: Do no do anything on OSX.
+      This is wrong - but the chance for failure is small. TBF. */
    #define SEGV_SEMA_(statement) (statement)
  #else
    #define SEGV_SEMA_(statement) SEMA_(statement)
  #endif
-#else
-   #define SAME_(statement) (statement)
+#else /* !MULTITHREAD*/
+   #define SEMA_(statement) (statement)
    #define SEGV_SEMA_(statement) SEMA_(statement)
 #endif
 
@@ -16854,6 +16854,14 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 
 #ifdef MULTITHREAD
 %% #ifdef MULTITHREAD
+  /* every thread keeps chain of pinned objects.
+     usually there will be just a single one (if any), but it is 
+     possible with signal handlers to have real chain.*/
+  typedef struct pinned_chain_t {
+    gcv_object_t _o; /* pinned object - will not move during GC */
+    struct pinned_chain_t *_next;
+  } pinned_chain_t;
+
 /* Structure containing all the per-thread global variables.
  (We could use a single instance of this structure also in the single-thread
  model, but it would make debugging less straightforward.) */
@@ -16879,12 +16887,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       gcv_object_t* _STACK_bound;
       gcv_object_t* _STACK_start;
       unwind_protect_caller_t _unwind_protect_to_save;
-#if !defined(HAVE_PINNED_BIT)
-    /* if we do not have pin bit to mark pinned varobjects
-       every thread supports max 1 pin object at a time. 
-       This object will "survive" GC */
-      gcv_object_t _pinned; 
-#endif
+      pinned_chain_t * _pinned; /* chain of pinned objects for this thread */
       uintC _index; /* this thread's index in allthreads[] */
     /* Used for exception handling only: */
       handler_args_t _handler_args;
@@ -17194,16 +17197,37 @@ global void release_threads (object list);
     extern uintL* current_thread_alloccount();
   #endif
 
-/* pin/unpin varobject in lisp heap */
-  #if defined(HAVE_PINNED_BIT)
-    #error "define macros to pin/unpin varobjects."
-  #else
-    /* it would be nice to have asserts here in order to be sure what we 
-      pin/unpin - but clisp-test.c make target complain very badly on ASSERT().
-      TODO: move as global functions and perform the checks there. */
-    #define pin_varobject(vo) current_thread()->_pinned=vo; 
-    #define unpin_varobject(vo) current_thread()->_pinned=NIL;
-  #endif
+  /* pin/unpin varobject in lisp heap. pin is protected
+     with unwind-protect frame. */
+  #define unpin_varobject_i(vo) \
+    do {\
+      var pinned_chain_t *p=current_thread()->_pinned;\
+      while (p && !eq(p->_o, vo)) p = p->_next;	      \
+      current_thread()->_pinned=p ? p->_next : NULL; \
+    } while(0)
+  #define unpin_varobject(vo) \
+    do {\
+      skipSTACK(3);\
+      unpin_varobject_i(vo);\
+    } while(0)
+  /* not quite good styled macro */
+  #define pin_varobject(vo)\
+    pushSTACK(vo);\
+    var gcv_object_t* top_of_frame = STACK;\
+    var sp_jmp_buf returner;\
+    finish_entry_frame(UNWIND_PROTECT,returner,, {\
+      var restartf_t fun = unwind_protect_to_save.fun;\
+      var gcv_object_t* upto = unwind_protect_to_save.upto_frame;\
+      var gcv_object_t po;\
+      skipSTACK(2);\
+      po=popSTACK();\
+      unpin_varobject_i(po);\
+      fun(upto); \
+    });\
+    var pinned_chain_t pc;\
+    pc._o=vo;\
+    pc._next=current_thread()->_pinned;\
+    current_thread()->_pinned=&pc;
 
 #else /* ! MULTITHREAD */
 %% #else

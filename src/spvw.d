@@ -3630,7 +3630,6 @@ global int main (argc_t argc, char* argv[]) {
     current_thread()->_lthread=lthr;
     TheThread(lthr)->xth_globals=current_thread();
     popSTACK();
-    current_thread()->_pinned = NIL;
   }
 #endif
   /* if the image was read from the executable, argv1.argv_memfile was

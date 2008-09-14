@@ -72,12 +72,6 @@ local void react_on_sigint (int sig) { /* sig = SIGINT or SIGALRM */
      the GC to be enabled as SAFE for the main thread. We have to check 
      for this case and be sure to disable it before jumping to the 
      error handler.
-
-     BIG TODO: If from error handler we continue execution - have 
-     again to start safe for GC region (if it was such) (so we should 
-     not unpin the object as we do now !!! The unpinning of objects 
-     should somehow integrate in the unwiding of LISP stack).
-     However all this may not the be the case !!!
   */
   ASSERT(main_threadp()); /* main thread - ASSERT not safe here - but 
 			   equally bad is not to ASSERT */
@@ -107,9 +101,6 @@ local void react_on_sigint (int sig) { /* sig = SIGINT or SIGALRM */
     /* unlock the suspend mutex */
     xmutex_unlock(&thr->_gc_suspend_lock);
   }
-  /* if the main thread has pinned object - let's unpin it. */
-  /* TODO: when HAVE_PINNED_BIT is defined - this is not good */
-  unpin_varobject(NIL);
 #endif
   /* jump into a break-loop via 'error': */
   error(interrupt_condition,GETTEXT("Ctrl-C: User break"));
