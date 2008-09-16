@@ -33,12 +33,10 @@ global void release_threads (object list) {
    on UNIX forthe current  thread. All these signals should be handled
    ony in main thread.
    On Win32 - anyway all signals are handled in the main thread */
-local sigset_t disable_thread_async_signals()
+local void disable_thread_async_signals()
 {
  #if (defined(HAVE_SIGNALS) && defined(UNIX))
-  var sigset_t sigblock_mask, oset;
-  /* initialize the oset - in case set fails */
-  xthread_sigmask(SIG_SETMASK,NULL,&oset); 
+  var sigset_t sigblock_mask;
   sigemptyset(&sigblock_mask);
   sigaddset(&sigblock_mask,SIGINT);
   sigaddset(&sigblock_mask,SIGALRM);    
@@ -47,9 +45,7 @@ local sigset_t disable_thread_async_signals()
     sigaddset(&sigblock_mask,SIGWINCH);
   #endif
   xthread_sigmask(SIG_BLOCK,&sigblock_mask,NULL);
-  return oset;
 #endif
-  return 0; /* WIN32 */
 }
 
 /* VTZ: All newly created threads start here.*/

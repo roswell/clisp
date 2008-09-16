@@ -127,7 +127,10 @@ local struct pseudofun_tab_ { object pointer[pseudofun_count]; } pseudofun_tab;
 /* Semaphores: decide, if a break is effectless (/=0) or
  effectual (all = 0) .
  Are set with set_break_sem_x and deleted with clr_break_sem_x again. */
+#if !defined(MULTITHREAD)
+/* in MT these semaphores are per thread */
 global break_sems_ break_sems;
+#endif
 /* break_sem_0 == break_sems.einzeln[0]
      set, as long as a page-fault-handling is in progress
    break_sem_1 == break_sems.einzeln[1]
@@ -3565,7 +3568,6 @@ global int main (argc_t argc, char* argv[]) {
    print banner.
    jump into the driver.
   This is also described in <doc/impext.xml#cradle-grave>! */
-
 #if defined(MULTITHREAD)
 /* if on 32 bit machine, no per_thread and asked by the user*/
   #if USE_CUSTOM_TLS == 2
@@ -3583,7 +3585,6 @@ global int main (argc_t argc, char* argv[]) {
     #endif
   }
 #endif
-
   init_lowest_level(argv);
   var struct argv_init_c argv0;
   {
@@ -3594,7 +3595,6 @@ global int main (argc_t argc, char* argv[]) {
       goto end_of_main;
     }
   }
-
   /* The argv_* variables now have their final values.
    Analyze the environment variables determining the locale.
    Deal with LC_CTYPE. */

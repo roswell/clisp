@@ -10475,7 +10475,7 @@ extern uintM varobject_bytelength (object obj);
  - Non-reentrant Data-Structures (like e.g. DTA_buffer) can not
    be used recursively. */
 typedef union {uintB einzeln[8]; uintL gesamt[2]; } break_sems_;
-extern break_sems_ break_sems; 
+
 #define break_sem_0  break_sems.einzeln[0]
 #define break_sem_1  break_sems.einzeln[1]
 #define break_sem_2  break_sems.einzeln[2]
@@ -10497,34 +10497,26 @@ extern break_sems_ break_sems;
    2. SIGSEGV - this is sycnhronous signal and "basically" executes 
    in the context of the thread that caused it. The only difference
    is on MACOSX - where due to specific way MACH kernel handles it, 
-   libsigsegv calls out handled in different thread (not in the control
+   libsigsegv calls our handler in different thread (not in the control
    of CLISP at all).
-   As a consequence of these two items, the semaphores macros 
-   should be used only within the main thread - the only exception is 
-   SIGSEGV (sem_0). within it's handler we do not know which thread has
-   caused it - we know just the address.
-   When the main thread is breaked - we have assure that it is no within
-   critical parts of execution. The other threads continue to run and 
-   we do not care about them much.
    Within all signal (with SIGSEGV exception) handlers we may assume that 
    we are in the context of the main thread. In SIGSEGV exception under
    OSX we are in different thread (and we are not sure which thread 
    has caused the fault).
-   In order not to break the build (and keep the single thread version as 
-   is) we redefine all semaphores accessor macros in multithread.
  */
 
 #if defined(MULTITHREAD)
  #define SEMA_(statement) \
    if (main_threadp()) (statement)
  #ifdef UNIX_MACOSX
-   /* TODO: FIX: Do no do anything on OSX.
+   /* TODO: FIX: Do not nothing on OSX.
       This is wrong - but the chance for failure is small. TBF. */
-   #define SEGV_SEMA_(statement) (statement)
+   #define SEGV_SEMA_(statement) 
  #else
    #define SEGV_SEMA_(statement) SEMA_(statement)
  #endif
 #else /* !MULTITHREAD*/
+   extern break_sems_ break_sems; 
    #define SEMA_(statement) (statement)
    #define SEGV_SEMA_(statement) SEMA_(statement)
 #endif
@@ -16889,6 +16881,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       unwind_protect_caller_t _unwind_protect_to_save;
       pinned_chain_t * _pinned; /* chain of pinned objects for this thread */
       uintC _index; /* this thread's index in allthreads[] */
+      break_sems_ _break_sems; /* break semaphores for this thread */
     /* Used for exception handling only: */
       handler_args_t _handler_args;
       stack_range_t* _inactive_handlers;
@@ -17126,6 +17119,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
   #define back_trace current_thread()->_back_trace
   #define SP_bound current_thread()->_SP_bound
   #define SP_anchor current_thread()->_SP_anchor
+  #define break_sems current_thread()->_break_sems
 
 /* needed for building modules */
 %% export_def(current_thread());

@@ -1,3 +1,14 @@
+2008-09-16  Vladimir Tzankov  <vtzankov@gmail.com>
+	Per thread break semaphores.
+
+	* lispbibl.d: make break_sems to be per thread.
+	(clisp_thread_t): added _break_sems to thread's data
+	(break_sems): macro for accessing current thread semaphores.
+	* spvw.d: remove global break_sems when building with threads.
+	* zthread.d 
+	(disable_thread_async_signals): make it void (also fixes compilation
+	problem on linux).
+
 2008-09-14  Vladimir Tzankov  <vtzankov@gmail.com>
 	Unwind-protect for pinned objects. Pinned object chains per thread.
 
