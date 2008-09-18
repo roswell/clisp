@@ -1,3 +1,20 @@
+2008-09-18  Vladimir Tzankov  <vtzankov@gmail.com>
+	Move globals to clisp_thread_t structure.
+
+	* lispbibl.d
+	(interrupt_pending): make it per thread.
+	(writing_to_subprocess): make it per thread.
+	* spvw.d
+	(create_thread): initialize the new thread environment.
+	* spvw_sigint.d
+	(interrupt_pending): make it per thread.
+	* spvw_sigpipe.d
+	(writing_to_subprocess): make it per thread.
+	* spvw_circ.d: 
+	(USE_MULTI_LEVEL_BITMAP): was #ifdef MULTITHREAD.
+	* zthread.d
+	(make_thread): do not share aktenv with creating thread.
+	
 2008-09-16  Vladimir Tzankov  <vtzankov@gmail.com>
 	Per thread break semaphores.
 

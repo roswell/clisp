@@ -2,11 +2,6 @@
 
 /* -------------------------- Specification ---------------------------- */
 
-#ifdef PENDING_INTERRUPTS
-/* Flag telling whether a Ctrl-C has been seen and is waiting to be handled. */
-extern uintB interrupt_pending;
-#endif
-
 #ifdef HAVE_SIGNALS
 /* Installs the Ctrl-C handler. */
 local void install_sigint_handler (void);
@@ -18,7 +13,8 @@ extern void install_sigint_handler (void);
 
 /* -------------------------- Implementation --------------------------- */
 
-#ifdef PENDING_INTERRUPTS
+
+#if defined(PENDING_INTERRUPTS) && !defined(MULTITHREAD)
 /* Flag, if an interrupt is pending. */
 global uintB interrupt_pending = false;
 #endif

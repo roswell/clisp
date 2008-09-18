@@ -695,8 +695,14 @@ global clisp_thread_t* create_thread(uintM lisp_stack_size)
   spinlock_init(&thread->_gc_suspend_request); spinlock_acquire(&thread->_gc_suspend_request);
   spinlock_init(&thread->_gc_suspend_ack); spinlock_acquire(&thread->_gc_suspend_ack);
   xmutex_init(&thread->_gc_suspend_lock);
-
-  /* VTZ:TODO. get the right SP_bound (pthreads and win32 can provide it ??)*/
+  /* initialize the environment*/
+  thread->_aktenv.var_env   = NIL;
+  thread->_aktenv.fun_env   = NIL;
+  thread->_aktenv.block_env = NIL;
+  thread->_aktenv.go_env    = NIL;
+  thread->_aktenv.decl_env  = O(top_decl_env);
+  /* VTZ:TODO. get the right SP_bound (pthreads and win32 can provide it ??).
+   in USE_CUSTOM_TLS we have the functions. */
 #ifndef NO_SP_CHECK
   thread->_SP_bound=0;
 #endif

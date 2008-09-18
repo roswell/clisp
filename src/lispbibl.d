@@ -1988,14 +1988,11 @@ typedef enum {
    a continuable manner in that time. After this time has passed, the
    program will be interrupted and cannot be continued. */
   #define PENDING_INTERRUPTS
+  #if !defined(MULTITHREAD)
+   /* in MT the interrupt_pending is per thread */
   extern uintB interrupt_pending;
-  #if defined(MULTITHREAD)
-    /* in MT we handle async signals only within main thread */
-    #define interruptp(statement) \
-      if (interrupt_pending && main_threadp()) { statement; }
-  #else
-    #define interruptp(statement)  if (interrupt_pending) { statement; }
   #endif
+  #define interruptp(statement)  if (interrupt_pending) { statement; }
 #endif
 /* used by EVAL, IO, SPVW, STREAM */
 
@@ -10627,7 +10624,7 @@ extern maygc off_t savemem (object stream, bool exec_p);
 /* is used by PATHNAME */
 #endif
 
-#if defined(HAVE_SIGNALS) && defined(SIGPIPE)
+#if defined(HAVE_SIGNALS) && defined(SIGPIPE) && !defined(MULTITHREAD)
   /* Set ONLY during write() calls to pipes directed to subprocesses. */
 extern bool writing_to_subprocess;
 #endif
@@ -16881,7 +16878,17 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       unwind_protect_caller_t _unwind_protect_to_save;
       pinned_chain_t * _pinned; /* chain of pinned objects for this thread */
       uintC _index; /* this thread's index in allthreads[] */
+
+    /* signal handling stuff */
       break_sems_ _break_sems; /* break semaphores for this thread */
+      #if defined(HAVE_SIGNALS) && defined(SIGPIPE)
+      /* Set ONLY during IO calls to pipes directed to subprocesses. */
+       bool _writing_to_subprocess;
+      #endif
+      #if defined(PENDING_INTERRUPTS)
+       uintB _interrupt_pending;
+      #endif
+
     /* Used for exception handling only: */
       handler_args_t _handler_args;
       stack_range_t* _inactive_handlers;
@@ -17120,6 +17127,12 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
   #define SP_bound current_thread()->_SP_bound
   #define SP_anchor current_thread()->_SP_anchor
   #define break_sems current_thread()->_break_sems
+  #if defined(HAVE_SIGNALS) && defined(SIGPIPE)
+   #define writing_to_subprocess current_thread()->_writing_to_subprocess
+  #endif
+  #if defined(PENDING_INTERRUPTS)
+   #define interrupt_pending current_thread()->_interrupt_pending
+  #endif
 
 /* needed for building modules */
 %% export_def(current_thread());
@@ -17134,6 +17147,10 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 %% export_def(value9);
 %% export_def(mv_count);
 %% export_def(back_trace);
+%% #if defined(HAVE_SIGNALS) && defined(SIGPIPE)
+%%  export_def(writing_to_subprocess);
+%% #endif
+
 
 /* allocates,initializes and returns clisp_thread_t structure. 
    Does not register it in the global thread array. 
@@ -17181,7 +17198,7 @@ global void release_threads (object list);
 
   #ifndef DEBUG_GCSAFETY
     #define PERFORM_GC(statement,lock_heap) _PERFORM_GC(statement,lock_heap)
-  #else
+  #else /* DEBUG_GCSAFETY */
     /* if we trigger GC from allocate_xxxx, than we already have 
      stopped the world and will resume it at exit.*/
     #define PERFORM_GC(statement,lock_heap) \
@@ -17227,6 +17244,8 @@ global void release_threads (object list);
 %% #else
   #define pin_varobject(vo)
   #define unpin_varobject(vo)
+  #define GC_STOP_WORLD(lock_heap) 
+  #define GC_RESUME_WORLD(unlock_heap) 
   #define PERFORM_GC(statement,lock_heap) statement
 #endif
 %% #endif

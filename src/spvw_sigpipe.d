@@ -4,9 +4,11 @@
 
 #if defined(HAVE_SIGNALS) && defined(SIGPIPE)
 
-/* Variable to be set ONLY during write() calls to pipes directed to
+#if !defined(MULTITHREAD)
+/* Variable to be set ONLY during IO calls to pipes directed to
  subprocesses. */
 global bool writing_to_subprocess = false;
+#endif
 
 /* Install the signal handler for SIGPIPE. */
 local void install_sigpipe_handler (void);

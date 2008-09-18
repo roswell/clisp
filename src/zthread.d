@@ -60,7 +60,7 @@ local /*maygc*/ void *thread_stub(void *arg)
   set_current_thread(me);
   me->_SP_anchor=(void*)SP();
 
-  funcall(STACK_0,0); /* call it */
+  funcall(popSTACK(), 0); /* call it */
   /*VTZ: may be store the return value in the thread record ??*/
   delete_thread(me,false);
   return NULL;
@@ -89,10 +89,10 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
   /* push 2 nullobj */
   NC_pushSTACK(new_thread->_STACK,nullobj); 
   NC_pushSTACK(new_thread->_STACK,nullobj);
+
   /* push the function to be executed */ 
   NC_pushSTACK(new_thread->_STACK,STACK_3);
-  new_thread->_aktenv=aktenv; /* set it the same as current thread one */
-  new_thread->_pinned = NULL;
+
   /* VTZ:TODO we have to  copy the symvalues as well. */
   if (register_thread(new_thread)<0) {
     /* total failure */
