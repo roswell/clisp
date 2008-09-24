@@ -13983,15 +13983,17 @@ local void test_socket_server (object obj, bool check_open) {
 /* Called when some socket server dies. */
 LISPFUNN(socket_server_close,1) {
   test_socket_server(STACK_0,false);
-  var object ss = popSTACK();
+  var object ss = STACK_0;
   if (!nullp(TheSocketServer(ss)->socket_handle)) {
     var SOCKET s = TheSocket(TheSocketServer(ss)->socket_handle);
     begin_system_call();
     while (GC_SAFE_CALL(int,closesocket(s)) < 0)
       if (!sock_errno_is(EINTR)) { SOCK_error(); }
     end_system_call();
+    ss = STACK_0;
     TheSocketServer(ss)->socket_handle = NIL;
   }
+  skipSTACK(1);
   VALUES1(NIL);
 }
 

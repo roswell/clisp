@@ -1,3 +1,9 @@
+2008-09-24  Vladimir Tzankov  <vtzankov@gmail.com>
+	GCSAFETY bug in SOCKET-SERVER-CLOSE
+
+	* stream.d
+	(socket_server_close): fixed GCSAFETY bug.
+
 2008-09-18  Vladimir Tzankov  <vtzankov@gmail.com>
 	Move globals to clisp_thread_t structure.
 
