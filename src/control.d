@@ -2096,8 +2096,9 @@ LISPFUNN(proclaim,1)
         clear_const_flag(TheSymbol(symbol));
       set_special_flag(TheSymbol(symbol));
       #if defined(MULTITHREAD)
-       /* MT: add to the threads (unbound) */
-       add_per_thread_special_var(symbol);
+       /* MT: add to the threads (empty) if not already there */
+       if (TheSymbol(symbol)->tls_index == SYMBOL_TLS_INDEX_NONE)
+	 add_per_thread_special_var(symbol);
       #endif
     }
   } else if (eq(decltype,S(notspecial))) { /* NOTSPECIAL */

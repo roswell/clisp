@@ -1,4 +1,9 @@
 2008-09-24  Vladimir Tzankov  <vtzankov@gmail.com>
+	Add per thread symvalue only once.
+
+	* control.d (PROCLAIM): Fix: add per thread symvalue only once.
+
+2008-09-24  Vladimir Tzankov  <vtzankov@gmail.com>
 	Per thread special variables
 
 	* lispbibl.d
