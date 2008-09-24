@@ -13,6 +13,12 @@
  > package: home-package of the symbol, either lisp or system or keyword.
  >          it is exported automatically from package lisp. */
 
+#if defined(MULTITHREAD)
+  #define SYM_TLS_INDEX_INIT SYMBOL_TLS_INDEX_NONE
+#else
+  #define SYM_TLS_INDEX_INIT
+#endif
+
 /* expander for the declaration of the symbol table: */
 #define LISPSYM_A(name,printname,package)       \
   symbol_ S_##name;
@@ -21,20 +27,20 @@
 #ifdef TYPECODES
   #ifdef DEBUG_GCSAFETY
     #define LISPSYM_B(name,printname,package)  \
-      { S(name), unbound, unbound, unbound, NIL, NIL, NIL, },
+      { S(name), unbound, unbound, unbound, NIL, NIL, NIL, SYM_TLS_INDEX_INIT},
   #else
     #define LISPSYM_B(name,printname,package)  \
-      { {S(name)}, unbound, unbound, unbound, NIL, NIL, NIL, },
+      { {S(name)}, unbound, unbound, unbound, NIL, NIL, NIL, SYM_TLS_INDEX_INIT},
   #endif
 #else
   #if defined(LINUX_NOEXEC_HEAPCODES) && 0
     #define LISPSYM_B(name,printname,package)  \
       { S(name), xrecord_tfl(Rectype_Symbol,0,symbol_length,0), \
-        unbound, unbound, unbound, NIL, NIL, NIL, unbound, },
+        unbound, unbound, unbound, NIL, NIL, NIL, unbound, SYM_TLS_INDEX_INIT},
   #else
     #define LISPSYM_B(name,printname,package)  \
       { S(name), xrecord_tfl(Rectype_Symbol,0,symbol_length,0), \
-        unbound, unbound, unbound, NIL, NIL, NIL, },
+        unbound, unbound, unbound, NIL, NIL, NIL, SYM_TLS_INDEX_INIT},
   #endif
 #endif
 #define LISPSYM_C(name,printname,package)  printname,

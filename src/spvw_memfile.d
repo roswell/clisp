@@ -87,6 +87,9 @@ local const uint32 memflags =
  #ifdef UNICODE
   bit(20) |
  #endif
+ #ifdef MULTITHREAD
+  bit(21) |
+ #endif
   0;
 
 /* Maximum length of (machine-instance) return value: */
@@ -111,6 +114,10 @@ typedef struct {
   uintL _module_names_size;
   uintC _fsubr_count;
   uintC _pseudofun_count;
+#if defined(MULTITHREAD)
+  /* number of per thread symvalues */
+  uintL _per_thread_symvalues;
+#endif
   uintC _symbol_count;
   uintL _page_alignment;
   aint _subr_tab_addr;
@@ -333,6 +340,9 @@ local uintL fill_memdump_header (memdump_header_t *header) {
   header->_module_names_size = module_names_size;
   header->_fsubr_count     = fsubr_count;
   header->_pseudofun_count = pseudofun_count;
+#if defined(MULTITHREAD)
+  header->_per_thread_symvalues = num_symvalues;
+#endif
   header->_symbol_count    = symbol_count;
   header->_page_alignment = page_alignment;
   header->_subr_tab_addr   = (aint)(&subr_tab);
@@ -1050,6 +1060,23 @@ local void loadmem_from_handle (Handle handle, const char* filename)
    #ifndef SPVW_MIXED_BLOCKS_OPPOSITE
     if (header._heapcount != heapcount) ABORT_INI;
    #endif
+
+#if defined(MULTITHREAD)
+    /* reallocate the current thread to have required number of 
+     per thread symvalues and initialize all of them to SYMVALUE_EMPTY.
+    */
+    {
+      num_symvalues=header._per_thread_symvalues;
+      maxnum_symvalues=(uintL)((num_symvalues/SYMVALUES_PER_PAGE)+1) * 
+	SYMVALUES_PER_PAGE;
+      if (!realloc_thread_symvalues(current_thread(),maxnum_symvalues)) 
+	goto abort_mem;
+      var gcv_object_t* objptr = current_thread()->_ptr_symvalues;
+      var uintC count;
+      dotimespC(count,num_symvalues,{ *objptr++ = SYMVALUE_EMPTY; });
+    }
+#endif
+
    #ifdef SPVW_MIXED_BLOCKS_OPPOSITE
     /* Determine if there is enough memory.
        It's sufficient if and only if
@@ -1155,6 +1182,7 @@ local void loadmem_from_handle (Handle handle, const char* filename)
     READ(&old_fsubr_tab,sizeof(fsubr_tab));
     READ(&old_pseudofun_tab,sizeof(pseudofun_tab));
     READ(&symbol_tab,sizeof(symbol_tab));
+
     { /* for each module read subr_addr, subr_count, object_count, subr_tab,
          object_tab : */
       var module_t* * old_module = &old_modules[0];

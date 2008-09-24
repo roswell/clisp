@@ -1,4 +1,64 @@
 2008-09-24  Vladimir Tzankov  <vtzankov@gmail.com>
+	Per thread special variables
+
+	* lispbibl.d
+	(struct symbol_):  add tls_index for per thread symbol value.
+	(SYMBOL_TLS_INDEX_NONE): empty value for the tls_index.
+	(SYMVALUE_EMPTY): non existing symvalue in per thread TLS.
+	(Symbol_value): redefined in MT
+	(Symbolflagged_value): new macro for accessing the symbol value
+	of flagged symbols. It creates the per thread entries.
+	(clisp_thread_t): removed _symvalues from the end. The clisp_thread_t
+	structure once allocated do not move. Added _ptr_symvalues - accessible
+	for modules - where the per thread symvalues are stored. 
+	(thread_size): removed (clisp_thread_t has const size now)
+	(thread_objects_offset): removed
+	(thread_objects_count): removed
+	(add_per_thread_special_var): adds symvalues (empty) in all threads
+	for the specified symbol (called from PROCLAIM). 
+	(clear_per_thread_symvalues): makes all per thread symvalues empty for
+	the specified symbol (used when special var is redefined as constant)
+	(realloc_thread_symvalues): reallocates the storage for symvalues - 
+	_ptr_symvalues in a thread. 
+	* constsym.d: initialize the tls_index of symbol in MT builds
+	* spvw.d
+	(init_multithread_special_symbols): creates per thread symvalues for
+	all standard special variables (used when not loading image file).
+	(add_per_thread_special_var): implementation. adds symvalues (empty) in 
+	all threads for the specified symbol (called from PROCLAIM). 
+	(clear_per_thread_symvalues): implementation. makes all per thread 
+	symvalues empty for the specified symbol (used when special var is 
+	redefined as constant).
+	(realloc_thread_symvalues): implementation. reallocates the storage for
+	symvalues - _ptr_symvalues in a thread. 
+	(for_all_threadobj): redefined to iterate over _ptr_symvalues.
+	* spvw_typealloc.d
+	(make_symbol): allocate enough space for the symbol and initialize the 
+	tls_index.
+	* spvw_update.d
+	(do_update_symbol): use symbol_length when iterating over symbol_
+	objects (in MT symbols are more like an xrecord).
+	* spvw_gcmark.d
+	(gc_mark): use symbol_length when iterating over symbol_ objects.
+	* spvw_memfile.d
+	(memflags): added bit(21) for MULTITHREAD image (symbols are larger).
+	(memdump_header_t): added _per_thread_symvalues - stores how many cells
+	for symvalues should be allocated (global num_symvalues value).
+	(loadmem_from_handle): initializes all per thread symvalues (of the only
+	running thread) to empty. 
+	* zthread.d: small changes caused by thread_size() removal.
+	* eval.d
+	(unwind): use Symbolflagged_value(obj).
+	(bind_next_var): use Symbolflagged_value(obj).
+	* control.d
+	(proclaim): adds per thread symvalue for special declarations.
+	(activate_bindings): use Symbolflagged_value(obj).
+	(letstar): use Symbolflagged_value(obj).
+	(bind_next_var): use Symbolflagged_value(obj).
+	* symbol.d
+	(proclaim_constant): clear the per thread symvalues if any.
+
+2008-09-24  Vladimir Tzankov  <vtzankov@gmail.com>
 	GCSAFETY bug in SOCKET-SERVER-CLOSE
 
 	* stream.d

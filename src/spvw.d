@@ -320,16 +320,17 @@ local xmutex_t allthreads_lock;
 
 /* Set of threads. */
 #define THREAD_SYMVALUES_ALLOCATION_SIZE 4096
+#define SYMVALUES_PER_PAGE (THREAD_SYMVALUES_ALLOCATION_SIZE/sizeof(gcv_object_t))
 #define MAXNTHREADS  128
 local uintC nthreads = 0;
 local clisp_thread_t* allthreads[MAXNTHREADS];
 
 /* Number of symbol values currently in use in every thread. */
-local uintL num_symvalues = 0;
+/* The first symvalue in thread is dummy - for faster Symbol_value*/
+local uintL num_symvalues = 1;
 /* Maximum number of symbol values in every thread before new thread-local
  storage must be added.
- = floor(round_up(thread_size(num_symvalues),THREAD_SYMVALUES_ALLOCATION_SIZE)
-         -offsetofa(clisp_thread_t,_symvalues),sizeof(gcv_object_t)) */
+ = THREAD_SYMVALUES_ALLOCATION_SIZE/sizeof(gcv_object_t) */
 global uintL maxnum_symvalues; 
 
 #ifdef DEBUG_GCSAFETY
@@ -345,7 +346,6 @@ global uintL* current_thread_alloccount()
   return nthreads ? &current_thread()->_alloccount : &dummy_alloccount;
 }
 #endif
-
 
 #ifdef per_thread
  global per_thread clisp_thread_t *_current_thread;
@@ -597,22 +597,18 @@ global uintL* current_thread_alloccount()
          mapped < stack_size;
          p+=signed_ps, mapped+=page_size) {
       threads_map[(unsigned long)p >> TLS_SP_SHIFT] = thr;
-    }  
+    }
   }
  #else /* bad value for USE_CUSTOM_TLS */
   #error "USE_CUSTOM_TLS should be defined as 1,2 or 3."
  #endif
 #endif /* !per_thread */
 
-/* Initialization. */
+/* Initialization. Called at the beginning of main(). */
 local void init_multithread (void) {
   xthread_init();
   xmutex_init(&allthreads_lock);
-  maxnum_symvalues = floor(((thread_size(0)+
-			     THREAD_SYMVALUES_ALLOCATION_SIZE-1)&
-			    (-THREAD_SYMVALUES_ALLOCATION_SIZE))
-                           -offsetofa(clisp_thread_t,_symvalues),
-                           sizeof(gcv_object_t));
+  maxnum_symvalues = SYMVALUES_PER_PAGE;
   #if !defined(per_thread)
    #if USE_CUSTOM_TLS == 1
     xthread_key_create(&current_thread_tls_key);
@@ -623,6 +619,25 @@ local void init_multithread (void) {
   #endif
 }
 
+/* Last stage of MT initialization. Called after the LISP heap and  symbols 
+   are initialized. Initialize per thread special symbols */
+local void init_multithread_special_symbols()
+{
+  /* currently there is just a single thread. get it.*/
+  var clisp_thread_t *thr=current_thread();
+  for_all_constsyms({
+    gcv_object_t p=symbol_tab_ptr_as_object(ptr);
+    if (special_var_p(TheSymbol(p))) {
+      /* hmm we have to miss here *features*, *modules* and may be 
+	 packages ???.
+	 Also we do not care about possibility to exceed the already allocated
+	 space for _symvalues - we have enough space for the standard symbols.
+      */
+      thr->_ptr_symvalues[num_symvalues]=SYMVALUE_EMPTY;
+      TheSymbol(p)->tls_index=num_symvalues++;
+    }
+  });
+}
 
 /* VTZ: allocates a LISP stack for new thread (except for the main one) 
  The stack_size parameters is in bytes. 
@@ -631,7 +646,9 @@ local void init_multithread (void) {
 local void* allocate_lisp_thread_stack(clisp_thread_t* thread, uintM stack_size)
 { 
   var uintM low,high;
+  begin_system_call();
   low=(uintM)malloc(stack_size);
+  end_system_call();
   if (!low) return NULL;
   high=low+stack_size/sizeof(uintM);
   #ifdef STACK_DOWN
@@ -677,20 +694,35 @@ global int register_thread(clisp_thread_t *thread)
 global clisp_thread_t* create_thread(uintM lisp_stack_size)
 {
   var clisp_thread_t* thread;
-  var uintM thr_size=
-    (thread_size(num_symvalues) + THREAD_SYMVALUES_ALLOCATION_SIZE-1) &
-    -THREAD_SYMVALUES_ALLOCATION_SIZE;
-  thread=(clisp_thread_t *)malloc(thr_size);
+  begin_system_call();
+  thread=(clisp_thread_t *)malloc(sizeof(clisp_thread_t));
+  end_system_call();
   if (!thread) return NULL;
-  memset(thread,0,thr_size); /* zero-up everything */
-  if (lisp_stack_size) {
-    var gcv_object_t* objptr =
-      (gcv_object_t*)((uintP)thread+thread_objects_offset());
+  begin_system_call();
+  memset(thread,0,sizeof(clisp_thread_t)); /* zero-up everything */
+  /* init _symvalues "proxy" */
+  thread->_ptr_symvalues = (gcv_object_t *)malloc(sizeof(gcv_object_t)*
+						  maxnum_symvalues);
+  if (!thread->_ptr_symvalues) {
+    free(thread);
+    end_system_call();
+    return NULL;
+  }
+  end_system_call();
+  {
+    var gcv_object_t* objptr = thread->_ptr_symvalues;
     var uintC count;
-    dotimespC(count,thread_objects_count(num_symvalues),
-      { *objptr++ = NIL; });
+    dotimespC(count,num_symvalues,{ *objptr++ = SYMVALUE_EMPTY; });
+  }
+  if (lisp_stack_size) {
     /* allocate the LISP stack */
-    if (!allocate_lisp_thread_stack(thread,lisp_stack_size)) { free(thread); return NULL;}
+    if (!allocate_lisp_thread_stack(thread,lisp_stack_size)) { 
+      begin_system_call();
+      free(thread->_ptr_symvalues);
+      free(thread);
+      end_system_call();
+      return NULL;
+    }
   }
   spinlock_init(&thread->_gc_suspend_request); spinlock_acquire(&thread->_gc_suspend_request);
   spinlock_init(&thread->_gc_suspend_ack); spinlock_acquire(&thread->_gc_suspend_ack);
@@ -714,7 +746,9 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
   /* first give up any locks that the thread holds. 
    if GC is suspending threads - we do not want to block it
    anyway we are going away.*/
+  begin_system_call();
   xmutex_destroy(&thread->_gc_suspend_lock);
+  end_system_call();
   spinlock_release(&thread->_gc_suspend_ack);
   lock_threads(); /* lock all threads */
   ASSERT(thread->_index < nthreads);
@@ -726,14 +760,20 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
   thread->_index=MAXNTHREADS+1; /* mark as exitted */
   /* VTZ: The LISP stack should be unwound so no
      interesting stuff on it. Let's deallocate it.*/
+  begin_system_call();
   free(THREAD_LISP_STACK_START(thread));
+  free(thread->_ptr_symvalues);
   thread->_STACK=NULL; 
+  thread->_ptr_symvalues=NULL;
   /* VTZ: the clisp_thread_t itself will be deallocated during 
-   finalization phase of GC - when the thread record is discarded. */
+   finalization phase of GC - when the thread record is discarded.
+  why? (somebody may want to inspect the mv_space for "thread return 
+  value")*/
   if (full) {
     free(thread);
   }
   unlock_threads();
+  end_system_call();
 }
 
   #define for_all_threads(statement)                             \
@@ -742,36 +782,68 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
         { var clisp_thread_t* thread = *--_pthread; statement; } \
     } while(0)
 
-  /* Add a new symbol value.
-   > value: the default value in all threads
-   < returns: the index in the every thread's _symvalues[] array */
-local uintL make_symvalue_perthread (object value) {
-  var uintL symbol_index;
+/* reallocated clisp_thread_t structure in such a waythat there is a place for 
+   nsyms per thread symbol values.*/
+global bool realloc_thread_symvalues(clisp_thread_t *thr, uintL nsyms)
+{
+  if (nsyms <= maxnum_symvalues) /* we already have enough place */
+    return true;
+  gcv_object_t *p=(gcv_object_t *)realloc(thr->_ptr_symvalues,
+					  nsyms*sizeof(gcv_object_t));
+  if (p)
+    thr->_ptr_symvalues=p;
+  return p!=NULL;
+}
+
+/* Clears any per thread value for symbol. Also set tls_index
+   of the symbol to invalid. */
+global void clear_per_thread_symvalues(gcv_object_t symbol)
+{
+  var uintL idx=TheSymbol(symbol)->tls_index;
+  TheSymbol(symbol)->tls_index=SYMBOL_TLS_INDEX_NONE;
+  /* also remove all per thread symbols for the index - we do not want 
+     any memory leaks. No locking duringthis operation the caller 
+     is responsible for any race conditions. */
+  for_all_threads({ thread->_ptr_symvalues[idx] = SYMVALUE_EMPTY; });
+}
+
+/* add per thread special symbol value - initialized to SYMVALUE_EMPTY. 
+ symbol: the symbol
+ returns: the new index in the _symvalues thread array */
+global uintL add_per_thread_special_var(gcv_object_t symbol)
+{
+  var uintL symbol_index = SYMBOL_TLS_INDEX_NONE;
+  begin_blocking_system_call();
   lock_threads();
+  end_blocking_system_call();
   if (num_symvalues == maxnum_symvalues) {
-    /*
-      VTZ:TODO IMPLEMENT.
+    var uintL nsyms=num_symvalues + SYMVALUES_PER_PAGE;
     for_all_threads({
-      if (mmap_zeromap((void*)((uintP)thread+((thread_size(num_symvalues)+mmap_pagesize-1)&-mmap_pagesize)),mmap_pagesize) < 0)
-        goto failed;
+      if (!realloc_thread_symvalues(thread,nsyms))
+	goto failed;
     });
-    */ 
-    maxnum_symvalues += mmap_pagesize/sizeof(gcv_object_t);
+    maxnum_symvalues = nsyms;
   }
-  symbol_index = num_symvalues++;
-  for_all_threads({ thread->_symvalues[symbol_index] = value; });
-  unlock_threads();
-  return symbol_index;
+  var uintL symbol_index=num_symvalues++;
+  TheSymbol(symbol)->tls_index=symbol_index;
+  for_all_threads({ thread->_ptr_symvalues[symbol_index] = SYMVALUE_EMPTY; });
  failed:
+  begin_system_call();
   unlock_threads();
-  error(error_condition,GETTEXT("could not make symbol value per-thread"));
+  end_system_call();
+  if (symbol_index = SYMBOL_TLS_INDEX_NONE)
+    error(error_condition,GETTEXT("could not make symbol value per-thread"));
+  return symbol_index;
 }
 
   #define for_all_threadobjs(statement)  \
     for_all_threads({                                     \
-      var gcv_object_t* objptr = (gcv_object_t*)((uintP)thread+thread_objects_offset()); \
+      var gcv_object_t* objptr = (gcv_object_t*)(&thread->_aktenv); \
       var uintC count;                                     \
-      dotimespC(count,thread_objects_count(num_symvalues), \
+      dotimespC(count,sizeof(thread->_aktenv)/sizeof(gcv_object_t),     \
+        { statement; objptr++; });                         \
+      objptr=thread->_ptr_symvalues; \
+      dotimespC(count,num_symvalues,     \
         { statement; objptr++; });                         \
     })
 
@@ -1861,6 +1933,10 @@ local void initmem (void) {
   init_symbol_values();
   /* create other objects: */
   init_object_tab();
+#if defined(MULTITHREAD)
+  /* initialize standard per thread special symbols */
+  init_multithread_special_symbols();
+#endif
 }
 /* loading of MEM-file: */
 local void loadmem (const char* filename); /* see below */

@@ -61,6 +61,11 @@ global maygc object allocate_cons (void) {
  can trigger GC */
 global maygc object make_symbol (object string) {
   pushSTACK(string);            /* save string */
+#if defined(MULTITHREAD)
+  #define INIT_TLS_INDEX ptr->tls_index = SYMBOL_TLS_INDEX_NONE
+#else
+  #define INIT_TLS_INDEX
+#endif
 #define FILL                                                       \
   do { ptr->symvalue = unbound;     /* empty value cell */         \
     ptr->symfunction = unbound;     /* empty function cell */      \
@@ -68,15 +73,17 @@ global maygc object make_symbol (object string) {
     ptr->proplist = NIL;            /* empty property list */      \
     ptr->pname = popSTACK();        /* store name */               \
     ptr->homepackage = NIL;         /* no home-package */          \
+    INIT_TLS_INDEX;                 /* initialize tls index (MT) */\
   } while(0)
  #ifdef TYPECODES
   allocate(symbol_type,true,size_symbol(),Symbol,ptr,
     { FILL; });
  #else
-  allocate(symbol_type,true,size_xrecord(6,0),Symbol,ptr,
-  { ptr->tfl = xrecord_tfl(Rectype_Symbol,0,6,0); FILL; });
+  allocate(symbol_type,true,size_xrecord(6,symbol_xlength),Symbol,ptr,
+  { ptr->tfl = xrecord_tfl(Rectype_Symbol,0,6,symbol_xlength); FILL; });
  #endif
 #undef FILL
+#undef INIT_TLS_INDEX
 }
 
 /* initialize elements with NIL */

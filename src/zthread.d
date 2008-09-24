@@ -169,7 +169,7 @@ LISPFUNN(call_with_timeout,3)
     var struct timeval now;
     var struct timespec timeout;
     var int retval=0;
-    memcpy(&restore_after_cancel,current_thread(),thread_size(0)); /* everything without symvalues */
+    memcpy(&restore_after_cancel,current_thread(),sizeof(clisp_thread_t)); /* wrong */
     cd.caller=current_thread();
     begin_system_call();
     xcondition_init(&cd.cond); xmutex_init(&cd.mutex);
@@ -182,7 +182,7 @@ LISPFUNN(call_with_timeout,3)
     retval = xcondition_timedwait(&cd.cond,&cd.mutex,&timeout);
     if (retval == ETIMEDOUT) {
       xthread_wait(xth); /*VTZ: currently we do not have safe way to cancel thread (esp. GC)*/ 
-      memcpy(current_thread(),&restore_after_cancel,thread_size(0));
+      memcpy(current_thread(),&restore_after_cancel,sizeof(clisp_thread_t)); /* wrong !!! */
       funcall(STACK_1,0); /* run timeout-function */
     }
     begin_system_call();

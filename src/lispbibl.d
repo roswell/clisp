@@ -2251,7 +2251,7 @@ typedef enum {
   #define NO_ASYNC_INTERRUPTS
 #endif
 #if defined(NO_ASYNC_INTERRUPTS) && defined(MULTITHREAD)
-#error No multithreading possible with this memory model!
+  #error No multithreading possible with this memory model! 
 #endif
 /* When changed: extend SPVW, write a interruptp(). */
 
@@ -4973,8 +4973,16 @@ typedef struct {
   gcv_object_t homepackage _attribute_aligned_object_; /* Home-Package or NIL */
   /* If necessary, add fillers here to ensure sizeof(subr_t) is a multiple of
    varobject_alignment. */
-  #if defined(LINUX_NOEXEC_HEAPCODES) && 0
+  #if defined(LINUX_NOEXEC_HEAPCODES) && defined(MULTITHREAD)
+  /* filler is put here is it is gcv_object_t - so may be easily included in 
+     symbol_length if needed. */
   gcv_object_t filler      _attribute_aligned_object_;
+  #endif
+  #if defined(MULTITHREAD)
+    /* the first symvalue in thread is dummy - for faster Symbol_value*/
+    #define SYMBOL_TLS_INDEX_NONE ((uintL)0)
+    #define SYMVALUE_EMPTY make_system(0xEEEEEFUL)
+    uintL tls_index _attribute_aligned_object_; /* TLS index */
   #endif
 } symbol_;
 typedef symbol_ *  Symbol;
@@ -4984,10 +4992,16 @@ typedef symbol_ *  Symbol;
 #endif
 #define symbol_objects_offset  offsetof(symbol_,symvalue)
 #define symbol_length  6
-%% #if defined(LINUX_NOEXEC_HEAPCODES) && 0
-%%   sprintf(buf,"struct { VAROBJECT_HEADER gcv_object_t symvalue%s; gcv_object_t symfunction%s; gcv_object_t hashcode%s; gcv_object_t proplist%s; gcv_object_t pname%s; gcv_object_t homepackage%s; gcv_object_t filler%s; }",attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object);
+#define symbol_xlength (sizeof(*(Symbol)0)-symbol_objects_offset-symbol_length*sizeof(gcv_object_t))
+%% #if defined(LINUX_NOEXEC_HEAPCODES) && defined(MULTITHREAD)
+%%   sprintf(buf,"struct { VAROBJECT_HEADER gcv_object_t symvalue%s; gcv_object_t symfunction%s; gcv_object_t hashcode%s; gcv_object_t proplist%s; gcv_object_t pname%s; gcv_object_t homepackage%s; gcv_object_t filler%s; ",attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object);
 %% #else
-%%   sprintf(buf,"struct { VAROBJECT_HEADER gcv_object_t symvalue%s; gcv_object_t symfunction%s; gcv_object_t hashcode%s; gcv_object_t proplist%s; gcv_object_t pname%s; gcv_object_t homepackage%s; }",attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object);
+%%   sprintf(buf,"struct { VAROBJECT_HEADER gcv_object_t symvalue%s; gcv_object_t symfunction%s; gcv_object_t hashcode%s; gcv_object_t proplist%s; gcv_object_t pname%s; gcv_object_t homepackage%s; ",attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object,attribute_aligned_object);
+%% #endif
+%% #if defined(MULTITHREAD)
+%%   sprintf(buf+strlen(buf)," uintL tls_index%s;}",attribute_aligned_object);
+%% #else
+%%   sprintf(buf+strlen(buf),"}");
 %% #endif
 %% emit_typedef(buf,"symbol_");
 %% emit_typedef("symbol_ *","Symbol");
@@ -7264,7 +7278,27 @@ typedef struct {
 #define Car(obj)  (TheCons(obj)->car)
 #define Cdr(obj)  (TheCons(obj)->cdr)
 /* Access to objects that are symbols: */
-#define Symbol_value(obj)  (TheSymbol(obj)->symvalue)
+#if defined(MULTITHREAD)
+  /* not nice definition, but in order not to break the code where the 
+     Symbol_value() is expected to be l-value we need this ugliness*/
+  #define Symbol_value(obj) \
+    *({var Symbol s=TheSymbol(obj);  \
+       var clisp_thread_t *thr=current_thread();\
+       var gcv_object_t *r;	    \
+       r=(s->tls_index && !eq(SYMVALUE_EMPTY,thr->_ptr_symvalues[s->tls_index]) ? \
+	  thr->_ptr_symvalues+s->tls_index : &s->symvalue); \
+       r;})
+  #define Symbolflagged_value(obj) \
+    *({var Symbol s=TheSymbol(obj);  \
+       var clisp_thread_t *thr=current_thread();\
+       var gcv_object_t *r;	    \
+       r=(s->tls_index ? \
+	  thr->_ptr_symvalues+s->tls_index : &s->symvalue); \
+       r;})
+#else
+  #define Symbol_value(obj)  (TheSymbol(obj)->symvalue)
+  #define Symbolflagged_value(obj) (TheSymbolflagged(obj)->symvalue)
+#endif
 #define Symbol_function(obj)  (TheSymbol(obj)->symfunction)
 #define Symbol_plist(obj)  (TheSymbol(obj)->proplist)
 #define Symbol_name(obj)  (TheSymbol(obj)->pname)
@@ -16866,8 +16900,8 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       spinlock_t _gc_suspend_request; /*always signalled unless there is a suspend request. */
       spinlock_t _gc_suspend_ack; /* always signalled unless it can be assumed the the thread is suspended */
       xmutex_t _gc_suspend_lock; /* the mutex on which the thread waits. */
-      /* VTZ:TODO this belongs to the end of the structure, but since i am lazy and just wanted
-         to compile the system I put it here. Otherwise quite bigger exported definiton (for modules) is required */
+      /* The values of per-thread symbols: */
+      gcv_object_t *_ptr_symvalues; /* allocated separately */
       object _mv_space [mv_limit-1]; 
       #ifndef NO_SP_CHECK
         void* _SP_bound;
@@ -16897,15 +16931,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
     /* Now the lisp objects (seen by the GC). */
       /* The lexical environment: */
       gcv_environment_t _aktenv;
-      /* The values of per-thread symbols: */
-      object _symvalues[unspecified];
   } clisp_thread_t;
-  #define thread_size(nsymvalues)  \
-    (offsetofa(clisp_thread_t,_symvalues)+nsymvalues*sizeof(gcv_object_t))
-  #define thread_objects_offset()  \
-    (offsetof(clisp_thread_t,_aktenv))
-  #define thread_objects_count(nsymvalues)  \
-    ((offsetofa(clisp_thread_t,_symvalues)-offsetof(clisp_thread_t,_aktenv))/sizeof(gcv_object_t)+(nsymvalues))
  
   /* try to use the compiler support for thread local storage */
   #if defined(__GNUC__)
@@ -17002,7 +17028,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 	misses (when the thread stack crosses the VM page boundary). */
      global void* tsd_slow_getspecific(unsigned long qtid,
 				       tse * volatile *cache_ptr);
-     /* removes the TLS - should be called on thread exit. 
+/* removes the TLS - should be called on thread exit. 
       NB: It seems not a big deal if not called - but should 
       be tested.*/
      global void tsd_remove_specific();
@@ -17069,6 +17095,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 %%  puts("     spinlock_t _gc_suspend_request;");
 %%  puts("     spinlock_t _gc_suspend_ack;");
 %%  puts("     xmutex_t _gc_suspend_lock;"); 
+%%  puts("     gcv_object_t *_ptr_symvalues;");
 %%  puts("     object _mv_space [unspecified];");
 %%  puts("} clisp_thread_t;");
 
@@ -17177,6 +17204,16 @@ global void gc_suspend_all_threads(bool lock_heap);
 global void gc_resume_all_threads(bool unlock_heap);
 /* releases the clisp_thread_t memory of the list of Thread records */
 global void release_threads (object list);
+/* add per thread special symbol value - initialized to SYMVALUE_EMPTY.
+ symbol: the symbol
+ returns: the new index in the _symvalues thread array */
+global uintL add_per_thread_special_var(gcv_object_t symbol);
+/* Clears any per thread value for symbol. Also set tls_index
+   of the symbol to invalid. */
+global void clear_per_thread_symvalues(gcv_object_t symbol);
+/* reallocated clisp_thread_t structure in such a way that there is a place for 
+   nsyms per thread symbol values.*/
+global bool realloc_thread_symvalues(clisp_thread_t *thr, uintL nsyms);
 
 /* true if we are in the main thread - fo signal/semaphores */
 #define main_threadp() (current_thread()->_index == 0)
