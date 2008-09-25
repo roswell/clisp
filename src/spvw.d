@@ -628,9 +628,7 @@ local void init_multithread_special_symbols()
   for_all_constsyms({
     gcv_object_t p=symbol_tab_ptr_as_object(ptr);
     if (special_var_p(TheSymbol(p))) {
-      /* hmm we have to miss here *features*, *modules* and may be 
-	 packages ???.
-	 Also we do not care about possibility to exceed the already allocated
+      /* Also we do not care about possibility to exceed the already allocated
 	 space for _symvalues - we have enough space for the standard symbols.
       */
       thr->_ptr_symvalues[num_symvalues]=SYMVALUE_EMPTY;
@@ -797,7 +795,7 @@ global bool realloc_thread_symvalues(clisp_thread_t *thr, uintL nsyms)
 
 /* Clears any per thread value for symbol. Also set tls_index
    of the symbol to invalid. */
-global void clear_per_thread_symvalues(gcv_object_t symbol)
+global void clear_per_thread_symvalues(object symbol)
 {
   var uintL idx=TheSymbol(symbol)->tls_index;
   TheSymbol(symbol)->tls_index=SYMBOL_TLS_INDEX_NONE;
@@ -810,12 +808,19 @@ global void clear_per_thread_symvalues(gcv_object_t symbol)
 /* add per thread special symbol value - initialized to SYMVALUE_EMPTY. 
  symbol: the symbol
  returns: the new index in the _symvalues thread array */
-global uintL add_per_thread_special_var(gcv_object_t symbol)
+global maygc uintL add_per_thread_special_var(object symbol)
 {
-  var uintL symbol_index = SYMBOL_TLS_INDEX_NONE;
+  pushSTACK(symbol);
   begin_blocking_system_call();
   lock_threads();
   end_blocking_system_call();
+  symbol=popSTACK();
+  var uintL symbol_index = TheSymbol(symbol)->tls_index;
+  /* check whether till we have bee witing for the threads lock
+     another thread has not already done the job !!! */
+  if (symbol_index != SYMBOL_TLS_INDEX_NONE) {
+    goto failed; /* not really failed :) */
+  }
   if (num_symvalues == maxnum_symvalues) {
     var uintL nsyms=num_symvalues + SYMVALUES_PER_PAGE;
     for_all_threads({
@@ -831,7 +836,7 @@ global uintL add_per_thread_special_var(gcv_object_t symbol)
   begin_system_call();
   unlock_threads();
   end_system_call();
-  if (symbol_index = SYMBOL_TLS_INDEX_NONE)
+  if (symbol_index == SYMBOL_TLS_INDEX_NONE)
     error(error_condition,GETTEXT("could not make symbol value per-thread"));
   return symbol_index;
 }
@@ -1931,12 +1936,12 @@ local void initmem (void) {
   init_symbol_functions();
   /* constants/variables: enter value into the symbols: */
   init_symbol_values();
-  /* create other objects: */
-  init_object_tab();
 #if defined(MULTITHREAD)
   /* initialize standard per thread special symbols */
   init_multithread_special_symbols();
 #endif
+  /* create other objects: */
+  init_object_tab();
 }
 /* loading of MEM-file: */
 local void loadmem (const char* filename); /* see below */

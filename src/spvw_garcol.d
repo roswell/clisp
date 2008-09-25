@@ -1486,7 +1486,21 @@ local void gc_sweep2_varobject_page (Page* page)
 	  p1+=count; continue;
 	}
       }
+     #ifdef NO_symbolflags
+      /* HEAPCODES and sometimes TYPECODES */
       var aint p2=(aint)ThePointer(((Varobject)p1)->GCself); /* where we should go ? */
+     #else
+      /* TYPECODES and NOT SPVW_PURE - which we handle above.
+         Is such case possible at all ??? */
+      var object newobj = ((Varobject)p1)->GCself;
+      var aint p2;
+      switch (mtypecode(newobj)) { /* poss. remove Symbol-flags */
+      case_symbolflagged:
+	p2 = (aint)ThePointer(symbol_without_flags(newobj)); break;
+      default:
+	p2=(aint)ThePointer(newobj); break;
+      }
+     #endif
       if (p1!=p2) {             /* if relocation is necessary */
 	move_aligned_p1_p2(count); /* relocate and advance */
       } else {                     /* else only advance: */

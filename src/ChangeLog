@@ -1,3 +1,24 @@
+2008-09-25  Vladimir Tzankov  <vtzankov@gmail.com>
+	Per thread "local special variables" and compiled closures support.
+
+	* lispbibl.d
+	(Symbol_thread_value): new macro used by dynamic_bind. Empty per 
+	thread symvalues can be bound.
+	(dynamic_bind): use Symbol_thread_value instead of Symbol_value.
+	* spvw.d
+	(add_per_thread_special_var): maygc. fix possible race condition.
+	(initmem): allocate per thread variables before init_object_tab() - 
+	so *features* is not defined as per thread.
+	* eval.d
+	(interpret_bytecode_): handle special variables (cod_bind)
+	* control.d
+	(make_variable_frame): handle local special variables
+	* spvw_garcol.d
+	(gc_sweep2_varobject_page): add special case: !defined(NO_symbolflags)
+	and !(SPVW_PURE) - not clear whether such combination is possible.
+	* spvw_debug.d: sync with CVS head
+	* stream.d: sync with CVS head
+
 2008-09-24  Vladimir Tzankov  <vtzankov@gmail.com>
 	Add per thread symvalue only once.
 

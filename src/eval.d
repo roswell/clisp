@@ -6412,6 +6412,16 @@ local /*maygc*/ Values interpret_bytecode_ (object closure_in, Sbvector codeptr,
     CASE cod_bind: {            /* (BIND n) */
       var uintL n;
       U_operand(n);
+#if defined(MULTITHREAD)
+      /* we always bind per thread here !!! */
+      var Symbol sym=TheSymbol(TheCclosure(closure)->clos_consts[n]);
+      if (sym->tls_index == SYMBOL_TLS_INDEX_NONE && 
+	  !special_var_p(sym)) {
+	/* if it is special - it may be special global (i.e.*features*) so
+	   we do not want to make it per thread. */
+	add_per_thread_special_var(TheCclosure(closure)->clos_consts[n]);
+      }
+#endif
       dynamic_bind(TheCclosure(closure)->clos_consts[n],value1);
     } goto next_byte;
     CASE cod_unbind1:           /* (UNBIND1) */

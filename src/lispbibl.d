@@ -7279,8 +7279,6 @@ typedef struct {
 #define Cdr(obj)  (TheCons(obj)->cdr)
 /* Access to objects that are symbols: */
 #if defined(MULTITHREAD)
-  /* not nice definition, but in order not to break the code where the 
-     Symbol_value() is expected to be l-value we need this ugliness*/
   #define Symbol_value(obj) \
     *({var Symbol s=TheSymbol(obj);  \
        var clisp_thread_t *thr=current_thread();\
@@ -7288,15 +7286,18 @@ typedef struct {
        r=(s->tls_index && !eq(SYMVALUE_EMPTY,thr->_ptr_symvalues[s->tls_index]) ? \
 	  thr->_ptr_symvalues+s->tls_index : &s->symvalue); \
        r;})
-  #define Symbolflagged_value(obj) \
-    *({var Symbol s=TheSymbol(obj);  \
+  #define Symbol_value_helper(sym) \
+    *({var Symbol s=sym;  \
        var clisp_thread_t *thr=current_thread();\
        var gcv_object_t *r;	    \
        r=(s->tls_index ? \
 	  thr->_ptr_symvalues+s->tls_index : &s->symvalue); \
        r;})
+  #define Symbol_thread_value(obj) Symbol_value_helper(TheSymbol(obj))
+  #define Symbolflagged_value(obj) Symbol_value_helper(TheSymbolflagged(obj))
 #else
   #define Symbol_value(obj)  (TheSymbol(obj)->symvalue)
+  #define Symbol_thread_value(obj) Symbol_value(obj)
   #define Symbolflagged_value(obj) (TheSymbolflagged(obj)->symvalue)
 #endif
 #define Symbol_function(obj)  (TheSymbol(obj)->symfunction)
@@ -12691,11 +12692,11 @@ extern maygc object coerce_function (object obj);
   do { var gcv_object_t* top_of_frame = STACK; \
     var object sym_to_bind = (variable);       \
     /* Create frame :                            */\
-    pushSTACK(Symbol_value(sym_to_bind));      \
+    pushSTACK(Symbol_thread_value(sym_to_bind));      \
     pushSTACK(sym_to_bind);                    \
     finish_frame(DYNBIND);                     \
     /* modify value                              */\
-    Symbol_value(sym_to_bind) = (val_to_use);  \
+    Symbol_thread_value(sym_to_bind) = (val_to_use);  \
   } while(0)
 /* is used by IO, EVAL, DEBUG, ERROR */
 
@@ -17207,7 +17208,7 @@ global void release_threads (object list);
 /* add per thread special symbol value - initialized to SYMVALUE_EMPTY.
  symbol: the symbol
  returns: the new index in the _symvalues thread array */
-global uintL add_per_thread_special_var(gcv_object_t symbol);
+global maygc uintL add_per_thread_special_var(gcv_object_t symbol);
 /* Clears any per thread value for symbol. Also set tls_index
    of the symbol to invalid. */
 global void clear_per_thread_symvalues(gcv_object_t symbol);
