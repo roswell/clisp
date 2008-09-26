@@ -1,3 +1,35 @@
+2008-09-26  Vladimir Tzankov  <vtzankov@gmail.com>
+	Thread safety fixes (for special variables)
+
+	* lispbibl.d
+	(clear_per_thread_symvalues): maygc while waiting for threads lock.
+	(GC_STOP/RESUME_WORLD): additional parameter indicating whether we 
+	already own the threads lock.
+	(WITH_STOPPED_WORLD): previously was _PERFORM_GC. added parameter.
+	(PERFORM_GC): use WITH_STOPPED_WORLD
+	* spvw.d
+	(lock/unlock_threads): mutex locking surrounded with 
+	begin/end_system_call().
+	(add_per_thread_special_var): moved to spvw_global.d (since it may
+	"stop the world").
+	(clear_per_thread_symvalues): maygc while waiting for threads lock.
+	* spvw_global.d
+	(add_per_thread_special_var): moved here from spvw.d. will "stop the
+	world" when reallocating threads symvalues.
+	(gc_suspend/resume_all_threads): additional parameter indicating whether
+	to acquire the thread lock (it's not recursive and the caller may already
+	own it).
+	* spvw_allocate.d: pass additional parameter to GC_STOP/RESUME_WORLD().
+	* eval.d
+	(interpret_bytecode_): fix GCSAFETY in cod_bind.
+	* symbol.d
+	(proclaim_constant): fix GCSAFETY.
+	* zthread.d: replace begin/end blocking system calls with 
+	begin/end blocking calls while locking threads.
+	* savemem.lisp (saveinitmem): do not bind global symbols before
+	saving since this will create per thread bindings that will not 
+	survive loadmem().
+
 2008-09-25  Vladimir Tzankov  <vtzankov@gmail.com>
 	Per thread "local special variables" and compiled closures support.
 

@@ -16886,9 +16886,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
     struct pinned_chain_t *_next;
   } pinned_chain_t;
 
-/* Structure containing all the per-thread global variables.
- (We could use a single instance of this structure also in the single-thread
- model, but it would make debugging less straightforward.) */
+  /* Structure containing all the per-thread global variables.*/
   typedef struct clisp_thread_t {
     /* Most often used (also used by modules - so should be exported) : */
       gcv_object_t* _STACK;
@@ -17029,9 +17027,9 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 	misses (when the thread stack crosses the VM page boundary). */
      global void* tsd_slow_getspecific(unsigned long qtid,
 				       tse * volatile *cache_ptr);
-/* removes the TLS - should be called on thread exit. 
-      NB: It seems not a big deal if not called - but should 
-      be tested.*/
+     /* removes the TLS - should be called on thread exit. 
+	NB: It seems not a big deal if not called - but should 
+	be tested.*/
      global void tsd_remove_specific();
      /* initializes the current thread storage with supplied value. 
        entry should be pre-allocated. May reside on the stack as 
@@ -17197,51 +17195,60 @@ global void lock_threads();
 global void unlock_threads();
 /* Suspends all running threads /besides the current/ on GC safe points/regions.
    if lock_heap is true the heap is locked first.
+   if lock_thr is true - the threads lock is obtained (otherwise it is 
+   assumed that the calling thread already has it).
    (this is needed since GC may be called from allocation or explicitly - when 
-   the heap lock is not held) */
-global void gc_suspend_all_threads(bool lock_heap);
+   the heap lock is not held - the same for lock_thr) */
+global void gc_suspend_all_threads(bool lock_heap, bool lock_thr);
 /* Resumes all suspended threads /besides the current/ 
    should match a call to suspend_all_threads() */
-global void gc_resume_all_threads(bool unlock_heap);
+global void gc_resume_all_threads(bool unlock_heap,bool unlock_thr);
 /* releases the clisp_thread_t memory of the list of Thread records */
 global void release_threads (object list);
 /* add per thread special symbol value - initialized to SYMVALUE_EMPTY.
  symbol: the symbol
  returns: the new index in the _symvalues thread array */
-global maygc uintL add_per_thread_special_var(gcv_object_t symbol);
+global maygc uintL add_per_thread_special_var(object symbol);
 /* Clears any per thread value for symbol. Also set tls_index
    of the symbol to invalid. */
-global void clear_per_thread_symvalues(gcv_object_t symbol);
-/* reallocated clisp_thread_t structure in such a way that there is a place for 
-   nsyms per thread symbol values.*/
-global bool realloc_thread_symvalues(clisp_thread_t *thr, uintL nsyms);
+global maygc void clear_per_thread_symvalues(object symbol);
 
 /* true if we are in the main thread - fo signal/semaphores */
 #define main_threadp() (current_thread()->_index == 0)
 
-#define GC_STOP_WORLD(lock_heap) gc_suspend_all_threads(lock_heap) 
-#define GC_RESUME_WORLD(unlock_heap) gc_resume_all_threads(unlock_heap)
+#define GC_STOP_WORLD(lock_heap,lock_thr) \
+  gc_suspend_all_threads(lock_heap,lock_thr) 
+#define GC_RESUME_WORLD(unlock_heap,lock_thr) \
+  gc_resume_all_threads(unlock_heap,lock_thr)
 
 /* all calls to GC should be via this macro.
  The statement is executed, if lock_heap is true the heap is locked first.
+ If lock_thr is true - the thread lock is acquired.
  (this is needed since GC may be called from allocation or explicitly - when 
- the heap lock is not held) */
-  #define _PERFORM_GC(statement,lock_heap)     \
+ the heap lock is not held. the same for the thread lock) 
+ NB: In order to stop the all threads (besides the current one) two locks 
+ should be obtained: heap and thread lock EXACTLY in this order (if we switch the 
+ the order - deadlock may occur). GC_STOP_WORLD (gc_suspend_all_threads) should be
+ called with acquired heap lock or with lock_heap=true. 
+*/
+#define WITH_STOPPED_WORLD(statement,lock_heap,lock_thr)  \
     do {	 \
       var bool lh=lock_heap; \
-      GC_STOP_WORLD(lh); \
+      var bool lt=lock_thr; \
+      GC_STOP_WORLD(lh,lt);   \
       statement;     	\
-      GC_RESUME_WORLD(lh); \
+      GC_RESUME_WORLD(lh,lt);			\
     } while(0)
 
   #ifndef DEBUG_GCSAFETY
-    #define PERFORM_GC(statement,lock_heap) _PERFORM_GC(statement,lock_heap)
+    #define PERFORM_GC(statement,lock_heap) \
+      WITH_STOPPED_WORLD(statement,lock_heap,true)
   #else /* DEBUG_GCSAFETY */
     /* if we trigger GC from allocate_xxxx, than we already have 
      stopped the world and will resume it at exit.*/
     #define PERFORM_GC(statement,lock_heap) \
       do {\
-	if (lock_heap) _PERFORM_GC(statement,true); else statement;	\
+	if (lock_heap) WITH_STOPPED_WORLD(statement,true,true); else statement; \
       }while(0) 
     extern uintL* current_thread_alloccount();
   #endif

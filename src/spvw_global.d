@@ -515,11 +515,13 @@ local inline void init_mem_heapnr_from_type (void)
  we have been called. Only the first time we have to really suspend other threads.*/
 local uintC gc_suspend_count=0;
 
-/* Suspends all running threads /besides the current/ on GC safe points/region
- if lock_heap is true the heap is locked first.
- (this is needed since GC may be called from allocation or explicitly - in latter
- case the heap lock is not held by the caller) */
-global void gc_suspend_all_threads(bool lock_heap)
+/* Suspends all running threads /besides the current/ on GC safe points/regions.
+   if lock_heap is true the heap is locked first.
+   if lock_thr is true - the threads lock is obtained (otherwise it is 
+   assumed that the calling thread already has it).
+   (this is needed since GC may be called from allocation or explicitly - when 
+   the heap lock is not held - the same for lock_thr) */
+global void gc_suspend_all_threads(bool lock_heap, bool lock_thr)
 {
   var uint8 *acklocked; /* flags for indicating whether a thread acknowedge the suspension */
   var bool all_suspended;
@@ -527,10 +529,11 @@ global void gc_suspend_all_threads(bool lock_heap)
   /*printf("VTZ: GC_SUSPEND(): %0x\n",me);*/
   if (lock_heap) ACQUIRE_HEAP_LOCK();
   if (gc_suspend_count == 0) { /* first time here */
-    /* lock thread creation/deletion */
-    lock_threads();
+    if (lock_thr) lock_threads();
+    begin_system_call();
     acklocked=(uint8 *)alloca(nthreads*sizeof(uint8));
     memset(acklocked,0,sizeof(uint8)*nthreads);
+    end_system_call();
     for_all_threads({
       if (thread == me) continue; /* skip ourself */
       xmutex_lock(&thread->_gc_suspend_lock); /* enable thread waiting */
@@ -563,7 +566,7 @@ global void gc_suspend_all_threads(bool lock_heap)
 
 /* Resumes all suspended threads /besides the current/ 
  should match a call to suspend_all_threads()*/
-global void gc_resume_all_threads(bool unlock_heap)
+global void gc_resume_all_threads(bool unlock_heap,bool unlock_thr)
 {
   /* thread lock is locked. heap lock is free. */
   var clisp_thread_t *me=current_thread();
@@ -582,7 +585,52 @@ global void gc_resume_all_threads(bool unlock_heap)
     xmutex_unlock(&thread->_gc_suspend_lock); /* enable thread */
   });
   if (unlock_heap) RELEASE_HEAP_LOCK();
+  if (unlock_thr) unlock_threads();
+}
+
+/* add per thread special symbol value - initialized to SYMVALUE_EMPTY. 
+ symbol: the symbol
+ returns: the new index in the _symvalues thread array */
+global maygc uintL add_per_thread_special_var(object symbol)
+{
+  pushSTACK(symbol);
+  ACQUIRE_HEAP_LOCK();
+  lock_threads(); /* no chance for GC to run here */
+  symbol=popSTACK();
+  var uintL symbol_index = TheSymbol(symbol)->tls_index;
+  /* check whether till we have been waiting for the threads lock
+     another thread has already done the job !!! */
+  if (symbol_index != SYMBOL_TLS_INDEX_NONE) {
+    goto failed; /* not really failed :) */
+  }
+  if (num_symvalues == maxnum_symvalues) {
+    /* we have to reallocate the _ptr_symvalues storage in all
+     threads in order to have enough space. since it is possible other
+    threads to access at the same time _ptr_symvalues (via Symbol_value)
+    it is not safe at all to reallocate it. We have two choices:
+    1. add locking to the _ptr_symvalue access (per thread).
+    2. "stop the world" during this reallocation (as in GC).
+    Since this will be relatively rear event - we prefer the second way.*/
+    var uintL nsyms=num_symvalues + SYMVALUES_PER_PAGE;
+    /* do not lock heap and threads - we have already done so */
+    WITH_STOPPED_WORLD({
+      for_all_threads({
+	if (!realloc_thread_symvalues(thread,nsyms))
+	  goto failed;
+      });},false,false); 
+    maxnum_symvalues = nsyms;
+  }
+  var uintL symbol_index=num_symvalues++;
+  TheSymbol(symbol)->tls_index=symbol_index;
+  for_all_threads({ thread->_ptr_symvalues[symbol_index] = SYMVALUE_EMPTY; });
+ failed:
+  begin_system_call();
   unlock_threads();
+  end_system_call();
+  RELEASE_HEAP_LOCK();
+  if (symbol_index == SYMBOL_TLS_INDEX_NONE)
+    error(error_condition,GETTEXT("could not make symbol value per-thread"));
+  return symbol_index;
 }
 
 local void init_heap_locks()

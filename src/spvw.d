@@ -664,12 +664,16 @@ local void* allocate_lisp_thread_stack(clisp_thread_t* thread, uintM stack_size)
 /* locks the global thread array */
 global void lock_threads() 
 {
+  begin_system_call(); /* ! blocking */
   xmutex_lock(&allthreads_lock);
+  end_system_call();
 }
 /* unlocks global thread array */
 global void unlock_threads() 
 {
+  begin_system_call();
   xmutex_unlock(&allthreads_lock);
+  end_system_call();
 }
 
 /* register a clisp-thread_t in global thread array 
@@ -770,8 +774,8 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
   if (full) {
     free(thread);
   }
-  unlock_threads();
   end_system_call();
+  unlock_threads();
 }
 
   #define for_all_threads(statement)                             \
@@ -780,9 +784,9 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
         { var clisp_thread_t* thread = *--_pthread; statement; } \
     } while(0)
 
-/* reallocated clisp_thread_t structure in such a waythat there is a place for 
+/* reallocate _ptr_symvalues in such a way that there is a place for 
    nsyms per thread symbol values.*/
-global bool realloc_thread_symvalues(clisp_thread_t *thr, uintL nsyms)
+local bool realloc_thread_symvalues(clisp_thread_t *thr, uintL nsyms)
 {
   if (nsyms <= maxnum_symvalues) /* we already have enough place */
     return true;
@@ -795,50 +799,20 @@ global bool realloc_thread_symvalues(clisp_thread_t *thr, uintL nsyms)
 
 /* Clears any per thread value for symbol. Also set tls_index
    of the symbol to invalid. */
-global void clear_per_thread_symvalues(object symbol)
+global maygc void clear_per_thread_symvalues(object symbol)
 {
+  pushSTACK(symbol);
+  begin_blocking_call();
+  lock_threads();
+  end_blocking_call();
+  symbol = popSTACK();
   var uintL idx=TheSymbol(symbol)->tls_index;
   TheSymbol(symbol)->tls_index=SYMBOL_TLS_INDEX_NONE;
   /* also remove all per thread symbols for the index - we do not want 
      any memory leaks. No locking duringthis operation the caller 
      is responsible for any race conditions. */
   for_all_threads({ thread->_ptr_symvalues[idx] = SYMVALUE_EMPTY; });
-}
-
-/* add per thread special symbol value - initialized to SYMVALUE_EMPTY. 
- symbol: the symbol
- returns: the new index in the _symvalues thread array */
-global maygc uintL add_per_thread_special_var(object symbol)
-{
-  pushSTACK(symbol);
-  begin_blocking_system_call();
-  lock_threads();
-  end_blocking_system_call();
-  symbol=popSTACK();
-  var uintL symbol_index = TheSymbol(symbol)->tls_index;
-  /* check whether till we have bee witing for the threads lock
-     another thread has not already done the job !!! */
-  if (symbol_index != SYMBOL_TLS_INDEX_NONE) {
-    goto failed; /* not really failed :) */
-  }
-  if (num_symvalues == maxnum_symvalues) {
-    var uintL nsyms=num_symvalues + SYMVALUES_PER_PAGE;
-    for_all_threads({
-      if (!realloc_thread_symvalues(thread,nsyms))
-	goto failed;
-    });
-    maxnum_symvalues = nsyms;
-  }
-  var uintL symbol_index=num_symvalues++;
-  TheSymbol(symbol)->tls_index=symbol_index;
-  for_all_threads({ thread->_ptr_symvalues[symbol_index] = SYMVALUE_EMPTY; });
- failed:
-  begin_system_call();
   unlock_threads();
-  end_system_call();
-  if (symbol_index == SYMBOL_TLS_INDEX_NONE)
-    error(error_condition,GETTEXT("could not make symbol value per-thread"));
-  return symbol_index;
 }
 
   #define for_all_threadobjs(statement)  \

@@ -95,12 +95,13 @@ LISPFUNN(proclaim_constant,2)
 { /* (SYS::%PROCLAIM-CONSTANT symbol value) turns the symbol into a constant
    and assigns a value. */
   var object symbol = check_symbol_not_symbol_macro(STACK_1);
-  var object val = STACK_0; skipSTACK(2);
-  set_const_flag(TheSymbol(symbol)); /* make a constant */
   #if defined(MULTITHREAD)
-   /* no locking here - the caller should lock if needed. */
+   pushSTACK(symbol);
    clear_per_thread_symvalues(symbol);
+   symbol = popSTACK();
   #endif
+  set_const_flag(TheSymbol(symbol)); /* make a constant */
+  var object val = STACK_0; skipSTACK(2);
   Symbol_value(symbol) = val; /* and set value */
   VALUES1(symbol); /* return symbol */
 }

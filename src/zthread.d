@@ -82,9 +82,9 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
     skipSTACK(4); VALUES1(NIL); return;
   }
   /* let's lock in order to register */
-  begin_blocking_system_call(); /* give chance the GC to work while we wait*/
+  begin_blocking_call(); /* give chance the GC to work while we wait*/
   lock_threads(); 
-  end_blocking_system_call();
+  end_blocking_call();
   /* prepare the new thread stack */
   /* push 2 nullobj */
   NC_pushSTACK(new_thread->_STACK,nullobj); 
@@ -93,7 +93,6 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
   /* push the function to be executed */ 
   NC_pushSTACK(new_thread->_STACK,STACK_3);
 
-  /* VTZ:TODO we have to  copy the symvalues as well. */
   if (register_thread(new_thread)<0) {
     /* total failure */
     unlock_threads();
