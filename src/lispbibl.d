@@ -17211,7 +17211,7 @@ global void release_threads (object list);
 global maygc uintL add_per_thread_special_var(object symbol);
 /* Clears any per thread value for symbol. Also set tls_index
    of the symbol to invalid. */
-global maygc void clear_per_thread_symvalues(object symbol);
+global void clear_per_thread_symvalues(object symbol);
 
 /* true if we are in the main thread - fo signal/semaphores */
 #define main_threadp() (current_thread()->_index == 0)

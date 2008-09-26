@@ -1,7 +1,8 @@
                               Multithreading
                               ==============
 
-is currently being developed and does not work yet.
+is currently being developed and does not work yet. 
+for a complete list of current status - see at the end of the file.
 
 General principles
 ------------------
@@ -70,6 +71,7 @@ Per-Thread Special Variable (by means of a SPECIAL proclamation).
 
 The Common Lisp standard variables are all Per-Thread, except *features* and
 *modules*, which are Global.
+
 
 Packages
 --------
@@ -150,3 +152,75 @@ Looks like any C code that manipulates Lisp objects must lock GC.
 Also, begin_system_call() should release the lock and end_system_call()
 should re-acquire the lock (so that blocking system calls do not block
 other threads that need to GC), thus all system calls now "maygc".
+
+--------------------------------------------------------------------------
+CURRENT STATUS
+--------------------------------------------------------------------------
+1. Installation.
+Currently only POSIX_THREADS are tested and all development is done with
+them. There is code for Win32 and Solaris threads - however it's not clear
+whether it even compiles. 
+
+2. Symbol values - ready.
+The implementation follows the explanation above. For a good description see:
+http://www.franz.com/support/documentation/current/doc/multiprocessing.htm#dynamic-environments-1
+
+Basically every special symbol has a "global" value that can be shared between 
+all threads. However if a thread binds the symbol - per thread cell will be 
+allocated for it and in the scope of this binding the thread will see this 
+cell. For example:
+
+(defvar *global* 1)
+
+(defun thread-1 () 
+  (setq *global* 5) ;; changes the global symbol value
+  (let ((*global* 10)) ;; per thread value cell is allocated and initialized
+    (setq *global* 20) ;; per thread value cell is changed. 
+    ;; global value cell is no accessible at all here
+    )
+  (setq *global* 30)) ; global value cell is modified again
+
+TO BE DONE:
+a). (make-thread) to receive initial list of special variables bindings.
+    see:
+http://www.franz.com/support/documentation/current/doc/multiprocessing.htm#dynamic-environments-1
+b). savemem/loadmem - per thread binding are lost (anyway the threads are not 
+    re-created when an image is loaded). Not sure that something special should
+    be done here.
+c) functions for getting (or even changing) global/per thread cells:
+   mt:symbol-global-value, mt:symbol-thread-value
+
+3. Packages & CLOS locks - not ready
+
+4. Garbage Collector - ready
+GC stops all threads in order to execute. 
+The threads may be stopped only at certain safe points. 
+
+Currently implemented safe points are:
+4.1. Any heap allocation (actually before the allocations itself).
+4.2. Some "possibly blocking" system call.
+     Basically every thread that "conses" or can block in system call will not
+     stop the GC from executing. 
+
+TO BE DONE:
+a) Not all "possibly blocking" calls are marked as safe (currently all 
+   stream operations).
+b) Certain functions that do not cons but may go in infinite loop 
+   (length of circular list for example). 
+
+5. Signal handling
+Currently the asynchronous signals (CTRL-C in particular) are being handled 
+only in the "main" thread. Since we do not want to have different kinds of 
+LISP threads (aka "main") this will change. Probably a special signal handling 
+thread will be created (that will not run any lisp) and it will dispatch the 
+signals to appropriate lisp thread.
+
+7. MT package functions
+Currently no locks are exposed through MT package - so it is good time
+to practice lock-free multithreading :).
+Also there is no way to interrupt a running thread (this is related with 
+signal handling).
+call-with-timeout is also broken (again related to signal handling).
+The only "usable" function from MT currently are:
+MAKE-THREAD, CURRENT-THREAD, LIST-THREADS.
+

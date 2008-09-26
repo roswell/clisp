@@ -1,4 +1,16 @@
 2008-09-26  Vladimir Tzankov  <vtzankov@gmail.com>
+	Status update and (delete-package) per thread symbols release
+
+	* doc/multithread.txt: current status update
+	* spvw.d
+	(clear_per_thread_symvalues): is not maygc.
+	* symbol.d
+	(proclaim_constant): because of clear_per_thread_symvalues().
+	* package.d
+	(delete_package_aux): remove possible per thread bindings of 
+	package symbols.
+
+2008-09-26  Vladimir Tzankov  <vtzankov@gmail.com>
 	Thread safety fixes (for special variables)
 
 	* lispbibl.d

@@ -799,20 +799,16 @@ local bool realloc_thread_symvalues(clisp_thread_t *thr, uintL nsyms)
 
 /* Clears any per thread value for symbol. Also set tls_index
    of the symbol to invalid. */
-global maygc void clear_per_thread_symvalues(object symbol)
+global void clear_per_thread_symvalues(object symbol)
 {
-  pushSTACK(symbol);
-  begin_blocking_call();
-  lock_threads();
-  end_blocking_call();
-  symbol = popSTACK();
   var uintL idx=TheSymbol(symbol)->tls_index;
-  TheSymbol(symbol)->tls_index=SYMBOL_TLS_INDEX_NONE;
-  /* also remove all per thread symbols for the index - we do not want 
-     any memory leaks. No locking duringthis operation the caller 
-     is responsible for any race conditions. */
-  for_all_threads({ thread->_ptr_symvalues[idx] = SYMVALUE_EMPTY; });
-  unlock_threads();
+  if (idx != SYMBOL_TLS_INDEX_NONE) {
+    TheSymbol(symbol)->tls_index = SYMBOL_TLS_INDEX_NONE;
+    /* also remove all per thread symbols for the index - we do not want 
+       any memory leaks. No locking duringthis operation the caller 
+       is responsible for any race conditions. */
+    for_all_threads({ thread->_ptr_symvalues[idx] = SYMVALUE_EMPTY; });
+  }
 }
 
   #define for_all_threadobjs(statement)  \
