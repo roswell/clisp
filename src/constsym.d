@@ -1199,6 +1199,7 @@ LISPSYM(foreign_pointer_info,"FOREIGN-POINTER-INFO",ffi)
 #endif  /* DYNAMIC_FFI */
 /* ---------- ZTHREAD ---------- */
 #ifdef MULTITHREAD
+LISPSYM(thread,"THREAD",mt) /* type for THREAD */
 LISPSYM(make_thread,"MAKE-THREAD",mt)
 LISPSYM(thread_wait,"THREAD-WAIT",mt)
 LISPSYM(call_with_timeout,"CALL-WITH-TIMEOUT",mt) /* ABI */
@@ -1216,6 +1217,9 @@ LISPSYM(list_threads,"LIST-THREADS",mt)
 LISPSYM(make_lock,"MAKE-LOCK",mt)
 LISPSYM(thread_lock,"THREAD-LOCK",mt)
 LISPSYM(thread_unlock,"THREAD-UNLOCK",mt)
+LISPSYM(symbol_global_value,"SYMBOL-GLOBAL-VALUE",mt)
+LISPSYM(default_special_bindings,"*DEFAULT-SPECIAL-BINDINGS*",mt)
+LISPSYM(Kinitial_bindings,"INITIAL-BINDINGS",keyword)
 #endif
 
 /* Keywords: */

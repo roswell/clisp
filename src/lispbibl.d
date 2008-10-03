@@ -7916,6 +7916,11 @@ typedef struct {
     (builtin_stream_p(obj) && (TheStream(obj)->strmtype==strmtype_socket))
 #endif
 
+#if defined(MULTITHREAD)
+  #define threadp(obj) \
+    (orecordp(obj) && (Record_type(obj) == Rectype_Thread))
+#endif
+
 #ifdef YET_ANOTHER_RECORD
   /* Test for Yetanother */
   #define yetanotherp(obj)  \

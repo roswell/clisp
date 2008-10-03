@@ -764,14 +764,13 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
      interesting stuff on it. Let's deallocate it.*/
   begin_system_call();
   free(THREAD_LISP_STACK_START(thread));
-  free(thread->_ptr_symvalues);
   thread->_STACK=NULL; 
-  thread->_ptr_symvalues=NULL;
   /* VTZ: the clisp_thread_t itself will be deallocated during 
-   finalization phase of GC - when the thread record is discarded.
-  why? (somebody may want to inspect the mv_space for "thread return 
-  value")*/
+     finalization phase of GC - when the thread record is discarded.
+     why? (somebody may want to inspect the mv_space for "thread return 
+     value")*/
   if (full) {
+    free(thread->_ptr_symvalues);
     free(thread);
   }
   end_system_call();

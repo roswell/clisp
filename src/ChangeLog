@@ -1,3 +1,35 @@
+2008-10-03  Vladimir Tzankov  <vtzankov@gmail.com>
+	Driver frame for new threads and initial special vars bindings 
+
+	* lispbibl.d
+	(threadp): macro for testing if an object is lisp thread object.
+	* spvw.d
+	(delete_thread): do not free per thread symvalues - leave them to
+	release_threads (during GC).
+	* zthread.d: some comments
+	(release_threads): release the per thread symvalues.
+	(error_thread): signal type_error for it's argument (as error_list).
+	(thread_stub): create a driver frame before calling thread function.
+	compute initial special variables bindings before calling thread 
+	function.
+	(MAKE-THREAD): additional &key parameter - initial bindings. defaults
+	to mt:*default-special-bindings*.
+	(THREADP): implemented.
+	(THREAD-NAME): implemented.
+	(THREAD-ACTIVE-P): implemented.
+	(SYMBOL-GLOBAL-VALUE): new function - returns the global symbol value.
+	* constsym.d
+	(symbol_global_value): added.
+	(default_special_bindings): added.
+	(initial_bindings): keyword added.
+	* subr.d
+	(MT:MAKE-THREAD): add :initial-bindings keyword parameter.
+	(MT:SYMBOL-GLOBAL-VALUE): added.
+	* subrkw.d: change MAKE-THREAD definition to accept :initial-bindings.
+	* threads.lisp
+	(SYMBOL-GLOBAL-VALUE): exported.
+	(*DEFAULT-SPECIAL-BINDINGS*): exported and initialized.
+
 2008-09-26  Vladimir Tzankov  <vtzankov@gmail.com>
 	Status update and (delete-package) per thread symbols release
 

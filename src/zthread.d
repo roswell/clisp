@@ -20,11 +20,23 @@
   (NC_STACK_(non_current_stack,-1) = (obj), non_current_stack skipSTACKop -1)
 
 
+/* error-message, if an object is not a thread
+ error_thread(obj);
+ > obj: non-list */
+nonreturning_function(local, error_thread, (object obj)) {
+  pushSTACK(obj);     /* TYPE-ERROR slot DATUM */
+  pushSTACK(S(thread)); /* TYPE-ERROR slot EXPECTED-TYPE */
+  pushSTACK(obj); pushSTACK(TheSubr(subr_self)->name);
+  error(type_error,GETTEXT("~S: ~S is not a thread"));
+}
+
+
 /* releases the clisp_thread_t memory of the list of Thread records */
 global void release_threads (object list) {
   while (!endp(list)) {
-    /* may be the stack as well ??? currently freed in delete_thread(). */
-    free(TheThread(Car(list))->xth_globals);
+    clisp_thread_t *thread = TheThread(Car(list))->xth_globals;
+    free(thread->_ptr_symvalues);
+    free(thread);
     list = Cdr(list);
   }
 }
@@ -59,51 +71,102 @@ local /*maygc*/ void *thread_stub(void *arg)
   disable_thread_async_signals();
   set_current_thread(me);
   me->_SP_anchor=(void*)SP();
+  /* establish driver frame so on thread exit by 
+   thread-kill we can unwind the stack properly by reset(0); */
+  var gcv_object_t *initial_bindings = &STACK_0;
+  var gcv_object_t *funptr = &STACK_1;
 
-  funcall(popSTACK(), 0); /* call it */
-  /*VTZ: may be store the return value in the thread record ??*/
-  delete_thread(me,false);
+  /* make "top" driver frame */
+  var gcv_object_t* top_of_frame = &STACK_2; /* pointer above frame */
+  var sp_jmp_buf returner; /* remember entry point */
+  /* driver frame in order to be able to kill the thread and unwind the stack 
+     via reset(0) call. */
+  finish_entry_frame(DRIVER,returner,,goto end_of_thread;);
+  /* create special vars initial dynamic bindings  */
+  if (boundp(*initial_bindings) && !endp(*initial_bindings)) {
+    var gcv_object_t* top_of_frame = STACK; 
+    while (!endp(*initial_bindings)) {
+      var object pair=Car(*initial_bindings);
+      if (consp(pair) && symbolp(Car(pair))) {
+	/* only if the symbol is special per thread variable */
+	if (TheSymbol(Car(pair))->tls_index != SYMBOL_TLS_INDEX_NONE) {
+	  pushSTACK(Symbol_thread_value(Car(pair)));
+	  pushSTACK(Car(pair));
+	  eval(Cdr(pair)); /* maygc */
+	  pair=Car(*initial_bindings);
+	  Symbol_thread_value(Car(pair)) = value1;
+	}
+      }
+      *initial_bindings = Cdr(*initial_bindings);
+    }
+    finish_frame(DYNBIND);
+  }
+  /* now execute the function */
+  funcall(*funptr,0); /* call fun */
+  /* the return value(s) are in the mv_space of the clisp_thread_t */
+  reset(0);  /* unwind what we have till now */
+ end_of_thread:
+  skipSTACK(4); /* driver frame + function + init bindings */
+  /* the lisp stack should be unwound here. check it and complain. */
+  if (!(eq(STACK_0,nullobj) && eq(STACK_1,nullobj))) {
+    /* we should always have empty stack - this is an error. */
+    NOTREACHED;
+  }
+  /* just unregister it from the active threads. the allocated memory
+     will be released during GC (if there are no references to thread object)*/
+  delete_thread(me,false); 
   return NULL;
 }
 
-LISPFUN(make_thread,seclass_default,1,0,norest,key,1,(kw(name)))
-{ /* (MAKE-THREAD function &key name) */
+LISPFUN(make_thread,seclass_default,1,0,norest,key,2,(kw(name),kw(initial_bindings)))
+{ /* (MAKE-THREAD function &key name initial-bindings) */
   /* VTZ: new thread lisp stack size is the same as the calling one 
    may be add another keyword argument for it ???*/
   var uintM lisp_stack_size=(STACK_item_count(STACK_bound,STACK_start)+0x40)*
                             sizeof(gcv_object_t *);
   var clisp_thread_t *new_thread;
+
+  /* check initial bindings */
+  if (!boundp(STACK_0)) /* if not bound set to mt:*default-special-bidnings* */
+    STACK_0 = Symbol_value(S(default_special_bindings));
+  if (boundp(STACK_0)) {
+    if (!listp(STACK_0))
+      error_list(STACK_0);
+    /* TODO: check that it is proper alist ???*/
+  }
+
   /* do allocations before thread locking */ 
-  pushSTACK(allocate_thread(&STACK_0)); /* put it in GC visible place */
+  pushSTACK(allocate_thread(&STACK_1)); /* put it in GC visible place */
   pushSTACK(allocate_cons());
   /* create clsp_thread_t - no need for locking */
   new_thread=create_thread(lisp_stack_size);
   if (!new_thread) {
-    skipSTACK(4); VALUES1(NIL); return;
+    skipSTACK(5); VALUES1(NIL); return;
   }
   /* let's lock in order to register */
   begin_blocking_call(); /* give chance the GC to work while we wait*/
   lock_threads(); 
   end_blocking_call();
-  /* prepare the new thread stack */
-  /* push 2 nullobj */
-  NC_pushSTACK(new_thread->_STACK,nullobj); 
+  /* push 2 null objects in the thread stack in order to stop
+     marking in GC while initializing the thread and stack unwinding
+     in case of error. */
   NC_pushSTACK(new_thread->_STACK,nullobj);
-
+  NC_pushSTACK(new_thread->_STACK,nullobj);
   /* push the function to be executed */ 
-  NC_pushSTACK(new_thread->_STACK,STACK_3);
-
+  NC_pushSTACK(new_thread->_STACK,STACK_4);
+  /* push the initial bindings alist */
+  NC_pushSTACK(new_thread->_STACK,STACK_2);
   if (register_thread(new_thread)<0) {
     /* total failure */
     unlock_threads();
     delete_thread(new_thread,true);
     VALUES1(NIL);
-    skipSTACK(4); 
+    skipSTACK(5); 
     return;
   }
   var object new_cons=popSTACK();
   var object lthr=popSTACK();
-  skipSTACK(2);
+  skipSTACK(3);
   /* initialize the thread references */
   new_thread->_lthread=lthr;
   TheThread(lthr)->xth_globals=new_thread;
@@ -211,11 +274,13 @@ LISPFUNN(thread_yield,0)
 
 LISPFUNN(thread_kill,1)
 { /* (THREAD-KILL thread) */
+  /* TODO: interrupt with reset(0); */
   NOTREACHED;
 }
 
 LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
 { /* (THREAD-INTERRUPT thread function &rest arguments) */
+  /* TODO: waiting for MT signal handling */
   NOTREACHED;
 }
 
@@ -226,17 +291,24 @@ LISPFUNN(thread_restart,1)
 
 LISPFUNN(threadp,1)
 { /* (THREADP object) */
-  NOTREACHED;
+  var object obj = popSTACK();
+  VALUES_IF(threadp(obj));
 }
 
 LISPFUNN(thread_name,1)
 { /* (THREAD-NAME thread) */
-  NOTREACHED;
+  var object obj=popSTACK();
+  if (!threadp(obj)) 
+    error_thread(obj);
+  VALUES1(TheThread(obj)->xth_name);
 }
 
 LISPFUNN(thread_active_p,1)
 { /* (THREAD-ACTIVE-P thread) */
-  NOTREACHED;
+  var object obj=popSTACK();
+  if (!threadp(obj)) 
+    error_thread(obj);
+  VALUES_IF(TheThread(obj)->xth_globals->_STACK != 0);
 }
 
 LISPFUNN(thread_state,1)
@@ -272,6 +344,16 @@ LISPFUNN(list_threads,0)
   unlock_threads();
   end_system_call();
   VALUES1(listof(count));
+}
+
+LISPFUN(symbol_global_value,seclass_read,1,0,norest,nokey,0,NIL)
+{ /* (SYMBOL-GLOBAL-VALUE symbol) */
+  var Symbol sym=TheSymbol(check_symbol(popSTACK()));
+  if (boundp(sym->symvalue)) {
+    VALUES2(sym->symvalue,T); /* bound */
+  } else {
+    VALUES2(NIL,NIL); /* not bound */
+  }
 }
 
 #endif  /* MULTITHREAD */

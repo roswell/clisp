@@ -3,12 +3,13 @@
 (defpackage "THREADS"
   (:nicknames "MT" "MP")
   (:use "COMMON-LISP" "EXT")
-  (:export "MAKE-THREAD" "THREAD-WAIT"
+  (:export "THREAD" "MAKE-THREAD" "THREAD-WAIT"
            "WITHOUT-INTERRUPTS" "THREAD-YIELD" "THREAD-KILL"
            "THREAD-INTERRUPT" "THREAD-RESTART" "THREADP" "THREAD-NAME"
            "THREAD-ACTIVE-P" "THREAD-STATE" "CURRENT-THREAD" "LIST-THREADS"
            "MAKE-LOCK" "THREAD-LOCK" "THREAD-UNLOCK" "WITH-LOCK"
-           "Y-OR-N-P-TIMEOUT" "YES-OR-NO-P-TIMEOUT" "WITH-TIMEOUT"))
+           "Y-OR-N-P-TIMEOUT" "YES-OR-NO-P-TIMEOUT" "WITH-TIMEOUT"
+	   "SYMBOL-GLOBAL-VALUE" "*DEFAULT-SPECIAL-BINDINGS*"))
 
 (in-package "MT")
 
@@ -17,6 +18,15 @@
 
 ;; definitions
 
+;; TODO: add more variables
+(defvar *DEFAULT-SPECIAL-BINDINGS*
+  '((*random-state* . (make-random-state nil))
+    (*print-base* . 10)
+    (*gensym-counter* . 0)
+    (ext:*command-index* . 0)
+    (*readtable* . (copy-readtable nil))))
+    
+
 (defmacro with-timeout ((seconds &body timeout-forms) &body body)
   "Execute BODY; if execution takes more than SECONDS seconds,
 terminate and evaluate TIMEOUT-FORMS."
@@ -24,7 +34,6 @@ terminate and evaluate TIMEOUT-FORMS."
 
 (defun timeout-message (default localinfo)
   (write-string (SYS::TEXT "[Timed out] "))
-  ;; VTZ: (localized 'sys::y-or-n) returns list(s) of characters - so (string ...)
   (write-string (string (car (funcall (if default #'cdr #'car) localinfo))))
   (terpri)
   default)
