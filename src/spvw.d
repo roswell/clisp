@@ -3691,6 +3691,7 @@ global int main (argc_t argc, char* argv[]) {
     /* initialize the thread references */
     current_thread()->_lthread=lthr;
     TheThread(lthr)->xth_globals=current_thread();
+    TheThread(lthr)->xth_system=xthread_self();
     popSTACK();
   }
 #endif
@@ -4129,5 +4130,135 @@ global void dynload_modules (const char * library, uintC modcount,
     }
   }
 }
+
+#endif
+
+
+/* --------------------------------------------------------------------------
+                      Multithreading signal handling  */
+#if defined(MULTITHREAD) 
+#ifdef HAVE_SIGNALS
+
+/* creates mask of of signals that we do not want to be delivered
+   directly to threads. The same signals are handled by special non
+   lisp thread */
+local sigset_t async_signal_mask()
+{
+  var sigset_t sigblock_mask;
+  sigemptyset(&sigblock_mask);
+  sigaddset(&sigblock_mask,SIGINT);
+  /* may be we can use SIGALRM for with-timeout ??? */
+  sigaddset(&sigblock_mask,SIGALRM);
+  #ifdef SIGHUP
+   sigaddset(&sigblock_mask,SIGHUP);
+  #endif
+  #ifdef SIGQUIT
+   sigaddset(&sigblock_mask,SIGQUIT);
+  #endif
+  #ifdef SIGILL
+   sigaddset(&sigblock_mask,SIGILL);
+  #endif
+  #ifdef SIGABRT
+   sigaddset(&sigblock_mask,SIGABRT);
+  #endif
+  #ifdef SIGKILL
+   sigaddset(&sigblock_mask,SIGKILL);
+  #endif
+  #ifdef SIGTERM
+   sigaddset(&sigblock_mask,SIGTERM);
+  #endif
+  #if defined(SIGWINCH) 
+    sigaddset(&sigblock_mask,SIGWINCH);
+  #endif
+  return sigblock_mask;
+}
+
+/* whenever we come here - we are suspended - 
+   waiting on our suspend mutex (and will resume waiting after we
+   exit this handler).
+   The lisp stack should contain enough information - what to execute.
+   TODO: changes to GC_SAFE_REGION_END() and GC_SAFE_POINT_ELSE().
+ */
+local void interrupt_thread_signal_handler (int sig) {
+  signal_acknowledge(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
+  /* on the stack we should have info what to execute. 
+     arrange proper stack frames and return. 
+     GC_SAFE_REGION_END() and GC_SAFE_POINT_ELSE() will 
+     execute required things (when suspend mutex is acquired).
+  */
+}
+
+local void *signal_handler_thread(void *arg)
+{
+  int sig;
+  var sigset_t sig_mask=async_signal_mask();
+  while (1) {
+    if (sigwait(&sig_mask, &sig)) {
+      /* strange - no way to have bad mask */
+      NOTREACHED;
+    }
+    fprintf(stderr, "VTZ: signal_received: %x\n", sig);
+    switch (sig) {
+    case SIGINT:
+      /* TODO: decide which thread to interrupt. */
+      /* currently let's just interrupt the one with index 0 */
+      {
+	WITH_STOPPED_WORLD({
+	  var clisp_thread_t *thr=allthreads[0];
+	  var xthread_t systhr=TheThread(thr->_lthread)->xth_system;
+	  /*error(interrupt_condition,GETTEXT("Ctrl-C: User break"));*/
+	  /* push nice "good" argument on the thr stack */
+	  /* signal SIG_THREAD_INTERRUPT to this thread via 
+	   pthread_kill and leave it on it's own. */
+	  /*requires changes in GC_SAFE_REGION_END() and GC_SAFE_POINT_ELSE().*/
+	},
+	  true,true);
+      }
+      break;
+    case SIGALRM:
+      /* do nothing */
+      break;
+  #if defined(SIGWINCH) 
+    case SIGWINCH:
+      /* update all threads SYS::*PRIN-LINELENGTH* bindings 
+	 and the global symbol value as well */
+      WITH_STOPPED_WORLD({
+	var Symbol prl = TheSymbol(S(prin_linelength));
+	for_all_threads({
+	  /* TODO: implement */
+	});},
+	true,true);
+      break;
+  #endif
+    default:
+      /* some of the termination signals */
+      /* TODO: terminate */
+      /* quit_on_signal (int sig) - but not exactly - we should 
+	 unwind all threads stacks at least */
+      break;
+    }
+  }
+  return NULL;
+}
+
+global void install_async_signal_handlers()
+{
+  /* SIGCLD needs special handling ???
+     1. disable all async signals 
+     2. install SIG_THREAD_INTERRUPT handler
+     3. create thread waiting for signals (sigwait).
+  */
+  var sigset_t sigblock_mask=async_signal_mask();
+  /* since we are called from the main thread - all threads
+   in the process will inherit this mask !!*/
+  sigprocmask(SIG_BLOCK,&sigblock_mask,NULL);
+  /* install SIG_THREAD_INTERRUPT */
+  SIGNAL(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
+  /* start the signal handling thread */
+  xthread_t sthr;
+  xthread_create(&sthr,signal_handler_thread,0);
+}
+
+#endif /* HAVE_SIGNALS */
 
 #endif

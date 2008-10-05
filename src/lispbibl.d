@@ -17221,7 +17221,22 @@ global void clear_per_thread_symvalues(object symbol);
 /* true if we are in the main thread - fo signal/semaphores */
 #define main_threadp() (current_thread()->_index == 0)
 
+/* operations on a lisp stack that is not the current one (NC) 
+   - ie. belongs to other not yet started threads */
+#ifdef STACK_DOWN
+  #define NC_STACK_(non_current_stack,n)  (non_current_stack[(sintP)(n)])
+#endif
+#ifdef STACK_UP
+  #define NC_STACK_(non_current_stack,n)  (non_current_stack[-1-(sintP)(n)])
+#endif
+#define NC_pushSTACK(non_current_stack,obj)  \
+  (NC_STACK_(non_current_stack,-1) = (obj), non_current_stack skipSTACKop -1)
+
 #if defined(HAVE_SIGNALS)
+  /* SIGUSR1 is used for thread interrupt */
+  #define SIG_THREAD_INTERRUPT SIGUSR1
+  /* installs the global "synchronous" signal handler for async 
+   POSIX signals. */
   global void install_async_signal_handlers();
 #endif
 

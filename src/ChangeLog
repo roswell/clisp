@@ -1,4 +1,25 @@
 2008-10-05  Vladimir Tzankov  <vtzankov@gmail.com>
+	MT signal handling partial implementation.
+
+	* lispbibl.d
+	(NC_STACK_): moved here from zthread.d.
+	(NC_pushSTACK): moved here from zthread.d.
+	(SIG_THREAD_INTERRUPT): signal used for interrupting thread
+	execution (SIGUSR1).
+	* spvw.d: MT signal processing machinery moved here from 
+	zthread.d (needs macros like for_all_threads() and we do not want
+	to expose the threads internals - i.e. allthreads[] array).
+	(async_signal_mask): returns the signal mask including all async
+	signals that have to be handled/blocked.
+	(install_async_signal_handlers): implemented.
+	(signal_handler_thread): the signal handling thread. partially
+	implemented.
+	(interrupt_thread_signal_handler): SIG_THREAD_INTERRUPT handler. 
+	just a stub - to be implemented.
+	* zthread.d: MT signal processing stuff moved to spvw.d. "Foreign"
+	stack access macros moved to lispbibl.d.
+
+2008-10-05  Vladimir Tzankov  <vtzankov@gmail.com>
 	Small fixes
 
 	* constsym.d
@@ -6,7 +27,6 @@
 	and MULTITHREAD.
 	* xthread.d: better handling of pthreads with recursive mutex
 	support.
-	
 
 2008-10-05  Vladimir Tzankov  <vtzankov@gmail.com>
 	Small fixes and initial signal handling routines.

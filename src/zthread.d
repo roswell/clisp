@@ -8,18 +8,6 @@
 
 #ifdef MULTITHREAD
 
-/* operations on a lisp stack that is not the current one (NC) 
-   - ie. belongs to other not yet started threads */
-#ifdef STACK_DOWN
-  #define NC_STACK_(non_current_stack,n)  (non_current_stack[(sintP)(n)])
-#endif
-#ifdef STACK_UP
-  #define NC_STACK_(non_current_stack,n)  (non_current_stack[-1-(sintP)(n)])
-#endif
-#define NC_pushSTACK(non_current_stack,obj)  \
-  (NC_STACK_(non_current_stack,-1) = (obj), non_current_stack skipSTACKop -1)
-
-
 /* error-message, if an object is not a thread
  error_thread(obj);
  > obj: non-list */
@@ -29,7 +17,6 @@ nonreturning_function(local, error_thread, (object obj)) {
   pushSTACK(obj); pushSTACK(TheSubr(subr_self)->name);
   error(type_error,GETTEXT("~S: ~S is not a thread"));
 }
-
 
 /* releases the clisp_thread_t memory of the list of Thread records */
 global void release_threads (object list) {
@@ -41,25 +28,6 @@ global void release_threads (object list) {
   }
 }
 
-/* disable async signals (SIGINT,SIGALRM,SIGTERM,SIGWINCH)
-   on UNIX forthe current  thread. All these signals should be handled
-   ony in main thread.
-   On Win32 - anyway all signals are handled in the main thread */
-local void disable_thread_async_signals()
-{
- #if (defined(HAVE_SIGNALS) && defined(UNIX))
-  var sigset_t sigblock_mask;
-  sigemptyset(&sigblock_mask);
-  sigaddset(&sigblock_mask,SIGINT);
-  sigaddset(&sigblock_mask,SIGALRM);    
-  sigaddset(&sigblock_mask,SIGTERM);
-  #if defined(SIGWINCH) && !defined(NO_ASYNC_INTERRUPTS)
-    sigaddset(&sigblock_mask,SIGWINCH);
-  #endif
-  xthread_sigmask(SIG_BLOCK,&sigblock_mask,NULL);
-#endif
-}
-
 /* VTZ: All newly created threads start here.*/
 local /*maygc*/ void *thread_stub(void *arg)
 {
@@ -69,7 +37,6 @@ local /*maygc*/ void *thread_stub(void *arg)
   #endif
   clisp_thread_t *me=(clisp_thread_t *)arg;
   var struct backtrace_t bt;
-  disable_thread_async_signals();
   set_current_thread(me);
   me->_SP_anchor=(void*)SP();
   /* initialize backtrace */
@@ -199,7 +166,6 @@ local maygc void *exec_timeout_call (void *arg)
   tse *__thread_tse_entry=&__tse_entry;
   #endif
   var struct call_timeout_data_t *pcd = (struct call_timeout_data_t*)arg;
-  disable_thread_async_signals();
   /* simply reuse the calling thread stack. 
    the calling thread does not have a lot of job to do until we work so it seems safe. */
   set_current_thread(pcd->caller);  
@@ -289,6 +255,7 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
 { /* (THREAD-INTERRUPT thread function &rest arguments) */
   /* TODO: waiting for MT signal handling */
   NOTREACHED;
+  
 }
 
 LISPFUNN(thread_restart,1)
@@ -383,20 +350,4 @@ LISPFUN(symbol_thread_value,seclass_read,2,0,norest,nokey,0,NIL)
   skipSTACK(2);
 }
 
-/* SIGNAL HANDLING & THREAD-INTERRUPT STUFF */
-#ifdef HAVE_SIGNALS
-
-/* SIGUSR1 is used for thread interrupt */
-#define SIG_THREAD_INTERRUPT SIGUSR1
-
-global void install_async_signal_handlers()
-{
-  /* TODO:
-    1. disable all async signals 
-     2. install SIG_THREAD_INTERRUPT handler
-     3. create thread witing for signals (sigwait).
-  */
-}
-
-#endif /* HAVE_SIGNALS */
 #endif  /* MULTITHREAD */
