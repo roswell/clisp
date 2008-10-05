@@ -115,7 +115,8 @@
 
 typedef pthread_t         xthread_t;
 typedef pthread_cond_t    xcondition_t;
-#ifdef PTHREAD_MUTEX_RECURSIVE_NP
+/* on some platforms PTHREAD_MUTEXT_RECURSIVE_NP is not macrop but in an enum */
+#if defined(PTHREAD_MUTEX_RECURSIVE_NP) || defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP)
 typedef pthread_mutex_t   xmutex_t;
 /* cache the global mutex attribute for recursive mutex creation */
 extern pthread_mutexattr_t recursive_mutexattr;
@@ -161,7 +162,7 @@ typedef pthread_key_t     xthread_key_t;
 #define xcondition_signal(c)  pthread_cond_signal(c)
 #define xcondition_broadcast(c)  pthread_cond_broadcast(c)
 
-#ifdef PTHREAD_MUTEX_RECURSIVE_NP 
+#if defined(PTHREAD_MUTEX_RECURSIVE_NP) || defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP)
  #ifdef POSIX_THREADS
   #define xmutex_init(m) pthread_mutex_init(m,&recursive_mutexattr)
  #endif

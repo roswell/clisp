@@ -1,4 +1,14 @@
 2008-10-05  Vladimir Tzankov  <vtzankov@gmail.com>
+	Small fixes
+
+	* constsym.d
+	(LISPSYM_B): initialize the filler member for LINUX_NOEXEC_HEAPCODES
+	and MULTITHREAD.
+	* xthread.d: better handling of pthreads with recursive mutex
+	support.
+	
+
+2008-10-05  Vladimir Tzankov  <vtzankov@gmail.com>
 	Small fixes and initial signal handling routines.
 
 	* lispbibl.d
