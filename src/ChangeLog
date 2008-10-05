@@ -1,3 +1,33 @@
+2008-10-05  Vladimir Tzankov  <vtzankov@gmail.com>
+	Small fixes and initial signal handling routines.
+
+	* lispbibl.d
+	(install_async_signal_handlers): install global async signal handlers in
+	MT (starts non-lisp thread waiting with sigwait() for masked signals) 
+	* spvw.d
+	(main): do not install normal handlers for async signals in MT.
+	(recursive_mutexattr): cached global mutex attribute for recursive 
+	mutex creation (if supported by pthreads).
+	* spvw_allocate.d: just formatting
+	* spvw_global.d
+	(add_per_thread_special_var): symbol_index was declared twice.
+	* constsym.d
+	(symbol-thread-value): added.
+	* subr.d 
+	(symbol-thread-value): added.
+	* zthread.d
+	(thread_stub): initialize thread backtrace (important on errors).
+	fix the lisp stack handling in case of errors.
+	(symbol-thread-value): added and implemented. 	
+	(install_async_signal_handlers): added - still not implemented.
+	* xthread.d: xmutex_t should be recursive mutex - because of WIN32 
+	CRITICAL_SECTION that is always recursive (we want to have same 
+	behavior on all platforms).
+	Implemented for POSIX_THREADS in case the pthreads implementation
+	does not already support it.
+	* threads.lisp
+	(symbol-thread-value): exported from MT package.	
+
 2008-10-03  Vladimir Tzankov  <vtzankov@gmail.com>
 	Driver frame for new threads and initial special vars bindings 
 

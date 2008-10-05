@@ -325,6 +325,12 @@ local xmutex_t allthreads_lock;
 local uintC nthreads = 0;
 local clisp_thread_t* allthreads[MAXNTHREADS];
 
+/* POSIX threads with no recursive mutex support */
+#if (defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)) && !defined(PTHREAD_MUTEX_RECURSIVE_NP)
+/* cache the global mutex attribute for recursive mutex creation */
+global pthread_mutexattr_t recursive_mutexattr;
+#endif
+
 /* Number of symbol values currently in use in every thread. */
 /* The first symvalue in thread is dummy - for faster Symbol_value*/
 local uintL num_symvalues = 1;
@@ -3703,14 +3709,7 @@ global int main (argc_t argc, char* argv[]) {
   back_trace = &bt;
   clear_break_sems(); set_break_sem_1();
   begin_system_call();
-  /* establish interrupt-handler: */
- #if defined(HAVE_SIGNALS) && defined(SIGWINCH) && !defined(NO_ASYNC_INTERRUPTS)
-  install_sigwinch_handler();
- #endif
-  /* query the size of the terminal-window also now on program start: */
- #if defined(HAVE_SIGNALS)
-  update_linelength();
- #endif
+
  #if defined(WIN32_NATIVE)
   /* cannot do it in init_win32 - too early */
   if (isatty(stdout_handle)) {
@@ -3722,17 +3721,39 @@ global int main (argc_t argc, char* argv[]) {
     }
   }
  #endif
+  /* handling of async interrupts with single thread */
+#if !defined(MULTITHREAD)
+  /* establish interrupt-handler: */
+ #if defined(HAVE_SIGNALS) && defined(SIGWINCH) && !defined(NO_ASYNC_INTERRUPTS)
+  install_sigwinch_handler();
+ #endif
+  /* query the size of the terminal-window also now on program start: */
+ #if defined(HAVE_SIGNALS)
+  update_linelength();
+ #endif
  #if (defined(HAVE_SIGNALS) && defined(UNIX)) || defined(WIN32_NATIVE)
   /* install Ctrl-C-Handler: */
   install_sigint_handler();
  #endif
- #if defined(GENERATIONAL_GC)
-  /* insatll Page-Fault-Handler: */
-  install_segv_handler();
- #endif
  #ifdef HAVE_SIGNALS
   install_sigcld_handler();
   install_sigterm_handler();    /* install SIGTERM &c handlers */
+ #endif
+#else
+  /* in MT we have special thread that deals with async interrupts. 
+     the only one that needs realy special treatment is SIGCLD. 
+     TODO: implement it.
+  */
+ #ifdef HAVE_SIGNALS
+  install_async_signal_handlers();
+ #endif
+ #ifdef WIN32_NATIVE
+  #warning "thread interrupt and CTRL-C handlers for Win32 are still not implemented."
+ #endif
+#endif 
+ #if defined(GENERATIONAL_GC)
+  /* insatll Page-Fault-Handler: */
+  install_segv_handler();
  #endif
  #if defined(HAVE_SIGNALS) && defined(SIGPIPE)
   install_sigpipe_handler();

@@ -1437,4 +1437,5 @@ LISPFUNN(thread_whostate,1)
 LISPFUNN(current_thread,0)
 LISPFUNN(list_threads,0)
 LISPFUN(symbol_global_value,seclass_read,1,0,norest,nokey,0,NIL)
+LISPFUN(symbol_thread_value,seclass_read,2,0,norest,nokey,0,NIL)
 #endif

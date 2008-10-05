@@ -1218,6 +1218,7 @@ LISPSYM(make_lock,"MAKE-LOCK",mt)
 LISPSYM(thread_lock,"THREAD-LOCK",mt)
 LISPSYM(thread_unlock,"THREAD-UNLOCK",mt)
 LISPSYM(symbol_global_value,"SYMBOL-GLOBAL-VALUE",mt)
+LISPSYM(symbol_thread_value,"SYMBOL-THREAD-VALUE",mt)
 LISPSYM(default_special_bindings,"*DEFAULT-SPECIAL-BINDINGS*",mt)
 LISPSYM(Kinitial_bindings,"INITIAL-BINDINGS",keyword)
 #endif

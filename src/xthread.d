@@ -104,15 +104,36 @@
 
 #if defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)
 
+/* The default pthreads mutex is not recursive. This is not a problem however
+ the Win32 critical section (used for mutex) is recursive and there is no way 
+ to disable this behavior. In order the xmutex_t to be cosistent we wrap the 
+ default pthread_mutex_t in a "recursive" shell.
+ (we can use later on pthread mutex attributes for this where available) */
+
 #include <pthread.h>
 #include <sched.h>
 
 typedef pthread_t         xthread_t;
 typedef pthread_cond_t    xcondition_t;
+#ifdef PTHREAD_MUTEX_RECURSIVE_NP
 typedef pthread_mutex_t   xmutex_t;
+/* cache the global mutex attribute for recursive mutex creation */
+extern pthread_mutexattr_t recursive_mutexattr;
+#define xthread_init() \
+  do {		       \
+    pthread_mutexattr_init(&recursive_mutexattr);\
+    pthread_mutexattr_settype_np(&recursive_mutexattr,PTHREAD_MUTEX_RECURSIVE_NP);\
+  } while (0)
+#else
+typedef struct xmutex_t {
+  pthread_mutex_t cs;
+  int count;
+  xthread_t owner;
+} xmutex_t;
+#define xthread_init() 
+#endif
 typedef pthread_key_t     xthread_key_t;
 
-#define xthread_init()
 #define xthread_self()  pthread_self()
 #ifdef POSIX_THREADS
 #define xthread_create(thread,startroutine,arg)  \
@@ -125,9 +146,6 @@ typedef pthread_key_t     xthread_key_t;
 #define xthread_exit(v)  pthread_exit(v)
 #define xthread_yield()  do { if (sched_yield() < 0) OS_error(); } while(0)
 #define xthread_equal(t1,t2)  pthread_equal(t1,t2)
-/* we should be very careful in canceling threads - especially when we are in GC
- currently this is disabled. */
-/*#define xthread_cancel(t) pthread_cancel(t), pthread_join(t,NULL)*/
 #define xthread_wait(t) pthread_join(t,NULL)
 #define xthread_sigmask(how,iset,oset) pthread_sigmask(how,iset,oset)
 
@@ -143,16 +161,38 @@ typedef pthread_key_t     xthread_key_t;
 #define xcondition_signal(c)  pthread_cond_signal(c)
 #define xcondition_broadcast(c)  pthread_cond_broadcast(c)
 
-#ifdef POSIX_THREADS
-#define xmutex_init(m)  pthread_mutex_init(m,NULL)
+#ifdef PTHREAD_MUTEX_RECURSIVE_NP 
+ #ifdef POSIX_THREADS
+  #define xmutex_init(m) pthread_mutex_init(m,&recursive_mutexattr)
+ #endif
+ #ifdef POSIXOLD_THREADS
+  #define xmutex_init(m)  pthread_mutex_init(m,FIXME: pthread_mutexattr_default)
+ #endif
+ #define xmutex_destroy(m)  pthread_mutex_destroy(m)
+ #define xmutex_lock(m)  pthread_mutex_lock(m)
+ #define xmutex_trylock(m) (pthread_mutex_trylock(m)==0)
+ #define xmutex_unlock(m)  pthread_mutex_unlock(m)
+#else /* no recursive pthread mutex */
+ #ifdef POSIX_THREADS
+  #define xmutex_init(m) \
+   ((m)->count=0,(m)->owner=0,pthread_mutex_init(&(m)->cs,NULL))
+ #endif
+ #ifdef POSIXOLD_THREADS
+  #define xmutex_init(m)  pthread_mutex_init(m,FIXME: pthread_mutexattr_default)
+ #endif
+ #define xmutex_destroy(m)  pthread_mutex_destroy(&(m)->cs)
+ #define xmutex_lock(m)  \
+  do {\
+    var xthread_t self=xthread_self();\
+    if ((m)->owner != self) { pthread_mutex_lock(&(m)->cs); (m)->owner = self; } \
+    (m)->count++;							\
+  } while(0) 
+ #define xmutex_trylock(m) \
+  (xthread_self()==(m)->owner ? ++(m)->count :				\
+   ((pthread_mutex_trylock(&(m)->cs)==0) ? (m)->owner=pthread_self, ++(m)->count : 0))
+ #define xmutex_unlock(m)  \
+  if (--(m)->count == 0) { (m)->owner = 0; pthread_mutex_unlock(&(m)->cs); }
 #endif
-#ifdef POSIXOLD_THREADS
-#define xmutex_init(m)  pthread_mutex_init(m,pthread_mutexattr_default)
-#endif
-#define xmutex_destroy(m)  pthread_mutex_destroy(m)
-#define xmutex_lock(m)  pthread_mutex_lock(m)
-#define xmutex_trylock(m) (pthread_mutex_trylock(m)==0)
-#define xmutex_unlock(m)  pthread_mutex_unlock(m)
 
 #ifdef POSIX_THREADS
 #define xthread_key_create(key)  pthread_key_create(key,NULL)
@@ -176,6 +216,7 @@ typedef pthread_key_t     xthread_key_t;
 
 typedef thread_t          xthread_t;
 typedef cond_t            xcondition_t;
+/* TODO: ensure that xmutex_t is recursive !!!! */
 typedef mutex_t           xmutex_t;
 typedef thread_key_t      xthread_key_t;
 
@@ -215,6 +256,7 @@ typedef thread_key_t      xthread_key_t;
 
 typedef cthread_t         xthread_t;
 typedef struct condition  xcondition_t;
+/* TODO: ensure that xmutex_t is recursive !!!! */
 typedef struct mutex      xmutex_t;
 /* not available:          xthread_key_t; */
 
@@ -262,11 +304,13 @@ typedef DWORD              xthread_key_t;
 #define xthread_exit(v)  ExitThread((DWORD)(v))
 #define xthread_yield()  Sleep(0)
 #define xthread_equal(t1,t2)  ((t1)==(t2))
-/*VTZ: the xthread_t is actually the ID of the thread, not it's handle - so the call below
-  is not valid. We should get the HANDLE from the thread id in order to call WaitForSingleObject */
-#define xthread_wait(t) FIXME, WaitForSingleObject(t,INFINITE)
+#define xthread_wait(t) \
+ do { \
+   HANDLE hThread=OpenThread(THREAD_ALL_ACCESS,0,t); \
+   WaitForSingleObject(hThread,INFINITE); \
+   CloseHandle(hThread); \
+ } while(0) 
 #define xthread_sigmask(how,iset,oset) 
-
 
 #define xcondition_init(c) \
   do { InitializeCriticalSection(&(c)->cs); \

@@ -17221,6 +17221,10 @@ global void clear_per_thread_symvalues(object symbol);
 /* true if we are in the main thread - fo signal/semaphores */
 #define main_threadp() (current_thread()->_index == 0)
 
+#if defined(HAVE_SIGNALS)
+  global void install_async_signal_handlers();
+#endif
+
 #define GC_STOP_WORLD(lock_heap,lock_thr) \
   gc_suspend_all_threads(lock_heap,lock_thr) 
 #define GC_RESUME_WORLD(unlock_heap,lock_thr) \

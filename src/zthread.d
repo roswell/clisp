@@ -68,30 +68,35 @@ local /*maygc*/ void *thread_stub(void *arg)
   tse *__thread_tse_entry=&__tse_entry;
   #endif
   clisp_thread_t *me=(clisp_thread_t *)arg;
+  var struct backtrace_t bt;
   disable_thread_async_signals();
   set_current_thread(me);
   me->_SP_anchor=(void*)SP();
+  /* initialize backtrace */
+  bt.bt_next = NULL;
+  bt.bt_function = L(make_thread); /* not exactly */
+  bt.bt_stack = STACK STACKop -1;
+  bt.bt_num_arg = -1;
+  back_trace = &bt;
   /* establish driver frame so on thread exit by 
    thread-kill we can unwind the stack properly by reset(0); */
   var gcv_object_t *initial_bindings = &STACK_0;
   var gcv_object_t *funptr = &STACK_1;
-
   /* make "top" driver frame */
-  var gcv_object_t* top_of_frame = &STACK_2; /* pointer above frame */
+  var gcv_object_t* top_of_frame = STACK; /* pointer above frame */
   var sp_jmp_buf returner; /* remember entry point */
   /* driver frame in order to be able to kill the thread and unwind the stack 
      via reset(0) call. */
-  finish_entry_frame(DRIVER,returner,,goto end_of_thread;);
-  /* create special vars initial dynamic bindings  */
+  finish_entry_frame(DRIVER,returner,,{skipSTACK(2);goto end_of_thread;});
+  /* create special vars initial dynamic bindings. 
+     we do not create DYNBIND frame since anyway we are at the 
+     "top level" of the thread. */
   if (boundp(*initial_bindings) && !endp(*initial_bindings)) {
-    var gcv_object_t* top_of_frame = STACK; 
     while (!endp(*initial_bindings)) {
       var object pair=Car(*initial_bindings);
       if (consp(pair) && symbolp(Car(pair))) {
 	/* only if the symbol is special per thread variable */
 	if (TheSymbol(Car(pair))->tls_index != SYMBOL_TLS_INDEX_NONE) {
-	  pushSTACK(Symbol_thread_value(Car(pair)));
-	  pushSTACK(Car(pair));
 	  eval(Cdr(pair)); /* maygc */
 	  pair=Car(*initial_bindings);
 	  Symbol_thread_value(Car(pair)) = value1;
@@ -99,14 +104,14 @@ local /*maygc*/ void *thread_stub(void *arg)
       }
       *initial_bindings = Cdr(*initial_bindings);
     }
-    finish_frame(DYNBIND);
   }
   /* now execute the function */
   funcall(*funptr,0); /* call fun */
   /* the return value(s) are in the mv_space of the clisp_thread_t */
   reset(0);  /* unwind what we have till now */
+  NOTREACHED;
  end_of_thread:
-  skipSTACK(4); /* driver frame + function + init bindings */
+  skipSTACK(2); /* function + init bindings */
   /* the lisp stack should be unwound here. check it and complain. */
   if (!(eq(STACK_0,nullobj) && eq(STACK_1,nullobj))) {
     /* we should always have empty stack - this is an error. */
@@ -214,12 +219,14 @@ local maygc void *exec_timeout_call (void *arg)
 
 /* VTZ: a new OS thread will be created that will reuse the clisp_thread_t structure of the calling one.
  no lisp record for this thread will be created. it works on the behalf of the calling one. */
+/* Currently broken -waiting for signal handling */
 LISPFUNN(call_with_timeout,3)
 { /* (CALL-WITH-TIMEOUT timeout timeout-function body-function)
  the reason we go with C instead of Lisp is that we save on creating a
  separate STACK for the body thread (i.e., the waiting thread and the
  body thread run in the same "stack group").
  the return values come either from body-function or from timeout-function */
+  NOTREACHED;
   var struct timeval tv;
   var struct timeval *tvp = sec_usec(STACK_2,unbound,&tv);
   if (tvp) {
@@ -356,4 +363,40 @@ LISPFUN(symbol_global_value,seclass_read,1,0,norest,nokey,0,NIL)
   }
 }
 
+LISPFUN(symbol_thread_value,seclass_read,2,0,norest,nokey,0,NIL)
+{ /* (SYMBOL-THREAD-VALUE symbol thread) */
+  if (!threadp(STACK_0)) 
+    error_thread(STACK_0);
+  var Symbol sym=TheSymbol(check_symbol(STACK_1));
+  var clisp_thread_t *thr=TheThread(STACK_0)->xth_globals;
+
+  if (sym->tls_index == SYMBOL_TLS_INDEX_NONE) {
+    /* not per thread */
+      VALUES2(NIL,NIL);
+  } else {
+    if (!eq(SYMVALUE_EMPTY,thr->_ptr_symvalues[sym->tls_index])) {
+      VALUES2(thr->_ptr_symvalues[sym->tls_index],T); /* bound */
+    } else {
+      VALUES2(NIL,NIL); /* not bound */
+    }
+  }
+  skipSTACK(2);
+}
+
+/* SIGNAL HANDLING & THREAD-INTERRUPT STUFF */
+#ifdef HAVE_SIGNALS
+
+/* SIGUSR1 is used for thread interrupt */
+#define SIG_THREAD_INTERRUPT SIGUSR1
+
+global void install_async_signal_handlers()
+{
+  /* TODO:
+    1. disable all async signals 
+     2. install SIG_THREAD_INTERRUPT handler
+     3. create thread witing for signals (sigwait).
+  */
+}
+
+#endif /* HAVE_SIGNALS */
 #endif  /* MULTITHREAD */

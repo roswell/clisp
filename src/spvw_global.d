@@ -620,7 +620,7 @@ global maygc uintL add_per_thread_special_var(object symbol)
       });},false,false); 
     maxnum_symvalues = nsyms;
   }
-  var uintL symbol_index=num_symvalues++;
+  symbol_index=num_symvalues++;
   TheSymbol(symbol)->tls_index=symbol_index;
   for_all_threads({ thread->_ptr_symvalues[symbol_index] = SYMVALUE_EMPTY; });
  failed:
