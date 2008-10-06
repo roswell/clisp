@@ -9,8 +9,7 @@
            "THREAD-ACTIVE-P" "THREAD-STATE" "CURRENT-THREAD" "LIST-THREADS"
            "MAKE-LOCK" "THREAD-LOCK" "THREAD-UNLOCK" "WITH-LOCK"
            "Y-OR-N-P-TIMEOUT" "YES-OR-NO-P-TIMEOUT" "WITH-TIMEOUT"
-	   "SYMBOL-GLOBAL-VALUE" "SYMBOL-THREAD-VALUE" 
-	   "*DEFAULT-SPECIAL-BINDINGS*"))
+	    "SYMBOL-VALUE-THREAD" "*DEFAULT-SPECIAL-BINDINGS*"))
 
 (in-package "MT")
 
@@ -27,6 +26,8 @@
     (ext:*command-index* . 0)
     (*readtable* . (copy-readtable nil))))
     
+
+(defsetf SYMBOL-VALUE-THREAD MT::SET-SYMBOL-VALUE-THREAD)
 
 (defmacro with-timeout ((seconds &body timeout-forms) &body body)
   "Execute BODY; if execution takes more than SECONDS seconds,

@@ -1,3 +1,24 @@
+2008-10-06  Vladimir Tzankov  <vtzankov@gmail.com>
+	SYMBOL-VALUE-THREAD implementation.
+
+	* spvw.d 
+	(main): give name to first thread - "main thread".
+	* subr.d: removed SYMBOL-GLOBAL-VALUE and SYMBOL-THREAD-VALUE.
+	added SYMBOL-VALUE-THREAD.
+	* constsym.d: removed SYMBOL-GLOBAL-VALUE and SYMBOL-THREAD-VALUE.
+	added SYMBOL-VALUE-THREAD and SET-SYMBOL-VALUE-THREAD.
+	* zthread.d
+	(SYMBOL-VALUE-THREAD): returns two values - global/per thread symbol 
+	binding and BOUND-P boolean (as of - 
+	http://article.gmane.org/gmane.lisp.clisp.devel/19153)
+	(SET-SYMBOL-VALUE-THREAD): used for SETF of the SYMBOL-THREAD-VALUE.
+	(thread_symbol_place): helper function returning pointer to symbol
+	binding (in thread or global).
+	(MAKE-THREAD): make :NAME parameter is required - every thread should have 
+	name.
+	(check-thread): thread argument replacement (when not a thread is passed).
+	* threads.lisp: export SYMBOL-VALUE-THREAD and define SETF for it.
+
 2008-10-05  Vladimir Tzankov  <vtzankov@gmail.com>
 	MT signal handling partial implementation.
 

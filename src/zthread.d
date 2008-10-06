@@ -8,14 +8,24 @@
 
 #ifdef MULTITHREAD
 
-/* error-message, if an object is not a thread
- error_thread(obj);
- > obj: non-list */
-nonreturning_function(local, error_thread, (object obj)) {
-  pushSTACK(obj);     /* TYPE-ERROR slot DATUM */
-  pushSTACK(S(thread)); /* TYPE-ERROR slot EXPECTED-TYPE */
-  pushSTACK(obj); pushSTACK(TheSubr(subr_self)->name);
-  error(type_error,GETTEXT("~S: ~S is not a thread"));
+/* signals an error of obj is not thread. returns the thread*/
+local maygc object check_thread(object obj)
+{
+  while (!threadp(obj)) {
+    pushSTACK(NIL); /* no PLACE */
+    pushSTACK(obj);       /* TYPE-ERROR slot DATUM */
+    pushSTACK(S(thread)); /* TYPE-ERROR slot EXPECTED-TYPE */
+    pushSTACK(obj); pushSTACK(subr_self);
+    check_value(type_error,GETTEXT("~S: ~S is not a thread"));
+    /*NB:  since the reader cannot read thread objects - let's eval 
+     what the user has entered. It does not look nice - TBD. 
+     may be allow just symbols and take their value or look for thread
+     name ???
+    */
+    eval(value1);
+    obj=value1;
+  } 
+  return obj;
 }
 
 /* releases the clisp_thread_t memory of the list of Thread records */
@@ -91,22 +101,23 @@ local /*maygc*/ void *thread_stub(void *arg)
 }
 
 LISPFUN(make_thread,seclass_default,1,0,norest,key,2,(kw(name),kw(initial_bindings)))
-{ /* (MAKE-THREAD function &key name initial-bindings) */
+{ /* (MAKE-THREAD function &key name (initial-bindings mt:*default-special-bindings*)) */
   /* VTZ: new thread lisp stack size is the same as the calling one 
    may be add another keyword argument for it ???*/
   var uintM lisp_stack_size=(STACK_item_count(STACK_bound,STACK_start)+0x40)*
                             sizeof(gcv_object_t *);
   var clisp_thread_t *new_thread;
-
   /* check initial bindings */
   if (!boundp(STACK_0)) /* if not bound set to mt:*default-special-bidnings* */
     STACK_0 = Symbol_value(S(default_special_bindings));
   if (boundp(STACK_0)) {
     if (!listp(STACK_0))
       error_list(STACK_0);
-    /* TODO: check that it is proper alist ???*/
   }
-
+  if (!boundp(STACK_1)) {
+    /* no thread name supplied - ask for it. */
+    STACK_1 = check_string_replacement(STACK_1);
+  }
   /* do allocations before thread locking */ 
   pushSTACK(allocate_thread(&STACK_1)); /* put it in GC visible place */
   pushSTACK(allocate_cons());
@@ -271,17 +282,13 @@ LISPFUNN(threadp,1)
 
 LISPFUNN(thread_name,1)
 { /* (THREAD-NAME thread) */
-  var object obj=popSTACK();
-  if (!threadp(obj)) 
-    error_thread(obj);
+  var object obj=check_thread(popSTACK());
   VALUES1(TheThread(obj)->xth_name);
 }
 
 LISPFUNN(thread_active_p,1)
 { /* (THREAD-ACTIVE-P thread) */
-  var object obj=popSTACK();
-  if (!threadp(obj)) 
-    error_thread(obj);
+  var object obj=check_thread(popSTACK());
   VALUES_IF(TheThread(obj)->xth_globals->_STACK != 0);
 }
 
@@ -320,34 +327,64 @@ LISPFUNN(list_threads,0)
   VALUES1(listof(count));
 }
 
-LISPFUN(symbol_global_value,seclass_read,1,0,norest,nokey,0,NIL)
-{ /* (SYMBOL-GLOBAL-VALUE symbol) */
-  var Symbol sym=TheSymbol(check_symbol(popSTACK()));
-  if (boundp(sym->symvalue)) {
-    VALUES2(sym->symvalue,T); /* bound */
+/* helper function that returns pointer to the symbol's symvalue 
+   in a thread. If the symbol is not bound in the thread - NULL is 
+   returned */
+local maygc gcv_object_t* thread_symbol_place(gcv_object_t *symbol, 
+					      gcv_object_t *thread)
+{
+  var object sym=check_symbol(*symbol);
+  if (eq(*thread,NIL)) {
+    /* global value */
+    return &TheSymbol(sym)->symvalue;
   } else {
-    VALUES2(NIL,NIL); /* not bound */
+    var clisp_thread_t *thr;
+    if (eq(*thread,T)) {
+      /* current thread value */
+      thr=current_thread();
+    } else {
+      /* thread object */
+      pushSTACK(sym); 
+      *thread=check_thread(*thread);
+      sym = popSTACK();
+      thr=TheThread(*thread)->xth_globals;
+    }
+    *thread=thr->_lthread; /* for error reporting if needed */
+    var uintL idx=TheSymbol(sym)->tls_index;
+    if (idx == SYMBOL_TLS_INDEX_NONE ||
+	thr->_ptr_symvalues[idx] == SYMVALUE_EMPTY) 
+      return NULL; /* not per thread special, or no bidning in thread */
+    return &thr->_ptr_symvalues[idx];
   }
 }
 
-LISPFUN(symbol_thread_value,seclass_read,2,0,norest,nokey,0,NIL)
-{ /* (SYMBOL-THREAD-VALUE symbol thread) */
-  if (!threadp(STACK_0)) 
-    error_thread(STACK_0);
-  var Symbol sym=TheSymbol(check_symbol(STACK_1));
-  var clisp_thread_t *thr=TheThread(STACK_0)->xth_globals;
-
-  if (sym->tls_index == SYMBOL_TLS_INDEX_NONE) {
-    /* not per thread */
-      VALUES2(NIL,NIL);
+LISPFUNNR(symbol_value_thread,2)
+{ /* (MT:SYMBOL-VALUE-THREAD symbol thread) */
+  gcv_object_t *symval=thread_symbol_place(&STACK_1, &STACK_0);
+  if (!symval || eq(unbound,*symval)) {
+    VALUES2(NIL,NIL); /* not bound */
   } else {
-    if (!eq(SYMVALUE_EMPTY,thr->_ptr_symvalues[sym->tls_index])) {
-      VALUES2(thr->_ptr_symvalues[sym->tls_index],T); /* bound */
-    } else {
-      VALUES2(NIL,NIL); /* not bound */
-    }
+    VALUES2(*symval,T);
   }
   skipSTACK(2);
 }
+
+LISPFUNN(set_symbol_value_thread,3)
+{ /* (SETF (MT:SYMBOL-VALUE-THREAD symbol thread) value) */
+  gcv_object_t *symval=thread_symbol_place(&STACK_2, &STACK_1);
+  if (!symval) {
+    var object symbol=STACK_2;
+    var object thread=STACK_1;
+    pushSTACK(symbol); /* CELL-ERROR Slot NAME */
+    pushSTACK(thread);
+    pushSTACK(symbol); pushSTACK(S(set_symbol_value_thread));
+    error(unbound_variable,GETTEXT("~S: variable ~S has no binding in thread ~S"));
+  } else {
+    *symval=STACK_0;
+    VALUES1(*symval);
+  }
+  skipSTACK(3);
+}
+
 
 #endif  /* MULTITHREAD */
