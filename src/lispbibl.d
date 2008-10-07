@@ -16928,6 +16928,10 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       #if defined(PENDING_INTERRUPTS)
        uintB _interrupt_pending;
       #endif
+    /* pointer to the dummy end (start actually) of the lisp stack 
+      used for proper thread termination. see eval.d:reset()*/
+      gcv_object_t *_dummy_stack_end; 
+      bool _own_stack; /* who owns our lisp stack. should it be freed? */
     /* Used for exception handling only: */
       handler_args_t _handler_args;
       stack_range_t* _inactive_handlers;

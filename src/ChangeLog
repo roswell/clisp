@@ -1,4 +1,28 @@
 2008-10-07  Vladimir Tzankov  <vtzankov@gmail.com>
+	Implementation of THREAD-INTERRUPT, THREAD-KILL and SIGTERM signals.
+
+	* lispbibl.d
+	(clisp_thread_t): two new members. _own_stack - whether the thread 
+	should release the memory for the LISP stack on exit.
+	_dummy_stack_end - pointer in the stack of the thread used for hiding
+	the top level driver frame (revealed on thread termination).
+	* spvw.d
+	(create_thread): sets the _own_stack depending whether the memory
+	for the stack was allocated in it.
+	(delete_thread): calls quit() on exiting from the last thread.
+	(signal_handler_thread): implement termination signals.
+	(main): never exits - even on main thread termination (see comment).
+	(main_actions): create the top level driver and hide it via the
+	"dummy stack end" - will be revealed only on forced termination.
+	* eval.d
+	(reset): reveal the stack beyond the "dummy stack end" if needed - the
+	top level driver frame.
+	* zthread.d
+	(thread_stub): mark the "dummy stack end" after the driver frame.
+	(THREAD-INTERRUPT): implemented.
+	(THREAD-KILL): implemented (via THREAD-INTERRUPT and dummy stack end).
+
+2008-10-07  Vladimir Tzankov  <vtzankov@gmail.com>
 	Signal handling implementation of SIGINT and SIG_THREAD_INTERRUP
 
 	* lispbibl.d: synced with CVS head

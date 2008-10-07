@@ -349,6 +349,8 @@ global uintL* current_thread_alloccount()
   /* if MT is initialized - return the real alloccount. 
      otherwise (during subr_tab static initialization) the dummy one.
      anyway after this the tabs will be re-initialized*/
+
+  /* TODO: hmm - from signal processing thread we will get segfault !!!*/
   return nthreads ? &current_thread()->_alloccount : &dummy_alloccount;
 }
 #endif
@@ -731,6 +733,8 @@ global clisp_thread_t* create_thread(uintM lisp_stack_size)
       end_system_call();
       return NULL;
     }
+    /* we own the stack and should free it on return */
+    thread->_own_stack=true; 
   }
   spinlock_init(&thread->_gc_suspend_request); spinlock_acquire(&thread->_gc_suspend_request);
   spinlock_init(&thread->_gc_suspend_ack); spinlock_acquire(&thread->_gc_suspend_ack);
@@ -749,7 +753,7 @@ global clisp_thread_t* create_thread(uintM lisp_stack_size)
   return thread;
 }
 
-  /* VTZ: Releases current_thread resources */
+  /* Releases current_thread resources */
 global void delete_thread (clisp_thread_t *thread, bool full) {
   /* first give up any locks that the thread holds. 
    if GC is suspending threads - we do not want to block it
@@ -759,6 +763,14 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
   end_system_call();
   spinlock_release(&thread->_gc_suspend_ack);
   lock_threads(); /* lock all threads */
+
+  if (nthreads==1) {
+    /* this was the last LISP thread in the process - we are quiting */
+    unlock_threads();
+    quit();
+    return; /* quit will unwind the stack and call hooks */
+  }
+
   ASSERT(thread->_index < nthreads);
   ASSERT(allthreads[thread->_index] == thread); 
   allthreads[nthreads-1]->_index = thread->_index;;
@@ -769,8 +781,9 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
   /* VTZ: The LISP stack should be unwound so no
      interesting stuff on it. Let's deallocate it.*/
   begin_system_call();
-  free(THREAD_LISP_STACK_START(thread));
-  thread->_STACK=NULL; 
+  if (thread->_own_stack)
+    free(THREAD_LISP_STACK_START(thread));
+  thread->_STACK=NULL;  /* marks thread as non active */
   /* VTZ: the clisp_thread_t itself will be deallocated during 
      finalization phase of GC - when the thread record is discarded.
      why? (somebody may want to inspect the mv_space for "thread return 
@@ -3609,6 +3622,14 @@ local inline void main_actions (struct argv_actions *p) {
       Symbol_value(S(standard_input)) = value1;
   }
   /* call read-eval-print-loop: */
+#if defined(MULTITHREAD)
+  var gcv_object_t* top_of_frame = STACK; /* pointer over frame */
+  var sp_jmp_buf out_of_lisp; /* return point */
+  finish_entry_frame(DRIVER,out_of_lisp,,{skipSTACK(4);return;});
+  /* mark dummy end of stack - anyway nothing interesting on it */
+  pushSTACK(nullobj); pushSTACK(nullobj);
+  current_thread()->_dummy_stack_end = &STACK_0;
+#endif
   driver();
 }
 
@@ -3797,6 +3818,16 @@ global int main (argc_t argc, char* argv[]) {
   }
   /* Perform the desired actions (compilations, read-eval-print loop etc.): */
   main_actions(&argv2);
+  /* upon exit here we have a zombie thread. if it was the last one in the 
+     process - quit() will be called from delete_thread(). So nothing to do
+     here anymore - let's sleep forever */
+  delete_thread(current_thread(),false);
+  /* TODO: call main_actions in a newly created thread (via make-thread) and 
+     leave this main thread to handle the signals (instead of creating another 
+     thread for it). In order to do so - major refactoring of initialization 
+     process is required.
+   */
+  while (1) sleep(1000); /* or may be sigsuspend() on non-possible signal ?*/
   quit();
   /*NOTREACHED*/
  } /* end var bt */
@@ -4251,7 +4282,7 @@ local void *signal_handler_thread(void *arg)
 	  } else {
 	    NC_pushSTACK(thr->_STACK,O(thread_break_description));
 	    NC_pushSTACK(thr->_STACK,S(interrupt_condition)); /* condition */
-	    NC_pushSTACK(thr->_STACK,fixnum(2)); /* two arguments */
+	    NC_pushSTACK(thr->_STACK,posfixnum(2)); /* two arguments */
 	    NC_pushSTACK(thr->_STACK,S(cerror)); /* function to be called */
 	    xthread_signal(systhr,SIG_THREAD_INTERRUPT);
 	  }
@@ -4282,9 +4313,19 @@ local void *signal_handler_thread(void *arg)
 #endif
     default:
       /* some of the termination signals */
-      /* TODO: terminate */
-      /* quit_on_signal (int sig) - but not exactly - we should 
-	 unwind all threads stacks at least */
+      /* just terminate all threads - the last one will 
+	 kill the process from delete_thread */
+      WITH_STOPPED_WORLD({
+	for_all_threads({
+	  NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
+	  NC_pushSTACK(thread->_STACK,posfixnum(1)); /* 1 argument */
+	  NC_pushSTACK(thread->_STACK,S(thread_kill)); /* thread kill */
+	  /* the real killing will begin after we leave the 
+	     WITH_STOPED_WORLD. */
+	  xthread_signal(TheThread(thread->_lthread)->xth_system,
+			 SIG_THREAD_INTERRUPT);
+	});},
+	true,true);
       break;
     }
   }

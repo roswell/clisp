@@ -65,6 +65,9 @@ local /*maygc*/ void *thread_stub(void *arg)
   /* driver frame in order to be able to kill the thread and unwind the stack 
      via reset(0) call. */
   finish_entry_frame(DRIVER,returner,,{skipSTACK(2);goto end_of_thread;});
+  /* mark dummy end of stack - only upon request we will reveal ourselves */
+  pushSTACK(nullobj); pushSTACK(nullobj); 
+  me->_dummy_stack_end = &STACK_0;
   /* create special vars initial dynamic bindings. 
      we do not create DYNBIND frame since anyway we are at the 
      "top level" of the thread. */
@@ -85,8 +88,8 @@ local /*maygc*/ void *thread_stub(void *arg)
   /* now execute the function */
   funcall(*funptr,0); /* call fun */
   /* the return value(s) are in the mv_space of the clisp_thread_t */
+  skipSTACK(2); /* skip the dummy null objects */
   reset(0);  /* unwind what we have till now */
-  NOTREACHED;
  end_of_thread:
   skipSTACK(2); /* function + init bindings */
   /* the lisp stack should be unwound here. check it and complain. */
@@ -191,14 +194,58 @@ LISPFUNN(thread_yield,0)
 
 LISPFUNN(thread_kill,1)
 { /* (THREAD-KILL thread) */
-  /* TODO: interrupt with reset(0); */
-  NOTREACHED;
+  var object thr = check_thread(STACK_0);
+  VALUES0;
+  /* let's reveal the dummy stack end */
+  gcv_object_t *stack_end=TheThread(thr)->xth_globals->_dummy_stack_end;
+  *stack_end=NIL;
+  stack_end skipSTACKop 1; /* advance */
+  *stack_end=NIL; 
+  /* call thread-interrupt with full unwind */
+  pushSTACK(thr);
+  pushSTACK(S(unwind_to_driver));
+  pushSTACK(posfixnum(0));
+  funcall(S(thread_interrupt),3);
+  /* if we are still alive (in case we want to kill ourselved :)) */
+  thr=popSTACK();
+  xthread_wait(TheThread(thr)->xth_system); /* wait for real completion */
 }
 
 LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
 { /* (THREAD-INTERRUPT thread function &rest arguments) */
-  /* TODO: waiting for MT signal handling */
-  NOTREACHED;
+  var object thr=check_thread(STACK_(argcount+1));
+  xthread_t systhr=TheThread(thr)->xth_system;
+  clisp_thread_t *clt=TheThread(thr)->xth_globals; 
+  if (TheThread(thr)->xth_globals == current_thread()) {
+    /* we want to interrupt ourselves ? strange but let's do it */
+    funcall(Before(rest_args_pointer),argcount); skipSTACK(2);
+  } else {
+    var bool thread_was_stopped=false;
+    /* we want ot interrupt different thread. */
+    STACK_(argcount+1)=thr; /* gc may happen */
+    /*TODO: may b e check that the function argument can be 
+      funcall-ed, since it is not very nice to get errors
+      in interrupted thread (but basically this is not a 
+      problem)*/
+    WITH_STOPPED_WORLD({
+      if (clt->_STACK == NULL) { /* thread has terminated */
+	thread_was_stopped=true;
+      } else {
+	while (rest_args_pointer != args_end_pointer) {
+	  var object arg = NEXT(rest_args_pointer);
+	  NC_pushSTACK(clt->_STACK,arg);
+	}
+	NC_pushSTACK(clt->_STACK,posfixnum(argcount));
+	NC_pushSTACK(clt->_STACK,STACK_(argcount)); /* function */
+	xthread_signal(systhr,SIG_THREAD_INTERRUPT);
+      }
+    },
+      true,true);
+    skipSTACK(2 + (uintL)argcount);
+    /* TODO: may be signal an error if we try to interrupt
+       terminated thread ???*/
+  }
+  VALUES1(clt->_lthread); /* return the thread */
 }
 
 LISPFUNN(threadp,1)
