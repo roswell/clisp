@@ -1005,7 +1005,7 @@ global bool asciz_equal (const char * asciz1, const char * asciz2) {
                   Other Global Helper Functions */
 
 /* malloc() with error check. */
-global void* my_malloc (size_t size)
+global void* clisp_malloc (size_t size)
 {
   begin_system_call();
   var void* ptr = malloc(size);
@@ -1016,7 +1016,7 @@ global void* my_malloc (size_t size)
   error(storage_condition,GETTEXT("~S: malloc() failed"));
 }
 /* realloc() with error check. */
-global void* my_realloc (void* ptr, size_t size)
+global void* clisp_realloc (void* ptr, size_t size)
 {
   begin_system_call();
   ptr = realloc(ptr,size);
@@ -3747,15 +3747,12 @@ global int main (argc_t argc, char* argv[]) {
   install_sigterm_handler();    /* install SIGTERM &c handlers */
  #endif
 #else
-  /* in MT we have special thread that deals with async interrupts. 
-     the only one that needs realy special treatment is SIGCLD. 
-     TODO: implement it.
-  */
  #ifdef HAVE_SIGNALS
+  install_sigcld_handler();
   install_async_signal_handlers();
  #endif
  #ifdef WIN32_NATIVE
-  #warning "thread interrupt and CTRL-C handlers for Win32 are still not implemented."
+  #warning "thread-interrupt and \"signal\" handlers for Win32 are still not implemented."
  #endif
 #endif 
  #if defined(GENERATIONAL_GC)
@@ -4051,7 +4048,7 @@ global void dynload_modules (const char * library, uintC modcount,
       } while (--count);
     }
     {                        /* Make room for the module descriptors. */
-      var module_t* modules = (module_t*) my_malloc(modcount*sizeof(module_t)+total_modname_length);
+      var module_t* modules = (module_t*)clisp_malloc(modcount*sizeof(module_t)+total_modname_length);
       {
         var char* modnamebuf = (char*)(&modules[modcount]);
         var const char * const * modnameptr = modnames;
@@ -4179,19 +4176,43 @@ local sigset_t async_signal_mask()
   return sigblock_mask;
 }
 
-/* whenever we come here - we are suspended - 
-   waiting on our suspend mutex (and will resume waiting after we
-   exit this handler).
-   The lisp stack should contain enough information - what to execute.
-   TODO: changes to GC_SAFE_REGION_END() and GC_SAFE_POINT_ELSE().
- */
+/* SIG_THREAD_INTERRUPT handler */
 local void interrupt_thread_signal_handler (int sig) {
   signal_acknowledge(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
-  /* on the stack we should have info what to execute. 
-     arrange proper stack frames and return. 
-     GC_SAFE_REGION_END() and GC_SAFE_POINT_ELSE() will 
-     execute required things (when suspend mutex is acquired).
+  /* wait for the world to resume */
+  clisp_thread_t *thr=current_thread();
+  GC_SAFE_REGION_END(); /* end the safe region at which we are*/
+  var object fun=popSTACK();
+  var uintC args=posfixnum_to_V(popSTACK());
+  /* have to unblock SIG_THREAD_INTERRUPT since 
+     our funcall may exit non-locally with longjmp() 
+     (do not want to rely on SA_NODEFER).
+     there is signalblock_on() but it sets process wide mask - hmm not that
+     bad - probably should use it ??? */
+  var sigset_t mask;
+  sigemptyset(&mask);
+  sigaddset(&mask,SIG_THREAD_INTERRUPT);
+  xthread_sigmask(SIG_UNBLOCK,&mask,NULL);
+  /* NB: IT IS REALLY, REALLY NOT SAFE DO THIS ACCORDING POSIX - BUT SEEMS
+     TO WORK QUITE WELL (OF COURSE ANY USER LOCKS MAY INTEFERE VERY BADLY).
+     (PROBABLY IT IS RELATED WITH THE FACT THAT WE CANNOT BE INTERRUPTED AT 
+     ARBITRARY PLACE IN THE PROGRAM - WHEN WE ARE IN LISP LAND - I DO NO SEE
+     PROBLEMS, WHEN WE ARE IN BLOCKED SYSTEM CALL - IT'S OS SPECIFIC) 
+
+     The initial plan was to handle the interrupt in the normal thread 
+     execution. Since the thread can be safely stopped at only two places - 
+     allocate_xxxx and in blocking system call - i had the intention to 
+     execute the handler after we are unblocked. And here came the problem:
+     All I/O (unixaux.d) is done by retrying on EINTR - so with the above 
+     scheme we cannot interrupt the system calls - our GC_SAFE_REGIONs are 
+     plced above the low level stuff in unixaux.d.
+
+     It's tested on osx and debian 32 bit.
   */
+  funcall(fun,args);
+  /* if we come here - we have to set again the safe region 
+   we will resume in a system call or in allocate_xxxx. */
+  GC_SAFE_REGION_BEGIN();
 }
 
 local void *signal_handler_thread(void *arg)
@@ -4200,30 +4221,49 @@ local void *signal_handler_thread(void *arg)
   var sigset_t sig_mask=async_signal_mask();
   while (1) {
     if (sigwait(&sig_mask, &sig)) {
-      /* strange - no way to have bad mask */
-      NOTREACHED;
+      /* strange - no way to have bad mask but it happens sometimes 
+	(observed on 32 bit debian during (disaseemble 'car) and 
+	CTRL-Z and "fg" later) */
+      continue;
     }
-    fprintf(stderr, "VTZ: signal_received: %x\n", sig);
     switch (sig) {
     case SIGINT:
-      /* TODO: decide which thread to interrupt. */
-      /* currently let's just interrupt the one with index 0 */
+      /* stop all threads - it seems enough to stop
+	 only the one that is going to handle the signal. however - since
+	 it is possible the other threads to cause GC (and again try to
+	 top the world) - we play safe here and stop everything. */
       {
+	var clisp_thread_t *thr=NULL;
+	var xthread_t systhr;
+	/* let's first acquire the HEAP lock. The ACQUIRE_HEAP_LOCK - called 
+	   within WITH_STOPPED_WORLD is great - however We are not in the lisp 
+	   world so GC_SAFE_POINT_ELSE() is not safe (no current_thread()).*/
+	while (!spinlock_tryacquire(&mem.alloc_lock)) 
+	  { xthread_yield(); }
 	WITH_STOPPED_WORLD({
-	  var clisp_thread_t *thr=allthreads[0];
-	  var xthread_t systhr=TheThread(thr->_lthread)->xth_system;
-	  /*error(interrupt_condition,GETTEXT("Ctrl-C: User break"));*/
-	  /* push nice "good" argument on the thr stack */
-	  /* signal SIG_THREAD_INTERRUPT to this thread via 
-	   pthread_kill and leave it on it's own. */
-	  /*requires changes in GC_SAFE_REGION_END() and GC_SAFE_POINT_ELSE().*/
+	  /* TODO: find thread to handle it 
+	     currently we just pick the first one */
+	  thr=allthreads[0];
+	  systhr=TheThread(thr->_lthread)->xth_system;
+	  if (thr == NULL) {
+	    /* really strange - no thread can handle the interrupt.*/
+	    fprintf(stderr,GETTEXT("*** SIGINT signal will be missed.\n"));
+	  } else {
+	    NC_pushSTACK(thr->_STACK,O(thread_break_description));
+	    NC_pushSTACK(thr->_STACK,S(interrupt_condition)); /* condition */
+	    NC_pushSTACK(thr->_STACK,fixnum(2)); /* two arguments */
+	    NC_pushSTACK(thr->_STACK,S(cerror)); /* function to be called */
+	    xthread_signal(systhr,SIG_THREAD_INTERRUPT);
+	  }
 	},
-	  true,true);
+	  false,true); /* we own the heap lock now*/
+	spinlock_release(&mem.alloc_lock);
       }
       break;
     case SIGALRM:
-      /* do nothing */
+      /* currently not used */
       break;
+
   #if defined(SIGWINCH) 
     case SIGWINCH:
       /* update all threads SYS::*PRIN-LINELENGTH* bindings 
@@ -4236,6 +4276,10 @@ local void *signal_handler_thread(void *arg)
 	true,true);
       break;
   #endif
+#ifdef SIGTTOU
+    case SIGTTOU:
+      break; /* just ignore it */
+#endif
     default:
       /* some of the termination signals */
       /* TODO: terminate */
@@ -4258,6 +4302,7 @@ global void install_async_signal_handlers()
   /* since we are called from the main thread - all threads
    in the process will inherit this mask !!*/
   sigprocmask(SIG_BLOCK,&sigblock_mask,NULL);
+
   /* install SIG_THREAD_INTERRUPT */
   SIGNAL(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
   /* start the signal handling thread */

@@ -123,7 +123,7 @@ extern pthread_mutexattr_t recursive_mutexattr;
 #define xthread_init() \
   do {		       \
     pthread_mutexattr_init(&recursive_mutexattr);\
-    pthread_mutexattr_settype_np(&recursive_mutexattr,PTHREAD_MUTEX_RECURSIVE_NP);\
+    pthread_mutexattr_settype(&recursive_mutexattr,PTHREAD_MUTEX_RECURSIVE_NP);\
   } while (0)
 #else
 typedef struct xmutex_t {
@@ -148,6 +148,7 @@ typedef pthread_key_t     xthread_key_t;
 #define xthread_yield()  do { if (sched_yield() < 0) OS_error(); } while(0)
 #define xthread_equal(t1,t2)  pthread_equal(t1,t2)
 #define xthread_wait(t) pthread_join(t,NULL)
+#define xthread_signal(t,sig) pthread_kill(t,sig)
 #define xthread_sigmask(how,iset,oset) pthread_sigmask(how,iset,oset)
 
 #ifdef POSIX_THREADS
@@ -227,6 +228,7 @@ typedef thread_key_t      xthread_key_t;
 #define xthread_exit(v)  thr_exit(v)
 #define xthread_yield()  thr_yield()
 #define xthread_equal(t1,t2)  ((t1)==(t2))
+#define xthread_signal(t,sig) thr_kill(t,sig)
 
 #define xcondition_init(c)  cond_init(c,USYNC_THREAD,0)
 #define xcondition_destroy(c)  cond_destroy(c)
@@ -267,6 +269,7 @@ typedef struct mutex      xmutex_t;
 #define xthread_exit(v)  cthread_exit(v)
 #define xthread_yield()  cthread_yield()
 #define xthread_equal(t1,t2)  ((t1)==(t2))
+#define xthread_signal(t,sig) CHECKME: kill(t,sig)
 #define xthread_sigmask(how,iset,oset) sigprocmask(how,iset,oset) CHECKME
 
 #define xcondition_init(c)  condition_init(c)
@@ -304,6 +307,7 @@ typedef DWORD              xthread_key_t;
   CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)startroutine,(LPVOID)arg,0,thread)
 #define xthread_exit(v)  ExitThread((DWORD)(v))
 #define xthread_yield()  Sleep(0)
+#define xthread_signal(t,sig) TODO
 #define xthread_equal(t1,t2)  ((t1)==(t2))
 #define xthread_wait(t) \
  do { \

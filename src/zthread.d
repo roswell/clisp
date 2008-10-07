@@ -163,81 +163,13 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,2,(kw(name),kw(initial_bindin
   VALUES1(lthr);
 }
 
-struct call_timeout_data_t {
-  xmutex_t mutex;
-  xcondition_t cond;
-  clisp_thread_t *caller;
-};
-
-/* the thread the executes the call-with-timeout body function*/
-local maygc void *exec_timeout_call (void *arg)
-{
-  #if USE_CUSTOM_TLS == 2
-  tse __tse_entry;
-  tse *__thread_tse_entry=&__tse_entry;
-  #endif
-  var struct call_timeout_data_t *pcd = (struct call_timeout_data_t*)arg;
-  /* simply reuse the calling thread stack. 
-   the calling thread does not have a lot of job to do until we work so it seems safe. */
-  set_current_thread(pcd->caller);  
-  begin_system_call();
-  xmutex_lock(&pcd->mutex); /* wait for the main thread to start waiting */
-  xmutex_unlock(&pcd->mutex); /* allow the main thread to timeout */
-  end_system_call();
-  /*VTZ:TODO The back_trace resides on the caller thread C stack - there maybe problems here*/  
-  SP_anchor=(void*)SP(); /* hmm. The back_trace resides on*/
-  funcall(STACK_0,0); /* run the function */
-  /* now we have to restore our original stack (that OS has provided to us) */
-  begin_system_call();
-  xcondition_broadcast(&pcd->cond);
-  end_system_call();
-  return NULL;
-}
-
-/* VTZ: a new OS thread will be created that will reuse the clisp_thread_t structure of the calling one.
- no lisp record for this thread will be created. it works on the behalf of the calling one. */
-/* Currently broken -waiting for signal handling */
 LISPFUNN(call_with_timeout,3)
 { /* (CALL-WITH-TIMEOUT timeout timeout-function body-function)
- the reason we go with C instead of Lisp is that we save on creating a
- separate STACK for the body thread (i.e., the waiting thread and the
- body thread run in the same "stack group").
- the return values come either from body-function or from timeout-function */
+     It's two expensive to spawn a new OS thread for any call here.
+     We are going to do it via hackich signal handling within 
+     the current thread. 
+     TODO: implement.  */
   NOTREACHED;
-  var struct timeval tv;
-  var struct timeval *tvp = sec_usec(STACK_2,unbound,&tv);
-  if (tvp) {
-    /* we will backup our current thread here and restore it in case of cancellation */
-    /* VTZ:TODO also symvalues should be backed up !!!*/
-    clisp_thread_t restore_after_cancel; 
-    var xthread_t xth;
-    var struct call_timeout_data_t cd;
-    var struct timeval now;
-    var struct timespec timeout;
-    var int retval=0;
-    memcpy(&restore_after_cancel,current_thread(),sizeof(clisp_thread_t)); /* wrong */
-    cd.caller=current_thread();
-    begin_system_call();
-    xcondition_init(&cd.cond); xmutex_init(&cd.mutex);
-    xmutex_lock(&cd.mutex);
-    end_system_call();
-    xthread_create(&xth,&exec_timeout_call,(void*)&cd);
-    gettimeofday(&now,NULL);
-    timeout.tv_sec = now.tv_sec + tv.tv_sec;
-    timeout.tv_nsec = 1000*(now.tv_usec + tv.tv_usec);
-    retval = xcondition_timedwait(&cd.cond,&cd.mutex,&timeout);
-    if (retval == ETIMEDOUT) {
-      xthread_wait(xth); /*VTZ: currently we do not have safe way to cancel thread (esp. GC)*/ 
-      memcpy(current_thread(),&restore_after_cancel,sizeof(clisp_thread_t)); /* wrong !!! */
-      funcall(STACK_1,0); /* run timeout-function */
-    }
-    begin_system_call();
-    xcondition_destroy(&cd.cond);
-    xmutex_destroy(&cd.mutex);
-    end_system_call();
-  } else
-    funcall(STACK_1,0);
-  skipSTACK(3);
 }
 
 LISPFUN(thread_wait,seclass_default,3,0,rest,nokey,0,NIL)
@@ -245,6 +177,7 @@ LISPFUN(thread_wait,seclass_default,3,0,rest,nokey,0,NIL)
    predicate may be a LOCK structure in which case we wait for its release
    timeout maybe NIL in which case we wait forever */
   /* set whostate! */
+  /* Probbaly this will go entirely in LISP when locks are ready. */
   NOTREACHED;
 }
 
@@ -265,12 +198,6 @@ LISPFUNN(thread_kill,1)
 LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
 { /* (THREAD-INTERRUPT thread function &rest arguments) */
   /* TODO: waiting for MT signal handling */
-  NOTREACHED;
-  
-}
-
-LISPFUNN(thread_restart,1)
-{ /* (THREAD-RESTART thread) */
   NOTREACHED;
 }
 
@@ -352,7 +279,7 @@ local maygc gcv_object_t* thread_symbol_place(gcv_object_t *symbol,
     *thread=thr->_lthread; /* for error reporting if needed */
     var uintL idx=TheSymbol(sym)->tls_index;
     if (idx == SYMBOL_TLS_INDEX_NONE ||
-	thr->_ptr_symvalues[idx] == SYMVALUE_EMPTY) 
+	eq(thr->_ptr_symvalues[idx], SYMVALUE_EMPTY))
       return NULL; /* not per thread special, or no bidning in thread */
     return &thr->_ptr_symvalues[idx];
   }

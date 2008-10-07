@@ -5,7 +5,7 @@
   (:use "COMMON-LISP" "EXT")
   (:export "THREAD" "MAKE-THREAD" "THREAD-WAIT"
            "WITHOUT-INTERRUPTS" "THREAD-YIELD" "THREAD-KILL"
-           "THREAD-INTERRUPT" "THREAD-RESTART" "THREADP" "THREAD-NAME"
+           "THREAD-INTERRUPT" "THREADP" "THREAD-NAME"
            "THREAD-ACTIVE-P" "THREAD-STATE" "CURRENT-THREAD" "LIST-THREADS"
            "MAKE-LOCK" "THREAD-LOCK" "THREAD-UNLOCK" "WITH-LOCK"
            "Y-OR-N-P-TIMEOUT" "YES-OR-NO-P-TIMEOUT" "WITH-TIMEOUT"
@@ -18,14 +18,18 @@
 
 ;; definitions
 
-;; TODO: add more variables
+;; declare special variable for thread's whostate
+(defvar *THREAD-WHOSTATE* nil)
+
+;; TODO: add more variables (something should done about the 
+;; standartd input/output streams. 
 (defvar *DEFAULT-SPECIAL-BINDINGS*
   '((*random-state* . (make-random-state nil))
     (*print-base* . 10)
     (*gensym-counter* . 0)
     (ext:*command-index* . 0)
+    (*thread-whostate* . nil)
     (*readtable* . (copy-readtable nil))))
-    
 
 (defsetf SYMBOL-VALUE-THREAD MT::SET-SYMBOL-VALUE-THREAD)
 

@@ -711,7 +711,7 @@ LISPFUNN(sleep,2)
       timeout.tv_sec = seconds; timeout.tv_usec = useconds;
       var int result;
       result = select(FD_SETSIZE,NULL,NULL,NULL,&timeout);
-      if ((result<0) && !(errno==EINTR)) { OS_error(); }
+      if ((result<0) && !(errno==EINTR)) { end_blocking_call(); OS_error(); }
     }
    #else
     if (seconds>0) { sleep(seconds); }

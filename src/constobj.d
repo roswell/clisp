@@ -644,6 +644,7 @@
   LISPOBJ_S(printstring_mutex,"MUTEX")
   LISPOBJ_S(printstring_exemption,"EXEMPTION")
 
+  LISPOBJ_S(thread_break_description,"CTRL-C: User break")
   LISPOBJ(all_threads,"NIL")
   LISPOBJ(threads_to_release,"NIL")
 #endif

@@ -20,6 +20,7 @@ global uintB interrupt_pending = false;
 #endif
 
 #ifdef HAVE_SIGNALS
+#if !defined(MULTITHREAD)
 
 /* this must be done by signal handler before entering lisp.
  also used in spvw_sigterm.d */
@@ -62,42 +63,6 @@ local void signal_handler_prepare_for_lisp (int sig) {
 local void react_on_sigint (int sig) { /* sig = SIGINT or SIGALRM */
  #ifndef NO_ASYNC_INTERRUPTS
   signal_handler_prepare_for_lisp(sig);
-#if defined(MULTITHREAD)
-  /* NB: we are in the main thread - always
-     it is possible to be in interrupted in blocking system call. So - 
-     the GC to be enabled as SAFE for the main thread. We have to check 
-     for this case and be sure to disable it before jumping to the 
-     error handler.
-  */
-  ASSERT(main_threadp()); /* main thread - ASSERT not safe here - but 
-			   equally bad is not to ASSERT */
-  /* TODO: may be just get the allthreads[0] here, since current_thread()
-     may expand to something unwanted in signal handler ???*/
-  var clisp_thread_t *thr=current_thread(); 
-  if (!spinlock_tryacquire(&thr->_gc_suspend_ack)) {
-    /* hmmm - there is GC in progress or simply there was 
-     no GC since the beginning of the system call (if there was 
-     one at all) - and main thread already holds the lock. 
-     Te best thing we can do is to lock on suspend mutex, try 
-     acquire the ack and unlock the suspend mutex.
-    */
-    /* wait for GC to finish (if it is running now - otherwise 
-     no problems at all to lock) 
-     NB: we can safely call mutex locking without thinking of 
-     deadlock - since if we cannot acquire ack - than we can not 
-     also hold the mutex lock (see spvw_global.d:gc_resume_all_threads(),
-     lispbibl.d:GC_SAFE_REGION_END().
-    */
-    xmutex_lock(&thr->_gc_suspend_lock); 
-    /* try to acquire ack - if we succeed - great - there was really GC in 
-     progress. If not - simply there was no GC since possibly blocking call that
-     has been interrupted -  so we already hold the ack (and have never lost 
-     control over it). */
-    spinlock_tryacquire(&thr->_gc_suspend_ack);
-    /* unlock the suspend mutex */
-    xmutex_unlock(&thr->_gc_suspend_lock);
-  }
-#endif
   /* jump into a break-loop via 'error': */
   error(interrupt_condition,GETTEXT("Ctrl-C: User break"));
  #endif  /* NO_ASYNC_INTERRUPTS */
@@ -149,7 +114,7 @@ local void interrupt_handler (int sig) { /* sig = SIGINT */
 #define install_sigint_handler()  \
     SIGNAL(SIGINT,&interrupt_handler)
 #endif  /* PENDING_INTERRUPTS */
-
+#endif /* !MULTITHREAD */
 #endif  /* HAVE_SIGNALS */
 
 #ifdef WIN32_NATIVE

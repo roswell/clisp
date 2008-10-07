@@ -1989,10 +1989,13 @@ typedef enum {
    program will be interrupted and cannot be continued. */
   #define PENDING_INTERRUPTS
   #if !defined(MULTITHREAD)
-   /* in MT the interrupt_pending is per thread */
-  extern uintB interrupt_pending;
+   extern uintB interrupt_pending;
+   #define interruptp(statement)  if (interrupt_pending) { statement; }
+  #else
+   /* In MT interrupt_pending and interuptp are not used at all. 
+      actually even tast_break() is obsolete.*/
+   #define interruptp(statement)  
   #endif
-  #define interruptp(statement)  if (interrupt_pending) { statement; }
 #endif
 /* used by EVAL, IO, SPVW, STREAM */
 
@@ -9442,11 +9445,11 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   /* no_gc statement is executed in case the thread should not be suspended for GC.*/
   #define GC_SAFE_POINT_ELSE(no_gc) \
     do{ \
-      var clisp_thread_t *thr=current_thread();		  \
+      var clisp_thread_t *thr=current_thread();		     \
       if (spinlock_tryacquire(&thr->_gc_suspend_request)) {  \
-        spinlock_release(&thr->_gc_suspend_ack);		  \
+        spinlock_release(&thr->_gc_suspend_ack);	     \
         xmutex_lock(&thr->_gc_suspend_lock);		  \
-	spinlock_acquire(&thr->_gc_suspend_ack);		  \
+	spinlock_acquire(&thr->_gc_suspend_ack);	  \
         xmutex_unlock(&thr->_gc_suspend_lock);		  \
       } else {no_gc;}					  \
     }while(0)
@@ -9463,10 +9466,10 @@ extern gcv_object_t* top_of_back_trace_frame (const struct backtrace_t *bt);
   #define GC_SAFE_REGION_END() \
     do { \
       GCTRIGGER(); \
-      var clisp_thread_t *thr=current_thread(); \
+      var clisp_thread_t *thr=current_thread();		 \
       if (!spinlock_tryacquire(&thr->_gc_suspend_ack)) { \
-	xmutex_lock(&thr->_gc_suspend_lock); \
-	spinlock_acquire(&thr->_gc_suspend_ack); \
+	xmutex_lock(&thr->_gc_suspend_lock);		 \
+	spinlock_acquire(&thr->_gc_suspend_ack);	  \
         xmutex_unlock(&thr->_gc_suspend_lock);		  \
       } \
     }while(0)
@@ -10457,14 +10460,14 @@ extern bool asciz_equal (const char * asciz1, const char * asciz2);
 %% #endif
 
 /* allocate memory and check for success */
-extern void* my_malloc (size_t size);
+extern void* clisp_malloc (size_t size);
 /* used by FOREIGN and modules */
-%% puts("extern void* my_malloc (size_t size);");
+%% puts("extern void* clisp_malloc (size_t size);");
 
 /* reallocate memory and check for success */
-extern void* my_realloc (void* ptr, size_t size);
+extern void* clisp_realloc (void* ptr, size_t size);
 /* used by modules */
-%% puts("extern void* my_realloc (void *ptr, size_t size);");
+%% puts("extern void* clisp_realloc (void *ptr, size_t size);");
 
 /* UP: Returns a Table of all circularities within an Object.
  (A circularity is a Sub-Object contained within this Object,
@@ -16902,7 +16905,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 #endif
       /* GC suspend/resume machinery */
       spinlock_t _gc_suspend_request; /*always signalled unless there is a suspend request. */
-      spinlock_t _gc_suspend_ack; /* always signalled unless it can be assumed the the thread is suspended */
+      spinlock_t _gc_suspend_ack; /* always signalled unless it can be assumed the thread is suspended */
       xmutex_t _gc_suspend_lock; /* the mutex on which the thread waits. */
       /* The values of per-thread symbols: */
       gcv_object_t *_ptr_symvalues; /* allocated separately */
@@ -16916,8 +16919,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       unwind_protect_caller_t _unwind_protect_to_save;
       pinned_chain_t * _pinned; /* chain of pinned objects for this thread */
       uintC _index; /* this thread's index in allthreads[] */
-
-    /* signal handling stuff */
+    /* signal handling stuff - NOT USED actually */
       break_sems_ _break_sems; /* break semaphores for this thread */
       #if defined(HAVE_SIGNALS) && defined(SIGPIPE)
       /* Set ONLY during IO calls to pipes directed to subprocesses. */
@@ -16926,7 +16928,6 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       #if defined(PENDING_INTERRUPTS)
        uintB _interrupt_pending;
       #endif
-
     /* Used for exception handling only: */
       handler_args_t _handler_args;
       stack_range_t* _inactive_handlers;

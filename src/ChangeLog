@@ -1,3 +1,37 @@
+2008-10-07  Vladimir Tzankov  <vtzankov@gmail.com>
+	Signal handling implementation of SIGINT and SIG_THREAD_INTERRUP
+
+	* lispbibl.d: synced with CVS head
+	(interruptp): not used in MT.
+	* error.d: added to threads branch.
+	(tast_break): do nothing in MT.
+	* constsym.d
+	(THREAD-RESTART): removed.
+	* constobj.d
+	(thread_break_description): string "CTRL-C: User break", since from the
+	signal handler thread we cannot allocate any lisp object.
+	* subr.d
+	(THREAD-RESTART): removed.
+	* spvw.d: synced with CVS head
+	(signal_handler_thread): implemented CTRL-C signal handler.
+	(interrupt_thread_signal_handler): implemented.
+	* spvw_sigint.d: use it only in single thread builds
+	* spvw_sigterm.d: use it only in single thread builds
+	* spvw_typealloc.d
+	(allocate_thread): do not initialize the xth_system.
+	* spvw_weak.d: sync with CVS head
+	* time.d (%SLEEP): end_blocking_call() in case of error in select().
+	* xthread.d 
+	(xthread_init): use pthread_mutexattr_settype instead of "np" version.
+	(xthread_signal): wrapper for pthread_kill().
+	* zthread.d
+	(THREAD-RESTART): removed.
+	(thread_symbol_place): use eq() for checking  empty symvalue.
+	(CALL-WITH-TIMEOUT): removed broken implementation.
+	* threads.lisp
+	(THREAD-RESTART): removed from export list.
+	(THREADS::*THREAD-WHOSTATE*): special variable for thread's whostate.
+
 2008-10-06  Vladimir Tzankov  <vtzankov@gmail.com>
 	SYMBOL-VALUE-THREAD implementation.
 

@@ -1206,7 +1206,6 @@ LISPSYM(call_with_timeout,"CALL-WITH-TIMEOUT",mt) /* ABI */
 LISPSYM(thread_yield,"THREAD-YIELD",mt)
 LISPSYM(thread_kill,"THREAD-KILL",mt)
 LISPSYM(thread_interrupt,"THREAD-INTERRUPT",mt)
-LISPSYM(thread_restart,"THREAD-RESTART",mt)
 LISPSYM(threadp,"THREADP",mt)
 LISPSYM(thread_name,"THREAD-NAME",mt)
 LISPSYM(thread_active_p,"THREAD-ACTIVE-P",mt)
