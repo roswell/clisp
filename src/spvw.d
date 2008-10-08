@@ -315,6 +315,9 @@ global stack_range_t* inactive_handlers = NULL;
 /* #if MULTITHREAD*/
 #else
 
+/* forward decalration of MT signal handler */
+local void *signal_handler_thread(void *arg);
+
 /* Mutex protecting the set of threads. */
 local xmutex_t allthreads_lock;
 
@@ -344,14 +347,13 @@ global uintL maxnum_symvalues;
    at that time the multithreading has not been initialized and 
    there is no current thread. */
 local uintL dummy_alloccount=0;
+local bool use_dummy_alloccount=true;
 global uintL* current_thread_alloccount() 
 { 
   /* if MT is initialized - return the real alloccount. 
-     otherwise (during subr_tab static initialization) the dummy one.
-     anyway after this the tabs will be re-initialized*/
-
-  /* TODO: hmm - from signal processing thread we will get segfault !!!*/
-  return nthreads ? &current_thread()->_alloccount : &dummy_alloccount;
+     otherwise (during subr_tab static initialization and signal handling) - 
+     the dummy one - simple there is no current lisp thread */
+  return !use_dummy_alloccount ? &current_thread()->_alloccount : &dummy_alloccount;
 }
 #endif
 
@@ -1788,7 +1790,7 @@ local void init_symbol_values (void) {
    On FreeBSD 4.0, if set to T, gdb stops the clisp process.
    On Linux ppc64 (sf cf openpower-linux1), if set to T, clisp hangs until C-c.
    On Woe32, the debugging APIs are flawed, the Cygwin developers say. */
-  #if defined(UNIX_FREEBSD) || defined(UNIX_CYGWIN32) || (defined(UNIX_LINUX) && defined(POWERPC))
+#if defined(UNIX_FREEBSD) || defined(UNIX_CYGWIN32) || (defined(UNIX_LINUX) && defined(POWERPC))
   define_variable(S(disassemble_use_live_process),NIL);
   #else
   define_variable(S(disassemble_use_live_process),T);
@@ -3251,6 +3253,13 @@ local inline int init_memory (struct argv_initparams *p) {
       }
     }
   }
+#if defined(MULTITHREAD)
+  /* initialize the THREAD:*DEFAULT-VALUE-STACK-SIZE* based on the 
+     calculated STACK size */
+  Symbol_value(S(default_value_stack_size)) = 
+    uint32_to_I(STACK_item_count((gcv_object_t*)STACK_bound,STACK) *
+		sizeof(gcv_object_t) + 0x40);
+#endif
  #ifdef DEBUG_SPVW
   { /* STACK & SP are settled - check that we have enough STACK */
     var uintM stack_depth =
@@ -3292,6 +3301,12 @@ local inline int init_memory (struct argv_initparams *p) {
      relevant data from clisp_thread_t and re-create new threads from it.
   */
   O(all_threads) = NIL;
+
+  /* initialize again THREAD:*DEFAULT-VALUE-STACK-SIZE* based on the 
+     calculated STACK size, since the memory image may change it */
+  Symbol_value(S(default_value_stack_size)) = 
+    uint32_to_I(STACK_item_count((gcv_object_t*)STACK_bound,STACK) *
+		sizeof(gcv_object_t) + 0x40);
 #endif
   /* init O(current_language) */
   O(current_language) = current_language_o(language);
@@ -3633,6 +3648,31 @@ local inline void main_actions (struct argv_actions *p) {
   driver();
 }
 
+#if defined(MULTITHREAD)
+local void* mt_main_actions (void *param) {
+  #if USE_CUSTOM_TLS == 2
+  tse __tse_entry;
+  tse *__thread_tse_entry=&__tse_entry;
+  #endif
+  clisp_thread_t *me=(clisp_thread_t *)param;
+  /* dummy way to pass arguments :(*/
+  struct argv_actions *args = (struct argv_actions *)me->_SP_anchor;
+  set_current_thread(me); /* initialize TLS */
+
+  me->_SP_anchor=(void*)SP();
+  /* reinitialize the system thread id */
+  TheThread(me->_lthread)->xth_system = xthread_self();
+  /* now we are ready to call the real main_actions() */
+  main_actions(args);
+
+  delete_thread(me,false); /* just delete ourselves */
+  /* NB: the LISP stack is "leaked" - in a sense nobody will
+     ever use it anymore !!!*/
+  xthread_exit(0);
+  return NULL; /* keep compiler happy */
+}
+#endif
+
 static struct argv_initparams argv1;
 static struct argv_actions argv2;
 
@@ -3664,6 +3704,7 @@ global int main (argc_t argc, char* argv[]) {
     set_current_thread(create_thread(0));
     register_thread(current_thread());
     #ifdef DEBUG_GCSAFETY
+      use_dummy_alloccount=false; /* now we have threads */
       current_thread()->_alloccount=1;
     #endif
   }
@@ -3769,7 +3810,7 @@ global int main (argc_t argc, char* argv[]) {
  #endif
 #else
  #ifdef HAVE_SIGNALS
-  install_sigcld_handler();
+  install_sigcld_handler(); /* TODO: probably not good. */
   install_async_signal_handlers();
  #endif
  #ifdef WIN32_NATIVE
@@ -3817,18 +3858,21 @@ global int main (argc_t argc, char* argv[]) {
     }
   }
   /* Perform the desired actions (compilations, read-eval-print loop etc.): */
+#if defined(MULTITHREAD)
+  /* may be set it as command line  parameter  - it should be big enough */
+  #define MAIN_THREAD_C_STACK (1024*1024*16)
+  SP_anchor=(void *)&argv2;
+  {
+    var xthread_t thr;
+    xthread_create(&thr,mt_main_actions,current_thread(), MAIN_THREAD_C_STACK);
+  }
+  /* let's handle signals now :)*/
+  signal_handler_thread(0);
+  /* NOTREACHED */
+#else 
   main_actions(&argv2);
-  /* upon exit here we have a zombie thread. if it was the last one in the 
-     process - quit() will be called from delete_thread(). So nothing to do
-     here anymore - let's sleep forever */
-  delete_thread(current_thread(),false);
-  /* TODO: call main_actions in a newly created thread (via make-thread) and 
-     leave this main thread to handle the signals (instead of creating another 
-     thread for it). In order to do so - major refactoring of initialization 
-     process is required.
-   */
-  while (1) sleep(1000); /* or may be sigsuspend() on non-possible signal ?*/
   quit();
+#endif
   /*NOTREACHED*/
  } /* end var bt */
   /* if the memory does not suffice: */
@@ -4178,10 +4222,11 @@ global void dynload_modules (const char * library, uintC modcount,
    lisp thread */
 local sigset_t async_signal_mask()
 {
+  /* TODO: SIGCLD needs special handling - it's possible 
+     to leave some zombie probably. */
   var sigset_t sigblock_mask;
   sigemptyset(&sigblock_mask);
   sigaddset(&sigblock_mask,SIGINT);
-  /* may be we can use SIGALRM for with-timeout ??? */
   sigaddset(&sigblock_mask,SIGALRM);
   #ifdef SIGHUP
    sigaddset(&sigblock_mask,SIGHUP);
@@ -4272,6 +4317,9 @@ local void *signal_handler_thread(void *arg)
 	while (!spinlock_tryacquire(&mem.alloc_lock)) 
 	  { xthread_yield(); }
 	WITH_STOPPED_WORLD({
+	  #ifdef DEBUG_GCSAFETY
+	   use_dummy_alloccount=true;
+	  #endif
 	  /* TODO: find thread to handle it 
 	     currently we just pick the first one */
 	  thr=allthreads[0];
@@ -4286,6 +4334,9 @@ local void *signal_handler_thread(void *arg)
 	    NC_pushSTACK(thr->_STACK,S(cerror)); /* function to be called */
 	    xthread_signal(systhr,SIG_THREAD_INTERRUPT);
 	  }
+	  #ifdef DEBUG_GCSAFETY
+	   use_dummy_alloccount=false;
+	  #endif
 	},
 	  false,true); /* we own the heap lock now*/
 	spinlock_release(&mem.alloc_lock);
@@ -4300,22 +4351,41 @@ local void *signal_handler_thread(void *arg)
       /* update all threads SYS::*PRIN-LINELENGTH* bindings 
 	 and the global symbol value as well */
       WITH_STOPPED_WORLD({
+        #ifdef DEBUG_GCSAFETY
+	 use_dummy_alloccount=true;
+	#endif
+
 	var Symbol prl = TheSymbol(S(prin_linelength));
 	for_all_threads({
+
 	  /* TODO: implement */
-	});},
+	});
+        #ifdef DEBUG_GCSAFETY
+	 use_dummy_alloccount=false;
+	#endif
+      },
 	true,true);
       break;
   #endif
-#ifdef SIGTTOU
+  #ifdef SIGTTOU
     case SIGTTOU:
       break; /* just ignore it */
-#endif
+  #endif
+  #ifdef UNIX_MACOSX
+      /* TODO: forked() processes cause SIGHUP/SIGCONT on OSX.
+	 currently - ignore them - but it's TODO item. .*/
+     case SIGHUP:
+     case SIGCONT:
+       break; 
+  #endif
     default:
       /* some of the termination signals */
       /* just terminate all threads - the last one will 
 	 kill the process from delete_thread */
       WITH_STOPPED_WORLD({
+        #ifdef DEBUG_GCSAFETY
+	 use_dummy_alloccount=true;
+	#endif
 	for_all_threads({
 	  NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
 	  NC_pushSTACK(thread->_STACK,posfixnum(1)); /* 1 argument */
@@ -4324,7 +4394,11 @@ local void *signal_handler_thread(void *arg)
 	     WITH_STOPED_WORLD. */
 	  xthread_signal(TheThread(thread->_lthread)->xth_system,
 			 SIG_THREAD_INTERRUPT);
-	});},
+	});
+        #ifdef DEBUG_GCSAFETY
+	 use_dummy_alloccount=false;
+	#endif
+      },
 	true,true);
       break;
     }
@@ -4334,11 +4408,8 @@ local void *signal_handler_thread(void *arg)
 
 global void install_async_signal_handlers()
 {
-  /* SIGCLD needs special handling ???
-     1. disable all async signals 
-     2. install SIG_THREAD_INTERRUPT handler
-     3. create thread waiting for signals (sigwait).
-  */
+  /* 1. disable all async signals 
+     2. install SIG_THREAD_INTERRUPT handler */
   var sigset_t sigblock_mask=async_signal_mask();
   /* since we are called from the main thread - all threads
    in the process will inherit this mask !!*/
@@ -4346,9 +4417,6 @@ global void install_async_signal_handlers()
 
   /* install SIG_THREAD_INTERRUPT */
   SIGNAL(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
-  /* start the signal handling thread */
-  xthread_t sthr;
-  xthread_create(&sthr,signal_handler_thread,0);
 }
 
 #endif /* HAVE_SIGNALS */

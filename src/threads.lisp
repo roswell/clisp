@@ -18,6 +18,15 @@
 
 ;; definitions
 
+
+;; default value (lisp stack) size is very small - 256 K
+;; 0 - leaves the OS to decide (basically bad option)
+(defvar *DEFAULT-CONTROL-STACK-SIZE* 262144)
+;; the vstack size will be inherited from the parent thread.
+;; 0 - means - inherit from creation thread.
+;; the value will be initialized from the runtime  
+(defvar *DEFAULT-VALUE-STACK-SIZE*)
+
 ;; declare special variable for thread's whostate
 (defvar *THREAD-WHOSTATE* nil)
 

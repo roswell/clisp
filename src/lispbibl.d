@@ -10527,49 +10527,32 @@ typedef union {uintB einzeln[8]; uintL gesamt[2]; } break_sems_;
 /* is used by SPVW, Macros set/clr_break_sem_0/1/2/3/4/5/6/7 */
 
 /* MULTITHREAD: 
-   The break semaphores were designed for single threaded CLSIP. 
-   For multithread the following changes are implemented.
-   1. The only thread that responds to asynchronous signals
-   (SIGINT,SIGTERM,SIGWINCH,SIGALRM) is the main thread - the one 
-   registered first (from main()). All other threads disable these
-   signals (on UNIX, on Win32 - they anyway are handled within the
-   main thread).
-   2. SIGSEGV - this is sycnhronous signal and "basically" executes 
-   in the context of the thread that caused it. The only difference
-   is on MACOSX - where due to specific way MACH kernel handles it, 
-   libsigsegv calls our handler in different thread (not in the control
-   of CLISP at all).
-   Within all signal (with SIGSEGV exception) handlers we may assume that 
-   we are in the context of the main thread. In SIGSEGV exception under
-   OSX we are in different thread (and we are not sure which thread 
-   has caused the fault).
+   Semaphores are not used. Async signals may come only on two 
+   points - immediately after the world is resumed and when 
+   inside blocking system calls. So there is no way to 
+   interrupt critical initialization of lisp objects.
+   Of course it is possible a thread to access others threads
+   objects - but this is responsibility of the threads themsleves
+   not of the runtime (and break_sems cannot prevent it as well).
  */
-
 #if defined(MULTITHREAD)
- #define SEMA_(statement) \
-   if (main_threadp()) (statement)
- #ifdef UNIX_MACOSX
-   /* TODO: FIX: Do not nothing on OSX.
-      This is wrong - but the chance for failure is small. TBF. */
+   #define SEMA_(statement) 
    #define SEGV_SEMA_(statement) 
- #else
-   #define SEGV_SEMA_(statement) SEMA_(statement)
- #endif
+   #define break_sems_cleared()
+   #define clear_break_sems()
 #else /* !MULTITHREAD*/
    extern break_sems_ break_sems; 
    #define SEMA_(statement) (statement)
    #define SEGV_SEMA_(statement) SEMA_(statement)
+   /* Tests whether all break-semaphores have been cleared. */
+   #define break_sems_cleared()					\
+     (break_sems.gesamt[0] == 0 && break_sems.gesamt[1] == 0)
+   /* is used by SPVW, WIN32AUX */
+   /* clears all break-semaphores. Very dangerous! */
+   #define clear_break_sems()  \
+     (break_sems.gesamt[0] = 0, break_sems.gesamt[1] = 0)
+   /* is used by SPVW */
 #endif
-
-/* Tests whether all break-semaphores have been cleared. */
-#define break_sems_cleared()  \
-  (break_sems.gesamt[0] == 0 && break_sems.gesamt[1] == 0)
-/* is used by SPVW, WIN32AUX */
-
-/* clears all break-semaphores. Very dangerous! */
-#define clear_break_sems()  \
-  (break_sems.gesamt[0] = 0, break_sems.gesamt[1] = 0)
-/* is used by SPVW */
 
 /* sets break-semaphore 0 and thus protects against interrupts
  set_break_sem_0(); */
@@ -16920,7 +16903,6 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       pinned_chain_t * _pinned; /* chain of pinned objects for this thread */
       uintC _index; /* this thread's index in allthreads[] */
     /* signal handling stuff - NOT USED actually */
-      break_sems_ _break_sems; /* break semaphores for this thread */
       #if defined(HAVE_SIGNALS) && defined(SIGPIPE)
       /* Set ONLY during IO calls to pipes directed to subprocesses. */
        bool _writing_to_subprocess;

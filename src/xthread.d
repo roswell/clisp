@@ -137,17 +137,21 @@ typedef pthread_key_t     xthread_key_t;
 
 #define xthread_self()  pthread_self()
 #ifdef POSIX_THREADS
-#define xthread_create(thread,startroutine,arg)  \
-  pthread_create(thread,NULL,startroutine,arg)
-#endif
-#ifdef POSIXOLD_THREADS
-#define xthread_create(thread,startroutine,arg)  \
-  pthread_create(thread,pthread_attr_default,startroutine,arg)
+#define xthread_create(thread,startroutine,arg,stacksize)	\
+  ({								\
+    int r;							\
+    pthread_attr_t attr;					\
+    pthread_attr_init(&attr);					\
+    if (stacksize)						\
+      pthread_attr_setstacksize(&attr,stacksize);		\
+    pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); \
+    r=pthread_create(thread,&attr,startroutine,arg);	 	\
+    pthread_attr_destroy(&attr);				\
+    r;})
 #endif
 #define xthread_exit(v)  pthread_exit(v)
 #define xthread_yield()  do { if (sched_yield() < 0) OS_error(); } while(0)
 #define xthread_equal(t1,t2)  pthread_equal(t1,t2)
-#define xthread_wait(t) pthread_join(t,NULL)
 #define xthread_signal(t,sig) pthread_kill(t,sig)
 #define xthread_sigmask(how,iset,oset) pthread_sigmask(how,iset,oset)
 
@@ -224,7 +228,8 @@ typedef thread_key_t      xthread_key_t;
 
 #define xthread_init()
 #define xthread_self()  thr_self()
-#define xthread_create(thread,startroutine,arg) thr_create(NULL,0,startroutine,arg,THR_NEW_LWP|THR_DETACHED,thread)
+#define xthread_create(thread,startroutine,arg,stacksize) \
+  thr_create(NULL,stacksize,startroutine,arg,THR_NEW_LWP|THR_DETACHED,thread)
 #define xthread_exit(v)  thr_exit(v)
 #define xthread_yield()  thr_yield()
 #define xthread_equal(t1,t2)  ((t1)==(t2))
@@ -265,7 +270,8 @@ typedef struct mutex      xmutex_t;
 
 #define xthread_init()  cthread_init()
 #define xthread_self()  cthread_self()
-#define xthread_create(thread,startroutine,arg)  *thread = ?? cthread_fork(startroutine,arg)
+#define xthread_create(thread,startroutine,arg,stacksize) \
+ *thread = ?? cthread_fork(startroutine,arg)
 #define xthread_exit(v)  cthread_exit(v)
 #define xthread_yield()  cthread_yield()
 #define xthread_equal(t1,t2)  ((t1)==(t2))
@@ -303,18 +309,13 @@ typedef DWORD              xthread_key_t;
 
 #define xthread_init()
 #define xthread_self()  GetCurrentThreadId()
-#define xthread_create(thread,startroutine,arg)  \
-  CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)startroutine,(LPVOID)arg,0,thread)
+/* xthread_create() should return 0 on success */
+#define xthread_create(thread,startroutine,arg,stacksize)			\
+  (!CreateThread(NULL,stacksize,(LPTHREAD_START_ROUTINE)startroutine,(LPVOID)arg,0,thread))
 #define xthread_exit(v)  ExitThread((DWORD)(v))
 #define xthread_yield()  Sleep(0)
 #define xthread_signal(t,sig) TODO
 #define xthread_equal(t1,t2)  ((t1)==(t2))
-#define xthread_wait(t) \
- do { \
-   HANDLE hThread=OpenThread(THREAD_ALL_ACCESS,0,t); \
-   WaitForSingleObject(hThread,INFINITE); \
-   CloseHandle(hThread); \
- } while(0) 
 #define xthread_sigmask(how,iset,oset) 
 
 #define xcondition_init(c) \
@@ -532,7 +533,7 @@ typedef DWORD              xthread_key_t;
       __asm__ __volatile__(
 			   "0:lwarx %0,0,%1 \n"
 			   " cmpwi %0,0 \n"
-			   " bne 1f \n"
+			   " bne- 1f \n"
 			   " stwcx. %2,0,%1 \n"
 			   " bne- 0b \n"
 			   "1:  isync  \n"

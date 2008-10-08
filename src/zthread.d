@@ -100,32 +100,60 @@ local /*maygc*/ void *thread_stub(void *arg)
   /* just unregister it from the active threads. the allocated memory
      will be released during GC (if there are no references to thread object)*/
   delete_thread(me,false); 
+  xthread_exit(0);
   return NULL;
 }
 
-LISPFUN(make_thread,seclass_default,1,0,norest,key,2,(kw(name),kw(initial_bindings)))
-{ /* (MAKE-THREAD function &key name (initial-bindings mt:*default-special-bindings*)) */
-  /* VTZ: new thread lisp stack size is the same as the calling one 
-   may be add another keyword argument for it ???*/
-  var uintM lisp_stack_size=(STACK_item_count(STACK_bound,STACK_start)+0x40)*
-                            sizeof(gcv_object_t *);
+local inline ensure_uint32(object x)
+{
+  return 
+    (uint32_p(x) ? I_to_uint32(x) : I_to_uint32(check_uint32_replacement(x)));
+}
+
+LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
+	(kw(name),kw(initial_bindings),kw(cstack_size),kw(vstack_size)))
+{ /* (MAKE-THREAD function 
+                  &key name 
+                  (initial-bindings THREADS:*default-special-bindings*)
+		  (cstack-size THREADS::*DEFAULT-CONTROL-STACK-SIZE*)
+		  (vstack-size THREADS::*DEFAULT-VALUE-STACK-SIZE*))
+   */
   var clisp_thread_t *new_thread;
+  /* init the stack size if not specified */
+  if (missingp(STACK_0)) STACK_0 = Symbol_value(S(default_value_stack_size));
+  if (missingp(STACK_1)) STACK_1 = Symbol_value(S(default_control_stack_size));
+  /* vstack_size */
+  var uintM vstack_size = ensure_uint32(popSTACK());
+  /* cstack_size */
+  var uintM cstack_size = ensure_uint32(popSTACK());
+  if (!vstack_size) { /* lisp stack empty ??? */
+    /* use the same as the caller */
+    vstack_size=STACK_item_count(STACK_bound,STACK_start)*
+      sizeof(gcv_object_t) + 0x40;
+  }
+  if (cstack_size > 0 && cstack_size < 0x10000) { /* cstack too small ? */
+    /*TODO: or may be signal an error */
+    /* lets allocate at least 64 K */
+    cstack_size = 0x10000;
+  }
+  if (vstack_size < 0x8000) {
+    /* TODO: may be signal an error */
+    vstack_size=0x8000;
+  }
   /* check initial bindings */
   if (!boundp(STACK_0)) /* if not bound set to mt:*default-special-bidnings* */
     STACK_0 = Symbol_value(S(default_special_bindings));
-  if (boundp(STACK_0)) {
-    if (!listp(STACK_0))
-      error_list(STACK_0);
-  }
-  if (!boundp(STACK_1)) {
-    /* no thread name supplied - ask for it. */
+  if (!listp(STACK_0))
+    error_list(STACK_0);
+  /* check thread name */
+  if (!stringp(STACK_1)) 
     STACK_1 = check_string_replacement(STACK_1);
-  }
+
   /* do allocations before thread locking */ 
   pushSTACK(allocate_thread(&STACK_1)); /* put it in GC visible place */
   pushSTACK(allocate_cons());
   /* create clsp_thread_t - no need for locking */
-  new_thread=create_thread(lisp_stack_size);
+  new_thread=create_thread(vstack_size);
   if (!new_thread) {
     skipSTACK(5); VALUES1(NIL); return;
   }
@@ -162,8 +190,14 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,2,(kw(name),kw(initial_bindin
   O(all_threads) = new_cons;
   unlock_threads(); /* allow GC and other thread creation. */
   /* create the OS thread */
-  xthread_create(&TheThread(lthr)->xth_system, &thread_stub,new_thread);
-  VALUES1(lthr);
+  if (xthread_create(&TheThread(lthr)->xth_system, &thread_stub,new_thread,cstack_size)) {
+    pushSTACK(lthr);
+    delete_thread(new_thread,false); /* remove it from the list */
+    lthr=popSTACK();
+    /*TODO: signal an error */
+    VALUES1(NIL); /* for now jsut return NIL - however the threadobj is here*/
+  } else
+    VALUES1(lthr);
 }
 
 LISPFUNN(call_with_timeout,3)
@@ -194,7 +228,7 @@ LISPFUNN(thread_yield,0)
 
 LISPFUNN(thread_kill,1)
 { /* (THREAD-KILL thread) */
-  var object thr = check_thread(STACK_0);
+  var object thr = check_thread(popSTACK());
   VALUES0;
   /* let's reveal the dummy stack end */
   gcv_object_t *stack_end=TheThread(thr)->xth_globals->_dummy_stack_end;
@@ -206,9 +240,7 @@ LISPFUNN(thread_kill,1)
   pushSTACK(S(unwind_to_driver));
   pushSTACK(posfixnum(0));
   funcall(S(thread_interrupt),3);
-  /* if we are still alive (in case we want to kill ourselved :)) */
-  thr=popSTACK();
-  xthread_wait(TheThread(thr)->xth_system); /* wait for real completion */
+  /* do not wait for the thread completion. */
 }
 
 LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)

@@ -108,7 +108,13 @@ local struct {
 #endif
   #define MINIMUM_SPACE 0x10000L /* 64 KByte as minimal memory for LISP-data */
 #ifdef TRIVIALMAP_MEMORY
+#if defined(MULTITHREAD)
+/* in MT we malloc() the lisp stacks - let's have more memory until we find
+   a better way to allocate the stacks */
+  #define RESERVE_FOR_MALLOC 0x400000L /* leave 4 MByte address space free, for malloc */
+#else
   #define RESERVE_FOR_MALLOC 0x100000L /* leave 1 MByte address space free, for malloc */
+#endif
 #endif
 
 /* Iteration through all heaps.

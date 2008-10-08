@@ -1219,7 +1219,11 @@ LISPSYM(thread_unlock,"THREAD-UNLOCK",mt)
 LISPSYM(symbol_value_thread,"SYMBOL-VALUE-THREAD",mt)
 LISPSYM(set_symbol_value_thread,"SET-SYMBOL-VALUE-THREAD",mt)
 LISPSYM(default_special_bindings,"*DEFAULT-SPECIAL-BINDINGS*",mt)
+LISPSYM(default_control_stack_size,"*DEFAULT-CONTROL-STACK-SIZE*",mt)
+LISPSYM(default_value_stack_size,"*DEFAULT-VALUE-STACK-SIZE*",mt)
 LISPSYM(Kinitial_bindings,"INITIAL-BINDINGS",keyword)
+LISPSYM(Kcstack_size,"CSTACK-SIZE",keyword)
+LISPSYM(Kvstack_size,"VSTACK-SIZE",keyword)
 #endif
 
 /* Keywords: */
