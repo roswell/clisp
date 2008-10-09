@@ -161,7 +161,23 @@ Currently only POSIX_THREADS are tested and all development is done with
 them. There is code for Win32 and Solaris threads - however it's not clear
 whether it even compiles. 
 
-2. Symbol values - ready.
+2. MAKE-THREAD - the "mother" of (almost) all threads.
+(MAKE-THREAD function 
+             &key name 
+             (initial-bindings THREADS:*default-special-bindings*)
+             (cstack-size THREADS::*DEFAULT-CONTROL-STACK-SIZE*)
+             (vstack-depth THREADS::*DEFAULT-VALUE-STACK-DEPTH*))
+Parameters:
+function and name - required and obvious.
+:initial-bindings: see below
+:cstack-size - the size in bytes of the control stack (C stack) if passed 0 
+whatever the OS decides for it.
+:vstack-depth - the size of the LISP stack in gcv. Default value is calculated
+based on the -m option used when CLISP was started (hmm am i right)?
+If passed 0 - the value stack will be the same as the calling threads
+one. 
+
+3. Symbol values - ready.
 The implementation follows the explanation above. For a good description see:
 http://www.franz.com/support/documentation/current/doc/multiprocessing.htm#dynamic-environments-1
 
@@ -180,25 +196,36 @@ cell. For example:
     )
   (setq *global* 30)) ; global value cell is modified again
 
-TO BE DONE:
-a). (make-thread) to receive initial list of special variables bindings.
-    see:
-http://www.franz.com/support/documentation/current/doc/multiprocessing.htm#dynamic-environments-1
-b). savemem/loadmem - per thread binding are lost (anyway the threads are not 
-    re-created when an image is loaded). Not sure that something special should
-    be done here.
-c) functions for getting (or even changing) global/per thread cells:
-   mt:symbol-global-value, mt:symbol-thread-value
+MAKE-THREAD accepts keyword parameter :INITIAL-BINDINGS - an alist of 
+(symbol . form). The forms are evaled in the context of the new thread and 
+symbols are bound to the result - in the thread.
 
-3. Packages & CLOS locks - not ready
+Function (THREADS:SYMBOL-VALUE-THREAD symbol thread) can be used to obtain or set
+the per thread value of symbol. Returns two values - the symbol binding 
+and BOUND-P boolean (like GETHASH). If "thread" is T - current thread is assumed. 
+If "thread" is NIL - the global binding is returned.
 
-4. Garbage Collector - ready
+TODO:
+ savemem/loadmem - per thread binding are lost (anyway the threads are not 
+ re-created when an image is loaded). Not sure that something special should
+ be done here.
+
+4. Packages & CLOS locks - not ready (not worked at all on it)
+spinlock with GC safe point will be used.
+
+5. Garbage Collector 
 GC stops all threads in order to execute. 
-The threads may be stopped only at certain safe points. 
 
+Heap objects may be "pinned" - they will not move
+during GC. Used when execution is blocked in foreign/system call and
+pointer to heap object is passed in non-lisp land.
+The GC tries to minimize the wholes in the heap introduced
+by the "pinning" process.
+
+The threads may be stopped only at certain safe points. 
 Currently implemented safe points are:
-4.1. Any heap allocation (actually before the allocations itself).
-4.2. Some "possibly blocking" system call.
+5.1. Any heap allocation (actually before the allocations itself).
+5.2. Some "possibly blocking" system call.
      Basically every thread that "conses" or can block in system call will not
      stop the GC from executing. 
 
@@ -208,19 +235,33 @@ a) Not all "possibly blocking" calls are marked as safe (currently all
 b) Certain functions that do not cons but may go in infinite loop 
    (length of circular list for example). 
 
-5. Signal handling
-Currently the asynchronous signals (CTRL-C in particular) are being handled 
-only in the "main" thread. Since we do not want to have different kinds of 
-LISP threads (aka "main") this will change. Probably a special signal handling 
-thread will be created (that will not run any lisp) and it will dispatch the 
-signals to appropriate lisp thread.
+6. Signal handling (POSIX - no Win32)
 
-7. MT package functions
+Synchronous signals (SIGSEGV,SIGPIPE) are handled in the threads that 
+caused them (after all they are synchronous).
+Asynchronous signals (SIGINT,SIGTERM,SIGHUP,etc) are handled synchronously
+(nice oxymoron - they are asynchronous:)).
+After initialization of the heap - new thread is spawned for the main REPL.
+The "main thread" (where main() is executed) goes into infinite signal
+handling loop (via sigwait()) and does not deal with lisp heap/object 
+at all (almost - just prepares the stack for SIG_THREAD_INTERRUPT). 
+Thread can be interrupted by sending SIG_THREAD_INTERRUPT (SIGUSR1) to it. 
+There are special requirement when sending this signal:
+  1. LISP stack should contain info what to execute.
+  2. The thread should be in GC safe location.
+
+TODO:
+SIGCLD needs special attention - currently it may not to work 
+as expected. 
+
+7. THREAD package exported functions
 Currently no locks are exposed through MT package - so it is good time
 to practice lock-free multithreading :).
-Also there is no way to interrupt a running thread (this is related with 
-signal handling).
-call-with-timeout is also broken (again related to signal handling).
-The only "usable" function from MT currently are:
-MAKE-THREAD, CURRENT-THREAD, LIST-THREADS.
+
+The usable function from MT currently are:
+MAKE-THREAD, CURRENT-THREAD, LIST-THREADS, THREADP, THREAD-ACTIVE-P,
+THREAD-INTERRUPT, THREAD-KILL, THREAD-YIELD, THREAD-NAME, SYMBOL-VALUE-THREAD
+
+Some docs on them will be helpful (and will come shortly :))
+
 

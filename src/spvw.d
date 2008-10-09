@@ -651,20 +651,20 @@ local void init_multithread_special_symbols()
  The stack_size parameters is in bytes. 
  It is always called with main thread lock - so we are not going to call
  begin/end_system_call.*/
-local void* allocate_lisp_thread_stack(clisp_thread_t* thread, uintM stack_size)
+local void* allocate_lisp_thread_stack(clisp_thread_t* thread, uintM stack_depth)
 { 
   var uintM low,high;
   begin_system_call();
-  low=(uintM)malloc(stack_size);
+  low=(uintM)malloc(stack_depth*sizeof(gcv_object_t)+0x40);
   end_system_call();
   if (!low) return NULL;
-  high=low+stack_size/sizeof(uintM);
+  high=low+stack_depth*sizeof(gcv_object_t)+0x40;
   #ifdef STACK_DOWN
-   thread->_STACK_bound=(gcv_object_t *)low + 0x40;
+   thread->_STACK_bound=(gcv_object_t *)(low + 0x40);
    thread->_STACK=(gcv_object_t *)high;
   #endif
   #ifdef STACK_UP
-   thread->_STACK_bound=(gcv_object_t *)high - 0x40;
+   thread->_STACK_bound=(gcv_object_t *)(high - 0x40);
    thread->_STACK=(gcv_object_t *)low;
   #endif
   thread->_STACK_start=thread->_STACK;
@@ -702,8 +702,10 @@ global int register_thread(clisp_thread_t *thread)
 /* creates new cisp_thread_t structure and allocates LISP stack.
  It is always called with the main thread mutex locked. 
  when the lisp_stack_size is 0 - it means this is the very first thread,
- so we may(should not) perform some initializations */
-global clisp_thread_t* create_thread(uintM lisp_stack_size)
+ so we may(should not) perform some initializations (lisp_stack_size is
+ the count of gcv_object_t that can be put in the newly allocated
+ stack)*/
+global clisp_thread_t* create_thread(uintM lisp_stack_depth)
 {
   var clisp_thread_t* thread;
   begin_system_call();
@@ -726,9 +728,9 @@ global clisp_thread_t* create_thread(uintM lisp_stack_size)
     var uintC count;
     dotimespC(count,num_symvalues,{ *objptr++ = SYMVALUE_EMPTY; });
   }
-  if (lisp_stack_size) {
+  if (lisp_stack_depth) {
     /* allocate the LISP stack */
-    if (!allocate_lisp_thread_stack(thread,lisp_stack_size)) { 
+    if (!allocate_lisp_thread_stack(thread,lisp_stack_depth)) { 
       begin_system_call();
       free(thread->_ptr_symvalues);
       free(thread);
@@ -741,6 +743,9 @@ global clisp_thread_t* create_thread(uintM lisp_stack_size)
   spinlock_init(&thread->_gc_suspend_request); spinlock_acquire(&thread->_gc_suspend_request);
   spinlock_init(&thread->_gc_suspend_ack); spinlock_acquire(&thread->_gc_suspend_ack);
   xmutex_init(&thread->_gc_suspend_lock);
+#ifdef HAVE_SIGNALS
+  spinlock_init(&thread->_signal_reenter_ok);
+#endif
   /* initialize the environment*/
   thread->_aktenv.var_env   = NIL;
   thread->_aktenv.fun_env   = NIL;
@@ -3254,11 +3259,10 @@ local inline int init_memory (struct argv_initparams *p) {
     }
   }
 #if defined(MULTITHREAD)
-  /* initialize the THREAD:*DEFAULT-VALUE-STACK-SIZE* based on the 
+  /* initialize the THREAD:*DEFAULT-VALUE-STACK-DEPTH* based on the 
      calculated STACK size */
-  Symbol_value(S(default_value_stack_size)) = 
-    uint32_to_I(STACK_item_count((gcv_object_t*)STACK_bound,STACK) *
-		sizeof(gcv_object_t) + 0x40);
+  Symbol_value(S(default_value_stack_depth)) = 
+    uint32_to_I(STACK_item_count(STACK_bound,STACK_start));
 #endif
  #ifdef DEBUG_SPVW
   { /* STACK & SP are settled - check that we have enough STACK */
@@ -3302,11 +3306,10 @@ local inline int init_memory (struct argv_initparams *p) {
   */
   O(all_threads) = NIL;
 
-  /* initialize again THREAD:*DEFAULT-VALUE-STACK-SIZE* based on the 
+  /* initialize again THREAD:*DEFAULT-VALUE-STACK-DEPTH* based on the 
      calculated STACK size, since the memory image may change it */
-  Symbol_value(S(default_value_stack_size)) = 
-    uint32_to_I(STACK_item_count((gcv_object_t*)STACK_bound,STACK) *
-		sizeof(gcv_object_t) + 0x40);
+  Symbol_value(S(default_value_stack_depth)) = 
+    uint32_to_I(STACK_item_count(STACK_bound,STACK_start));
 #endif
   /* init O(current_language) */
   O(current_language) = current_language_o(language);
@@ -3662,9 +3665,8 @@ local void* mt_main_actions (void *param) {
   me->_SP_anchor=(void*)SP();
   /* reinitialize the system thread id */
   TheThread(me->_lthread)->xth_system = xthread_self();
-  /* now we are ready to call the real main_actions() */
+  /* now we are ready to start main_actions()*/
   main_actions(args);
-
   delete_thread(me,false); /* just delete ourselves */
   /* NB: the LISP stack is "leaked" - in a sense nobody will
      ever use it anymore !!!*/
@@ -3866,6 +3868,8 @@ global int main (argc_t argc, char* argv[]) {
     var xthread_t thr;
     xthread_create(&thr,mt_main_actions,current_thread(), MAIN_THREAD_C_STACK);
   }
+  /* IMPORTANT: set the current tls thread to NULL */
+  set_current_thread(NULL); 
   /* let's handle signals now :)*/
   signal_handler_thread(0);
   /* NOTREACHED */
@@ -4269,6 +4273,7 @@ local void interrupt_thread_signal_handler (int sig) {
   sigemptyset(&mask);
   sigaddset(&mask,SIG_THREAD_INTERRUPT);
   xthread_sigmask(SIG_UNBLOCK,&mask,NULL);
+  spinlock_release(&thr->_signal_reenter_ok); /* release the signal reentry */
   /* NB: IT IS REALLY, REALLY NOT SAFE DO THIS ACCORDING POSIX - BUT SEEMS
      TO WORK QUITE WELL (OF COURSE ANY USER LOCKS MAY INTEFERE VERY BADLY).
      (PROBABLY IT IS RELATED WITH THE FACT THAT WE CANNOT BE INTERRUPTED AT 
@@ -4314,8 +4319,8 @@ local void *signal_handler_thread(void *arg)
 	/* let's first acquire the HEAP lock. The ACQUIRE_HEAP_LOCK - called 
 	   within WITH_STOPPED_WORLD is great - however We are not in the lisp 
 	   world so GC_SAFE_POINT_ELSE() is not safe (no current_thread()).*/
-	while (!spinlock_tryacquire(&mem.alloc_lock)) 
-	  { xthread_yield(); }
+	while (!spinlock_tryacquire(&mem.alloc_lock))
+	  xthread_yield(); 
 	WITH_STOPPED_WORLD({
 	  #ifdef DEBUG_GCSAFETY
 	   use_dummy_alloccount=true;
@@ -4328,6 +4333,9 @@ local void *signal_handler_thread(void *arg)
 	    /* really strange - no thread can handle the interrupt.*/
 	    fprintf(stderr,GETTEXT("*** SIGINT signal will be missed.\n"));
 	  } else {
+	    /* since all threads are stopped and we are not in the lisp world
+	       nobody can send/nest SIG_THREAD_INTERRUPT - so we do not care about 
+	       the _signal_reenter_ok lock. */
 	    NC_pushSTACK(thr->_STACK,O(thread_break_description));
 	    NC_pushSTACK(thr->_STACK,S(interrupt_condition)); /* condition */
 	    NC_pushSTACK(thr->_STACK,posfixnum(2)); /* two arguments */
@@ -4414,7 +4422,6 @@ global void install_async_signal_handlers()
   /* since we are called from the main thread - all threads
    in the process will inherit this mask !!*/
   sigprocmask(SIG_BLOCK,&sigblock_mask,NULL);
-
   /* install SIG_THREAD_INTERRUPT */
   SIGNAL(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
 }

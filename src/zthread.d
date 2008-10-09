@@ -111,34 +111,33 @@ local inline ensure_uint32(object x)
 }
 
 LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
-	(kw(name),kw(initial_bindings),kw(cstack_size),kw(vstack_size)))
+	(kw(name),kw(initial_bindings),kw(cstack_size),kw(vstack_depth)))
 { /* (MAKE-THREAD function 
                   &key name 
                   (initial-bindings THREADS:*default-special-bindings*)
 		  (cstack-size THREADS::*DEFAULT-CONTROL-STACK-SIZE*)
-		  (vstack-size THREADS::*DEFAULT-VALUE-STACK-SIZE*))
+		  (vstack-depth THREADS::*DEFAULT-VALUE-STACK-DEPTH*))
    */
   var clisp_thread_t *new_thread;
   /* init the stack size if not specified */
-  if (missingp(STACK_0)) STACK_0 = Symbol_value(S(default_value_stack_size));
+  if (missingp(STACK_0)) STACK_0 = Symbol_value(S(default_value_stack_depth));
   if (missingp(STACK_1)) STACK_1 = Symbol_value(S(default_control_stack_size));
   /* vstack_size */
-  var uintM vstack_size = ensure_uint32(popSTACK());
+  var uintM vstack_depth = ensure_uint32(popSTACK());
   /* cstack_size */
   var uintM cstack_size = ensure_uint32(popSTACK());
-  if (!vstack_size) { /* lisp stack empty ??? */
+  if (!vstack_depth) { /* lisp stack empty ??? */
     /* use the same as the caller */
-    vstack_size=STACK_item_count(STACK_bound,STACK_start)*
-      sizeof(gcv_object_t) + 0x40;
+    vstack_depth=STACK_item_count(STACK_bound,STACK_start); /*skip 2 nullobj*/
   }
   if (cstack_size > 0 && cstack_size < 0x10000) { /* cstack too small ? */
     /*TODO: or may be signal an error */
     /* lets allocate at least 64 K */
     cstack_size = 0x10000;
   }
-  if (vstack_size < 0x8000) {
+  if (vstack_depth < ca_limit_1) {
     /* TODO: may be signal an error */
-    vstack_size=0x8000;
+    vstack_depth=ca_limit_1;
   }
   /* check initial bindings */
   if (!boundp(STACK_0)) /* if not bound set to mt:*default-special-bidnings* */
@@ -153,7 +152,7 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   pushSTACK(allocate_thread(&STACK_1)); /* put it in GC visible place */
   pushSTACK(allocate_cons());
   /* create clsp_thread_t - no need for locking */
-  new_thread=create_thread(vstack_size);
+  new_thread=create_thread(vstack_depth);
   if (!new_thread) {
     skipSTACK(5); VALUES1(NIL); return;
   }
@@ -229,25 +228,54 @@ LISPFUNN(thread_yield,0)
 LISPFUNN(thread_kill,1)
 { /* (THREAD-KILL thread) */
   var object thr = check_thread(popSTACK());
-  VALUES0;
-  /* let's reveal the dummy stack end */
-  gcv_object_t *stack_end=TheThread(thr)->xth_globals->_dummy_stack_end;
-  *stack_end=NIL;
-  stack_end skipSTACKop 1; /* advance */
-  *stack_end=NIL; 
-  /* call thread-interrupt with full unwind */
+  var xthread_t systhr=TheThread(thr)->xth_system;
+  var clisp_thread_t *clt=TheThread(thr)->xth_globals;
+  /* This is the same as THREAD-INTERRUPT with the special case 
+     that the dummy stack end is revealed for unwinding.
+     It's possible to "reuse" THREAD-INTERRUPT but we will have to 
+     stop the world twice (_dummy_stack_end may be accessed
+     safely only from the thread itself ot when the world is stopped).
+   */
+  if (clt == current_thread()) {
+    /* we want to kill ourselves :). 
+       no need to stop the world for this */
+    gcv_object_t *stack_end=clt->_dummy_stack_end;
+    *stack_end=NIL;
+    stack_end skipSTACKop 1; /* advance */
+    *stack_end=NIL; 
+    pushSTACK(posfixnum(0));
+    funcall(S(unwind_to_driver),1);
+    NOTREACHED;
+  }
   pushSTACK(thr);
-  pushSTACK(S(unwind_to_driver));
-  pushSTACK(posfixnum(0));
-  funcall(S(thread_interrupt),3);
-  /* do not wait for the thread completion. */
+  /* make sure we can send signals to this thread. */
+  GC_SAFE_SPINLOCK_ACQUIRE(&clt->_signal_reenter_ok);
+  WITH_STOPPED_WORLD({
+    if (clt->_STACK != NULL) { /* only if alive */
+      /* let's reveal the dummy stack end */
+      gcv_object_t *stack_end=clt->_dummy_stack_end;
+      *stack_end=NIL;
+      stack_end skipSTACKop 1; /* advance */
+      *stack_end=NIL; 
+      NC_pushSTACK(clt->_STACK,posfixnum(0));
+      NC_pushSTACK(clt->_STACK,posfixnum(1)); /* one argument */
+      NC_pushSTACK(clt->_STACK,S(unwind_to_driver)); /* function to be called */
+      xthread_signal(TheThread(thr)->xth_system,SIG_THREAD_INTERRUPT);
+    } else {
+      /* release it since we are not going to signal the thread */
+      spinlock_release(&clt->_signal_reenter_ok);
+    }
+  },
+    true,true);
+  VALUES1(popSTACK());
 }
 
 LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
 { /* (THREAD-INTERRUPT thread function &rest arguments) */
+#ifdef HAVE_SIGNALS
   var object thr=check_thread(STACK_(argcount+1));
-  xthread_t systhr=TheThread(thr)->xth_system;
-  clisp_thread_t *clt=TheThread(thr)->xth_globals; 
+  var xthread_t systhr=TheThread(thr)->xth_system;
+  var clisp_thread_t *clt=TheThread(thr)->xth_globals; 
   if (TheThread(thr)->xth_globals == current_thread()) {
     /* we want to interrupt ourselves ? strange but let's do it */
     funcall(Before(rest_args_pointer),argcount); skipSTACK(2);
@@ -255,10 +283,12 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
     var bool thread_was_stopped=false;
     /* we want ot interrupt different thread. */
     STACK_(argcount+1)=thr; /* gc may happen */
-    /*TODO: may b e check that the function argument can be 
+    /*TODO: may be check that the function argument can be 
       funcall-ed, since it is not very nice to get errors
       in interrupted thread (but basically this is not a 
       problem)*/
+    /* be sure that the signal we send will be received */
+    GC_SAFE_SPINLOCK_ACQUIRE(&clt->_signal_reenter_ok);
     WITH_STOPPED_WORLD({
       if (clt->_STACK == NULL) { /* thread has terminated */
 	thread_was_stopped=true;
@@ -278,6 +308,9 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
        terminated thread ???*/
   }
   VALUES1(clt->_lthread); /* return the thread */
+#else
+  NOTREACHED; /* win32 not implemented */
+#endif
 }
 
 LISPFUNN(threadp,1)
@@ -295,7 +328,7 @@ LISPFUNN(thread_name,1)
 LISPFUNN(thread_active_p,1)
 { /* (THREAD-ACTIVE-P thread) */
   var object obj=check_thread(popSTACK());
-  VALUES_IF(TheThread(obj)->xth_globals->_STACK != 0);
+  VALUES_IF(TheThread(obj)->xth_globals->_STACK != NULL);
 }
 
 LISPFUNN(thread_state,1)

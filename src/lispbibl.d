@@ -16910,6 +16910,10 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       #if defined(PENDING_INTERRUPTS)
        uintB _interrupt_pending;
       #endif
+#ifdef HAVE_SIGNALS
+    /* do not rely on SA_NODEFER for signal nesting */
+      spinlock_t _signal_reenter_ok;
+#endif
     /* pointer to the dummy end (start actually) of the lisp stack 
       used for proper thread termination. see eval.d:reset()*/
       gcv_object_t *_dummy_stack_end; 
@@ -16923,6 +16927,14 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       /* The lexical environment: */
       gcv_environment_t _aktenv;
   } clisp_thread_t;
+
+  #define GC_SAFE_SPINLOCK_ACQUIRE(s)			\
+  do {							\
+    while (!spinlock_tryacquire(s)) {			\
+      GC_SAFE_POINT_ELSE(xthread_yield());		\
+    }							\
+  } while(0)
+
  
   /* try to use the compiler support for thread local storage */
   #if defined(__GNUC__)
@@ -17173,7 +17185,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 /* allocates,initializes and returns clisp_thread_t structure. 
    Does not register it in the global thread array. 
    When called the global thread lock should be held.*/
-global clisp_thread_t* create_thread(uintM lisp_stack_size);
+global clisp_thread_t* create_thread(uintM lisp_stack_depth);
 /* removes the current_thread from the list (array) of threads. 
    Also frees any allocated resource. */
 global void delete_thread(clisp_thread_t *thread, bool full);

@@ -1,3 +1,33 @@
+2008-10-09  Vladimir Tzankov  <vtzankov@gmail.com>
+	Signals loss fix. Docs update. :VSTACK-SIZE --> :VSTACK_DEPTH
+
+	* zthread.d/subr.d/subrkw.d/constsym.d/threads.lisp/spvw.d: 
+	*DEFAULT-VALUE-STACK-SIZE* and :VSTACK-SIZE renamed 
+	to *DEFAULT-VALUE-STACK-DEPTH* and :VSTACK-DEPTH.
+	* doc/multithread.txt: updated.
+	* lispbibl.d
+	(clisp_thread_t): new spinlock: _signal_reenter_ok preventing 
+	loss of SIG_THREAD_INTERRUPT signal (a signal is sent only when
+	this lock is held).
+	(GC_SAFE_SPINLOCK_ACQUIRE): macro for GC friendly spinlock acquire.
+	* spvw.d
+	(allocate_list_thread_stack): the parameter is stack depth now.
+	(create_thread): the parameter is stack depth now.
+	(main): after creating main_actions() thread - set the current
+	TLS clisp_thread_t to NULL - not in LISP world anymore.
+	(interrupt_thread_signal_handler): release the "ok to reenter" spinlock
+	after signal re-establishment.
+	* spvw_global.d
+	(ACQUIRE_HEAP_LOCK): use GC_SAFE_SPINLOCK_ACQUIRE.
+	* zthread.d
+	(MAKE-THREAD): :VSTACK-DEPTH change.
+	(THREAD-KILL): fixed. there was race condition problem (many calls for
+	the same thread).
+	(THREAD-INTERRUPT): be sure that the signal will be received before
+	sending it (i.e. "ok to reenter" spinlock).
+	* threads.lisp
+	(*DEFAULT-CONTROL-STACK-SIZE*): initialized to 1 MB.
+
 2008-10-08  Vladimir Tzankov  <vtzankov@gmail.com>
 	All threads equal citizens (main not special). Stack sizes settable.
 
@@ -9,7 +39,7 @@
 	(mt_main_actions): wrapper for main_actions() executed in it's own 
 	thread.
 	(main): the thread (C thread) executing  main() does the signal 
-	handling now after creating mt_main_actions() thread.
+	handling - after creating mt_main_actions() thread.
 	(signal_handler_thread): fix DEBUG_GCSAFETY. ignore SIGHUP and 
 	SIGCONT on UNIX_MACOSX until I know how to handle them (vfork() 
 	causes SIGHUP and may be SIGCONT).
@@ -28,7 +58,8 @@
 	* threads.lisp: added THREADS::*DEFAULT-CONTROL-STACK-SIZE* (C stack) and 
 	THREADS::*DEFAULT-VALUE-STACK-SIZE* (LISP stack)
 	* zthread.d
-	(ensure_uint32): ensures that it's argument (object) can fit in uint32,
+	(ensure_uint32): ensures that it's integer argument (object) can fit 
+	in uint32,
 	(MAKE-THREAD): added :CSTACK-SIZE and :VSTACK-SIZE keywords parameters.
 	(THREAD-KILL): do not wait on the killed thread to exit.
 	* xthread.d

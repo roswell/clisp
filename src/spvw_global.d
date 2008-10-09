@@ -508,13 +508,7 @@ local inline void init_mem_heapnr_from_type (void)
 
 #if defined(MULTITHREAD)
 
-#define ACQUIRE_HEAP_LOCK()				\
-  do {							\
-    while (!spinlock_tryacquire(&mem.alloc_lock)) {	\
-      GC_SAFE_POINT_ELSE(xthread_yield());		\
-    }							\
-  } while(0)
-
+#define ACQUIRE_HEAP_LOCK() GC_SAFE_SPINLOCK_ACQUIRE(&mem.alloc_lock)
 #define RELEASE_HEAP_LOCK() spinlock_release(&mem.alloc_lock)
 
 /* since the GC may be re-entrant we should keep track how many times
