@@ -1,3 +1,27 @@
+2008-10-10  Vladimir Tzankov  <vtzankov@gmail.com>
+	Per thread suspend/resume as GC safe points.
+
+	* lispbibl.d
+	(struct clisp_thread_t): new member - _suspend_count. Specifies how 
+	many times the thread has been suspended.
+	(WITH_STOPPED_THREAD): macro for executing statement ensuring that 
+	a thread is either terminated or suspended at safe point (used by 
+	THREAD-INTERRUPT and THREAD-KILL).
+	(suspend_thread/resume_thread): global functions declaration.
+	* spvw.d: comments added
+	(lock_heap_from_signal_thread): function for locking the LISP heap
+	when executing in the signal handling thread (should wait for GC to 
+	finish if in progress).
+	(signal_handler_thread): use lock_heap_from_signal_thread().
+	* spvw_global.d
+	(suspend_thread/resume_thread): suspend/resume LISP thread execution
+	at/from GC safe point.
+	(gc_suspend_all_threads/gc_resume_all_threads): changed in order to take
+	into account the threads _suspend_count(s).
+	* zthread.d
+	(THREAD-INTERRUPT): use WITH_STOPPED_THREAD instead of WITH_STOPPED_WORLD.
+	(KILL-INTERRUPT): use WITH_STOPPED_THREAD instead of WITH_STOPPED_WORLD.	
+
 2008-10-09  Vladimir Tzankov  <vtzankov@gmail.com>
 	Signals loss fix. Docs update. :VSTACK-SIZE --> :VSTACK_DEPTH
 

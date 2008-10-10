@@ -16890,6 +16890,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       spinlock_t _gc_suspend_request; /*always signalled unless there is a suspend request. */
       spinlock_t _gc_suspend_ack; /* always signalled unless it can be assumed the thread is suspended */
       xmutex_t _gc_suspend_lock; /* the mutex on which the thread waits. */
+      uintC _suspend_count; /* how many times this thread has been suspended ? */
       /* The values of per-thread symbols: */
       gcv_object_t *_ptr_symvalues; /* allocated separately */
       object _mv_space [mv_limit-1]; 
@@ -17207,6 +17208,12 @@ global void gc_suspend_all_threads(bool lock_heap, bool lock_thr);
 /* Resumes all suspended threads /besides the current/ 
    should match a call to suspend_all_threads() */
 global void gc_resume_all_threads(bool unlock_heap,bool unlock_thr);
+/* suspends at safe point and increases the _suspend_count of the thread 
+ lock_heap specifies whether the caller DOES NOT own  the heap spinlock */
+global void suspend_thread(clisp_thread_t *thr, bool lock_heap);
+/* resumes suspended thread (or just decreases the _suspend_count) 
+ lock_heap specifies whether the caller DOES NOT own  the heap spinlock */
+global void resume_thread(clisp_thread_t *thr, bool unlock_heap);
 /* releases the clisp_thread_t memory of the list of Thread records */
 global void release_threads (object list);
 /* add per thread special symbol value - initialized to SYMVALUE_EMPTY.
@@ -17234,10 +17241,20 @@ global void clear_per_thread_symvalues(object symbol);
 #if defined(HAVE_SIGNALS)
   /* SIGUSR1 is used for thread interrupt */
   #define SIG_THREAD_INTERRUPT SIGUSR1
+  /* SIGUSR2 WILL BE used for CALL-WITH-TIMEOUT */
+  #define SIG_TIMEOUT_CALL SIGUSR2
   /* installs the global "synchronous" signal handler for async 
    POSIX signals. */
   global void install_async_signal_handlers();
 #endif
+
+#define WITH_STOPPED_THREAD(thread,lock_heap,statement)	\
+  do {							\
+    var bool lh=lock_heap;				\
+    suspend_thread(thread,lh);				\
+    statement;						\
+    resume_thread(thread,lh);				\
+  } while(0)
 
 #define GC_STOP_WORLD(lock_heap,lock_thr) \
   gc_suspend_all_threads(lock_heap,lock_thr) 

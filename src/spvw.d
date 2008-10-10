@@ -4265,8 +4265,11 @@ local void interrupt_thread_signal_handler (int sig) {
   var object fun=popSTACK();
   var uintC args=posfixnum_to_V(popSTACK());
   /* have to unblock SIG_THREAD_INTERRUPT since 
-     our funcall may exit non-locally with longjmp() 
-     (do not want to rely on SA_NODEFER).
+     our funcall may exit non-locally with longjmp(). Also release the 
+     _signal_reenter_ok, since otherwise if we send quickly several times
+     the signal - only the first will be delivered. 
+     (do not want to rely on SA_NODEFER - not supported on all platforms and 
+     has different behavior on some).
      there is signalblock_on() but it sets process wide mask - hmm not that
      bad - probably should use it ??? */
   var sigset_t mask;
@@ -4296,6 +4299,27 @@ local void interrupt_thread_signal_handler (int sig) {
   GC_SAFE_REGION_BEGIN();
 }
 
+/* from signal handler it is always safe to stop the world unless
+   the GC is running at the moment - in this case there is single 
+   running thread in the process that performs the GC and we  do not
+   want to suspend it. 
+ */
+local bool lock_heap_from_signal_thread()
+{
+  do {
+    if (spinlock_tryacquire(&mem.alloc_lock)) { /* got it */
+      if (!gc_suspend_count) /* not in GC */
+	return true; 
+      /* release it */
+      spinlock_release(&mem.alloc_lock);
+    }
+    xthread_yield();
+    /*TODO: if for some very long we cannot obtain the lock break the loop. 
+      (this situation is highly unusual and there is a big problem somewhere)*/
+  } while (1);
+  return false;
+}
+
 local void *signal_handler_thread(void *arg)
 {
   int sig;
@@ -4309,18 +4333,13 @@ local void *signal_handler_thread(void *arg)
     }
     switch (sig) {
     case SIGINT:
-      /* stop all threads - it seems enough to stop
-	 only the one that is going to handle the signal. however - since
-	 it is possible the other threads to cause GC (and again try to
-	 top the world) - we play safe here and stop everything. */
       {
 	var clisp_thread_t *thr=NULL;
 	var xthread_t systhr;
-	/* let's first acquire the HEAP lock. The ACQUIRE_HEAP_LOCK - called 
-	   within WITH_STOPPED_WORLD is great - however We are not in the lisp 
-	   world so GC_SAFE_POINT_ELSE() is not safe (no current_thread()).*/
-	while (!spinlock_tryacquire(&mem.alloc_lock))
-	  xthread_yield(); 
+	/* we can use WITH_STOP_THREAD here - however we should know which thread to stop.
+	   since this is not the case (it is possible if we choose one, until we stop
+	   the world this thread to exit) - so we stop the whole world.*/
+	lock_heap_from_signal_thread(); /* lock heap */
 	WITH_STOPPED_WORLD({
 	  #ifdef DEBUG_GCSAFETY
 	   use_dummy_alloccount=true;
@@ -4353,26 +4372,9 @@ local void *signal_handler_thread(void *arg)
     case SIGALRM:
       /* currently not used */
       break;
-
   #if defined(SIGWINCH) 
     case SIGWINCH:
-      /* update all threads SYS::*PRIN-LINELENGTH* bindings 
-	 and the global symbol value as well */
-      WITH_STOPPED_WORLD({
-        #ifdef DEBUG_GCSAFETY
-	 use_dummy_alloccount=true;
-	#endif
-
-	var Symbol prl = TheSymbol(S(prin_linelength));
-	for_all_threads({
-
-	  /* TODO: implement */
-	});
-        #ifdef DEBUG_GCSAFETY
-	 use_dummy_alloccount=false;
-	#endif
-      },
-	true,true);
+      /* TODO: imlpement. */
       break;
   #endif
   #ifdef SIGTTOU
@@ -4380,7 +4382,7 @@ local void *signal_handler_thread(void *arg)
       break; /* just ignore it */
   #endif
   #ifdef UNIX_MACOSX
-      /* TODO: forked() processes cause SIGHUP/SIGCONT on OSX.
+      /* TODO: vfork()-ed processes cause SIGHUP/SIGCONT on OSX.
 	 currently - ignore them - but it's TODO item. .*/
      case SIGHUP:
      case SIGCONT:
@@ -4390,6 +4392,7 @@ local void *signal_handler_thread(void *arg)
       /* some of the termination signals */
       /* just terminate all threads - the last one will 
 	 kill the process from delete_thread */
+      lock_heap_from_signal_thread();
       WITH_STOPPED_WORLD({
         #ifdef DEBUG_GCSAFETY
 	 use_dummy_alloccount=true;
@@ -4407,7 +4410,8 @@ local void *signal_handler_thread(void *arg)
 	 use_dummy_alloccount=false;
 	#endif
       },
-	true,true);
+        false,true);
+      spinlock_release(&mem.alloc_lock);
       break;
     }
   }

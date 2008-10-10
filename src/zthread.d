@@ -227,6 +227,7 @@ LISPFUNN(thread_yield,0)
 
 LISPFUNN(thread_kill,1)
 { /* (THREAD-KILL thread) */
+#ifdef HAVE_SIGNALS 
   var object thr = check_thread(popSTACK());
   var xthread_t systhr=TheThread(thr)->xth_system;
   var clisp_thread_t *clt=TheThread(thr)->xth_globals;
@@ -250,24 +251,28 @@ LISPFUNN(thread_kill,1)
   pushSTACK(thr);
   /* make sure we can send signals to this thread. */
   GC_SAFE_SPINLOCK_ACQUIRE(&clt->_signal_reenter_ok);
-  WITH_STOPPED_WORLD({
-    if (clt->_STACK != NULL) { /* only if alive */
-      /* let's reveal the dummy stack end */
-      gcv_object_t *stack_end=clt->_dummy_stack_end;
-      *stack_end=NIL;
-      stack_end skipSTACKop 1; /* advance */
-      *stack_end=NIL; 
-      NC_pushSTACK(clt->_STACK,posfixnum(0));
-      NC_pushSTACK(clt->_STACK,posfixnum(1)); /* one argument */
-      NC_pushSTACK(clt->_STACK,S(unwind_to_driver)); /* function to be called */
-      xthread_signal(TheThread(thr)->xth_system,SIG_THREAD_INTERRUPT);
-    } else {
-      /* release it since we are not going to signal the thread */
-      spinlock_release(&clt->_signal_reenter_ok);
-    }
-  },
-    true,true);
+  WITH_STOPPED_THREAD
+    (clt,true,
+     {
+       if (clt->_STACK != NULL) { /* only if alive */
+	 /* let's reveal the dummy stack end */
+	 gcv_object_t *stack_end=clt->_dummy_stack_end;
+	 *stack_end=NIL;
+	 stack_end skipSTACKop 1; /* advance */
+	 *stack_end=NIL; 
+	 NC_pushSTACK(clt->_STACK,posfixnum(0));
+	 NC_pushSTACK(clt->_STACK,posfixnum(1)); /* one argument */
+	 NC_pushSTACK(clt->_STACK,S(unwind_to_driver)); /* function to be called */
+	 xthread_signal(TheThread(thr)->xth_system,SIG_THREAD_INTERRUPT);
+       } else {
+	 /* release it since we are not going to signal the thread */
+	 spinlock_release(&clt->_signal_reenter_ok);
+       }
+     });
   VALUES1(popSTACK());
+#else
+  NOTREACHED; /*win32 will have to wait*/ 
+#endif
 }
 
 LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
@@ -289,20 +294,22 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
       problem)*/
     /* be sure that the signal we send will be received */
     GC_SAFE_SPINLOCK_ACQUIRE(&clt->_signal_reenter_ok);
-    WITH_STOPPED_WORLD({
-      if (clt->_STACK == NULL) { /* thread has terminated */
-	thread_was_stopped=true;
-      } else {
-	while (rest_args_pointer != args_end_pointer) {
-	  var object arg = NEXT(rest_args_pointer);
-	  NC_pushSTACK(clt->_STACK,arg);
-	}
-	NC_pushSTACK(clt->_STACK,posfixnum(argcount));
-	NC_pushSTACK(clt->_STACK,STACK_(argcount)); /* function */
-	xthread_signal(systhr,SIG_THREAD_INTERRUPT);
-      }
-    },
-      true,true);
+    WITH_STOPPED_THREAD
+      (clt,true,
+       {
+	 if (clt->_STACK == NULL) { /* thread has terminated */
+	   thread_was_stopped=true;
+	   spinlock_release(&clt->_signal_reenter_ok);
+	 } else {
+	   while (rest_args_pointer != args_end_pointer) {
+	     var object arg = NEXT(rest_args_pointer);
+	     NC_pushSTACK(clt->_STACK,arg);
+	   }
+	   NC_pushSTACK(clt->_STACK,posfixnum(argcount));
+	   NC_pushSTACK(clt->_STACK,STACK_(argcount)); /* function */
+	   xthread_signal(systhr,SIG_THREAD_INTERRUPT);
+	 }
+       });
     skipSTACK(2 + (uintL)argcount);
     /* TODO: may be signal an error if we try to interrupt
        terminated thread ???*/
