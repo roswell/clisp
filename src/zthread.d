@@ -104,7 +104,7 @@ local /*maygc*/ void *thread_stub(void *arg)
   return NULL;
 }
 
-local inline ensure_uint32(object x)
+local inline uint32 ensure_uint32(object x)
 {
   return 
     (uint32_p(x) ? I_to_uint32(x) : I_to_uint32(check_uint32_replacement(x)));

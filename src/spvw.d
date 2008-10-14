@@ -4258,25 +4258,19 @@ local sigset_t async_signal_mask()
 
 /* SIG_THREAD_INTERRUPT handler */
 local void interrupt_thread_signal_handler (int sig) {
-  signal_acknowledge(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
-  /* wait for the world to resume */
-  clisp_thread_t *thr=current_thread();
   GC_SAFE_REGION_END(); /* end the safe region at which we are*/
-  var object fun=popSTACK();
-  var uintC args=posfixnum_to_V(popSTACK());
+  /* BACK IN LISP LAND HERE */
+  signal_acknowledge(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
   /* have to unblock SIG_THREAD_INTERRUPT since 
-     our funcall may exit non-locally with longjmp(). Also release the 
-     _signal_reenter_ok, since otherwise if we send quickly several times
-     the signal - only the first will be delivered. 
-     (do not want to rely on SA_NODEFER - not supported on all platforms and 
-     has different behavior on some).
-     there is signalblock_on() but it sets process wide mask - hmm not that
-     bad - probably should use it ??? */
+     our funcall may exit non-locally with longjmp(). */
   var sigset_t mask;
   sigemptyset(&mask);
   sigaddset(&mask,SIG_THREAD_INTERRUPT);
   xthread_sigmask(SIG_UNBLOCK,&mask,NULL);
+  clisp_thread_t *thr=current_thread();
   spinlock_release(&thr->_signal_reenter_ok); /* release the signal reentry */
+  var object fun=popSTACK();
+  var uintC args=posfixnum_to_V(popSTACK());
   /* NB: IT IS REALLY, REALLY NOT SAFE DO THIS ACCORDING POSIX - BUT SEEMS
      TO WORK QUITE WELL (OF COURSE ANY USER LOCKS MAY INTEFERE VERY BADLY).
      (PROBABLY IT IS RELATED WITH THE FACT THAT WE CANNOT BE INTERRUPTED AT 
@@ -4291,33 +4285,9 @@ local void interrupt_thread_signal_handler (int sig) {
      scheme we cannot interrupt the system calls - our GC_SAFE_REGIONs are 
      plced above the low level stuff in unixaux.d.
 
-     It's tested on osx and debian 32 bit.
-  */
+     It's tested on osx and debian 32 bit. */
   funcall(fun,args);
-  /* if we come here - we have to set again the safe region 
-   we will resume in a system call or in allocate_xxxx. */
   GC_SAFE_REGION_BEGIN();
-}
-
-/* from signal handler it is always safe to stop the world unless
-   the GC is running at the moment - in this case there is single 
-   running thread in the process that performs the GC and we  do not
-   want to suspend it. 
- */
-local bool lock_heap_from_signal_thread()
-{
-  do {
-    if (spinlock_tryacquire(&mem.alloc_lock)) { /* got it */
-      if (!gc_suspend_count) /* not in GC */
-	return true; 
-      /* release it */
-      spinlock_release(&mem.alloc_lock);
-    }
-    xthread_yield();
-    /*TODO: if for some very long we cannot obtain the lock break the loop. 
-      (this situation is highly unusual and there is a big problem somewhere)*/
-  } while (1);
-  return false;
 }
 
 local void *signal_handler_thread(void *arg)
@@ -4331,89 +4301,108 @@ local void *signal_handler_thread(void *arg)
 	CTRL-Z and "fg" later) */
       continue;
     }
+    /* before proceeding we have to be sure that there is no GC 
+       in progress at the moment. This is the only situation in 
+       which we have to delay the signal. */
+    {
+      var int retrys=0;
+      xmutex_lock(&allthreads_lock);
+      /* if we do spinlock_acquire(&mem.alloc_lock) - clasical deadlock 
+	 may happen. let's try up to 10 times to get it. */
+      while (!spinlock_tryacquire(&mem.alloc_lock)) {
+	if (retrys == 10) break;
+	xthread_yield(); retrys++;
+      }
+      if (retrys == 10) {
+	/* give up - not good but do not want to deal with SIGALRM for now 
+	   want to keep it for with-timeout together with SIGUSR2 */
+	xmutex_unlock(&allthreads_lock);
+	fprintf(stderr, "*** signal will be missed due the GC in progress : %d\n",sig);
+	continue;
+      }
+    }    
+    #ifdef DEBUG_GCSAFETY
+     use_dummy_alloccount=true;
+    #endif
+    /* now we own the heap lock and threads lock - no GC may happen. Also we are
+       sure that there is no GC in progress (since we obtained the heap 
+       lock while the threads lock was owned by us as well). */
     switch (sig) {
     case SIGINT:
       {
-	var clisp_thread_t *thr=NULL;
-	var xthread_t systhr;
-	/* we can use WITH_STOP_THREAD here - however we should know which thread to stop.
-	   since this is not the case (it is possible if we choose one, until we stop
-	   the world this thread to exit) - so we stop the whole world.*/
-	lock_heap_from_signal_thread(); /* lock heap */
-	WITH_STOPPED_WORLD({
-	  #ifdef DEBUG_GCSAFETY
-	   use_dummy_alloccount=true;
-	  #endif
-	  /* TODO: find thread to handle it 
-	     currently we just pick the first one */
-	  thr=allthreads[0];
-	  systhr=TheThread(thr->_lthread)->xth_system;
-	  if (thr == NULL) {
-	    /* really strange - no thread can handle the interrupt.*/
-	    fprintf(stderr,GETTEXT("*** SIGINT signal will be missed.\n"));
-	  } else {
-	    /* since all threads are stopped and we are not in the lisp world
-	       nobody can send/nest SIG_THREAD_INTERRUPT - so we do not care about 
-	       the _signal_reenter_ok lock. */
-	    NC_pushSTACK(thr->_STACK,O(thread_break_description));
-	    NC_pushSTACK(thr->_STACK,S(interrupt_condition)); /* condition */
-	    NC_pushSTACK(thr->_STACK,posfixnum(2)); /* two arguments */
-	    NC_pushSTACK(thr->_STACK,S(cerror)); /* function to be called */
-	    xthread_signal(systhr,SIG_THREAD_INTERRUPT);
-	  }
-	  #ifdef DEBUG_GCSAFETY
-	   use_dummy_alloccount=false;
-	  #endif
-	},
-	  false,true); /* we own the heap lock now*/
-	spinlock_release(&mem.alloc_lock);
+	var clisp_thread_t *thread=allthreads[0];
+	var bool signal_sent=false;
+	spinlock_acquire(&thread->_signal_reenter_ok); 
+	WITH_STOPPED_THREAD
+	  (thread,false,{
+	    if (thread->_STACK) { 
+	      gcv_object_t *stack=thread->_STACK;
+	      /* line below is not needed but detects bugs */
+	      NC_pushSTACK(thread->_STACK,O(thread_break_description));
+	      NC_pushSTACK(thread->_STACK,S(interrupt_condition)); /* arg */
+	      NC_pushSTACK(thread->_STACK,posfixnum(2)); /* two arguments */
+	      NC_pushSTACK(thread->_STACK,S(cerror)); /* function */
+	      if (xthread_signal(TheThread(thread->_lthread)->xth_system,
+				 SIG_THREAD_INTERRUPT) != 0) {
+		thread->_STACK=stack; /* restore the stack */
+	      } else 
+		signal_sent=true;
+	    }
+	  });
+	if (!signal_sent) {
+	  spinlock_release(&thread->_signal_reenter_ok); 
+	  fprintf(stderr, "*** SIGINT will be missed.\n");
+	} else {
+	  /* wait for acknoweldge from the thread signal handler */
+	  spinlock_acquire(&thread->_signal_reenter_ok); 	  
+	  spinlock_release(&thread->_signal_reenter_ok); 
+	}
       }
+      
       break;
     case SIGALRM:
       /* currently not used */
       break;
-  #if defined(SIGWINCH) 
+#if defined(SIGWINCH) 
     case SIGWINCH:
       /* TODO: imlpement. */
       break;
-  #endif
-  #ifdef SIGTTOU
+#endif
+#ifdef SIGTTOU
     case SIGTTOU:
       break; /* just ignore it */
-  #endif
-  #ifdef UNIX_MACOSX
+#endif
+#ifdef UNIX_MACOSX
       /* TODO: vfork()-ed processes cause SIGHUP/SIGCONT on OSX.
 	 currently - ignore them - but it's TODO item. .*/
-     case SIGHUP:
-     case SIGCONT:
-       break; 
-  #endif
+    case SIGHUP:
+    case SIGCONT:
+      break; 
+#endif
     default:
-      /* some of the termination signals */
       /* just terminate all threads - the last one will 
 	 kill the process from delete_thread */
-      lock_heap_from_signal_thread();
-      WITH_STOPPED_WORLD({
-        #ifdef DEBUG_GCSAFETY
-	 use_dummy_alloccount=true;
-	#endif
-	for_all_threads({
-	  NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
-	  NC_pushSTACK(thread->_STACK,posfixnum(1)); /* 1 argument */
-	  NC_pushSTACK(thread->_STACK,S(thread_kill)); /* thread kill */
-	  /* the real killing will begin after we leave the 
-	     WITH_STOPED_WORLD. */
-	  xthread_signal(TheThread(thread->_lthread)->xth_system,
-			 SIG_THREAD_INTERRUPT);
+      WITH_STOPPED_WORLD
+	(false,false,{
+	  for_all_threads({
+	    if (thread->_STACK) { 
+	      NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
+	      NC_pushSTACK(thread->_STACK,posfixnum(1)); /* 1 argument */
+	      NC_pushSTACK(thread->_STACK,S(thread_kill)); /* thread kill */
+	      /* the real killing will begin after we leave the 
+		 WITH_STOPED_WORLD. */
+	      xthread_signal(TheThread(thread->_lthread)->xth_system,
+			     SIG_THREAD_INTERRUPT);
+	    }
+	  });
 	});
-        #ifdef DEBUG_GCSAFETY
-	 use_dummy_alloccount=false;
-	#endif
-      },
-        false,true);
-      spinlock_release(&mem.alloc_lock);
       break;
     }
+#ifdef DEBUG_GCSAFETY
+    use_dummy_alloccount=false;
+#endif
+    spinlock_release(&mem.alloc_lock);
+    xmutex_unlock(&allthreads_lock);
   }
   return NULL;
 }

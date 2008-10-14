@@ -527,7 +527,7 @@ global void gc_suspend_all_threads(bool lock_heap, bool lock_thr)
   var uint8 *acklocked; 
   var bool all_suspended;
   var clisp_thread_t *me=current_thread();
-  /*printf("VTZ: GC_SUSPEND(): %0x\n",me);*/
+  /*fprintf(stderr,"VTZ: GC_SUSPEND(): %0x, %d\n",me,gc_suspend_count);*/
   if (lock_heap) ACQUIRE_HEAP_LOCK();
   if (gc_suspend_count == 0) { /* first time here */
     if (lock_thr) lock_threads();
@@ -577,10 +577,10 @@ global void gc_resume_all_threads(bool unlock_heap,bool unlock_thr)
 {
   /* thread lock is locked. heap lock is free. */
   var clisp_thread_t *me=current_thread();
-  /*printf("VTZ: GC_RESUME(): %0x\n",me);*/
-  gc_suspend_count--;
-  if (gc_suspend_count > 0)
+  /*fprintf(stderr,"VTZ: GC_RESUME(): %0x, %d\n",me, gc_suspend_count);*/
+  if (--gc_suspend_count) {
     return;
+  }
   /* get the heap lock. in case we are called from allocate_xxx
      we should not allow any other thread that will be resumed shortly 
      to acquire it. */
@@ -666,11 +666,14 @@ global maygc uintL add_per_thread_special_var(object symbol)
     Since this will be relatively rear event - we prefer the second way.*/
     var uintL nsyms=num_symvalues + SYMVALUES_PER_PAGE;
     /* do not lock heap and threads - we have already done so */
-    WITH_STOPPED_WORLD({
-      for_all_threads({
-	if (!realloc_thread_symvalues(thread,nsyms))
-	  goto failed;
-      });},false,false); 
+    WITH_STOPPED_WORLD
+      (false,false, 
+       {
+	 for_all_threads({
+	   if (!realloc_thread_symvalues(thread,nsyms))
+	     goto failed;
+	 });
+       }); 
     maxnum_symvalues = nsyms;
   }
   symbol_index=num_symvalues++;

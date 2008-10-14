@@ -1044,7 +1044,7 @@ local inline bool instance_p(aint ptr)
 
 
 /* how to calculate good value for this ??? */
-#define ACCEPTABLE_VAROBJECT_HEAP_HOLE  128*sizeof(gcv_object_t)
+#define ACCEPTABLE_VAROBJECT_HEAP_HOLE  64*sizeof(gcv_object_t)
 
 /* Prepare objects of variable length between page->page_start and
  page->page_end for compacting below. Therefore, in each marked
@@ -1067,7 +1067,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
   var bool last_was_marked=false;
   var gcv_object_t* last_open_ptr = firstmarked;
   var aint p2 = start;          /* source-pointer */
-  var varobj_mem_region *cur=dest;
+  var varobj_mem_region *cur=dest, *cur_used;
   var uintM objlen;
   var aint new_loc;
   var_prepare_objsize;
@@ -1076,22 +1076,28 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 #ifdef TYPECODES
   var tint flags; /* save typeinfo (and flags for symbols) */
 #endif
-
+#ifdef MULTITHREAD
+  var uintC min_hole_len = size_sb8vector(0);
+#else
+  var uintC min_hole_len = 0;
+#endif
   while (1) {
     if (p2==end) break; /* we have finished */
     objlen=objsize((Varobject)p2);
-
     /* Check for pinned object. Currently we assume that it is
-     possible to have pinned object that is not marked !!!
-    This is quite unlikely (at least I do not see normal
-    case in which this may occur). moving this after the mark is checked
-    will improve the performance of course. */
+       possible to have pinned object that is not marked !!!
+       This is quite unlikely (at least I do not see normal
+       case in which this may occur). moving this after the mark is checked
+       will improve the performance of course. */
     if (p2==next_pinned) { /* is the current object pinned? */
-    pin:;
+      cur_used=NULL; /* no current memory region */       
       /* advance to next pinned object */
       pin_watch++; next_pinned=pin_watch->start+pin_watch->size;
       new_loc=p2; /* stay here */
-      mark(p2); /* mark it: VTZ: currently for testing - should be marked! */
+      /* mark the pinned object if not already. it is possible becuase
+	 of signal handling to have pinned object that has not been put 
+	 in GC visible location. */
+      mark(p2); 
       goto advance;
     }
     if (!marked(p2)) { 
@@ -1108,11 +1114,13 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
     /* we have marked object that is not pinned. 
        we should calculate the new address at which we will move it */
   relocate:
-    if (cur->size >= objlen) {
+    /* we should have space for at least vrecord_ before the pinned object */
+    if ((cur->size == objlen) || (cur->size >= objlen + min_hole_len)) { 
       /* we still have place in this region */
       new_loc=cur->start;
       /* shrink current region */
       cur->start+=objlen; cur->size-=objlen;
+      cur_used=cur; /* will use the current destination buffer */ 
     } else {
       /* no place in current region. */
       /* if the whole remaining area is small enough - just create new hole
@@ -1131,24 +1139,17 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 	 there the current object.*/
       var varobj_mem_region *r=cur+1;
       var int i;
-      for (i=cur-dest;i<dest_count-1;i++) {
-	if (r->size > objlen) {
+      for (i=cur-dest;i<dest_count-1 && p2>=r->start;i++,r++) {
+	if (r->size == objlen || r->size >= objlen + min_hole_len) {
 	  new_loc=r->start;
 	  /* shrink the region */
 	  r->start+=objlen; r->size-=objlen;
+	  cur_used=r; /* set current destination buffer to r*/
 	  goto advance;
 	}
       }
-      /* we have not found big enough place for this object. 
-	 just pin it at it's current location. */
-      memmove(pin_watch+1,pin_watch,
-	      sizeof(varobj_mem_region)*(dest_count-(pin_watch-dest)));
-      dest_count++;
-      (pin_watch+1)->size=pin_watch->size-(p2-pin_watch->start)-objlen;
-      (pin_watch+1)->start=p2+objlen;
-      pin_watch->size=p2-pin_watch->start;
-      next_pinned=p2;
-      goto pin;
+      /* we should not reach here */
+      abort();
     }
   advance:
     #ifdef TYPECODES
@@ -1169,7 +1170,9 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 	 /* A forward pointer. */
 	 gc_sweep1_sstring_forward(p2);
 	 /* this object will not survive the GC */
-	 cur->start-=objlen; cur->size+=objlen;
+	 if (cur_used) {
+	   cur_used->start-=objlen; cur_used->size+=objlen;
+	 }
        } else {
 	 /* Possibly the target of a forward pointer. */
 	 gc_sweep1_sstring_target(p2,new_loc);
@@ -1186,7 +1189,9 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 	 /* A forward pointer. */
 	 gc_sweep1_instance_forward(p2);
 	 /* this object will not be relocated. */
-	 cur->start-=objlen; cur->size+=objlen;
+	 if (cur_used) {
+	   cur_used->start-=objlen; cur_used->size+=objlen;
+	 }
        } else {
 	 /* Possibly the target of a forward pointer. */
 	 gc_sweep1_instance_target(p2,new_loc);
@@ -1198,6 +1203,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
         mark(p2);
        #endif
      }
+     DEBUG_SPVW_ASSERT(new_loc <= p2); 
      if (!last_was_marked) {
        last_was_marked = true;
        *last_open_ptr = pointer_as_object(p2); /* store address */
@@ -1217,7 +1223,6 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       holes[*holes_count].start=cur->start;
       (*holes_count)++;
     }
-    mark(cur->start+cur->size); /* mark next pinned */
     cur++;
   }
   return cur->start; /* used only if GENERATIONAL_GC || SPVW_PURE */
@@ -1682,7 +1687,6 @@ local void fill_relocation_memory_regions(aint start,aint end,
 local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
 					    uintC holes_count)
 {
-  /* compiler should optimize this to nop if not MT!*/
 #if defined(MULTITHREAD) /* only in MT we may have pinned objects */
   while (holes_count--) {
     var Sbvector ptr=(Sbvector)holes->start;
@@ -1696,6 +1700,7 @@ local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
      #else
       ptr->tfl = vrecord_tfl(Rectype_Sb8vector,len);
      #endif
+      if (holes->size != objsize(ptr)) abort();
     #else  /* SPVW_PURE ==> TYPECODES */
       /* depending on the heap type we have to allocate differently. since 
 	 all varobjects have length/type encoded in their header - we will
@@ -1703,23 +1708,25 @@ local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
 	 the hole). We have to "allocate" the same type with length of the 
 	 hole.*/
       /*VTZ: TODO: currently only simple vectors are implemented */
+      var bool vector=true;
       var Varobject ptr=(Varobject)holes->start;
       var Varobject pinned=(Varobject)(holes->start+holes->size);
-      uintL len = holes->size - offsetofa(sbvector_,data);
+      uintL len = holes->size - sizeof(vrecord_);
       set_GCself(holes->start,mtypecode(pinned->GCself),holes->start);
       /* hmm there will be mess with alignments of VAROBJECT_HEADER ???*/
+
       switch (typecode_at(holes->start)) {
-      case_sbvector: len<<=3; break;
-      case_sb2vector: len<<=2; break;
-      case_sb4vector: len<<=1; break;
-      case_sb8vector:  break;
-      case_sb16vector: len>>=1; break;
-      case_sb32vector: len>>=2; break;
+      case_sbvector: ((Sbvector)ptr)->length = len<<=3; break;
+      case_sb2vector: ((Sbvector)ptr)->length = len<<=2; break;
+      case_sb4vector: ((Sbvector)ptr)->length = len<<=1; break;
+      case_sb8vector:  ((Sbvector)ptr)->length = len break;
+      case_sb16vector: ((Sbvector)ptr)->length = len>>=1; break;
+      case_sb32vector: ((Sbvector)ptr)->length = len>>=2; break;
       default:
+	/* TODO: HANDLE STRIGS */
 	fprintf(stderr,"VTZ: unsupported type of pinned object !!!\n"); 
 	abort();
       }
-      ((Sbvector)ptr)->length = len;
     #endif
     holes++;
   }
@@ -1886,19 +1893,22 @@ local void gar_col_normal (void)
  #endif
   /* prepare objects of variable length for compacting below: */
 
-  /* we cannot have more pinned objects than the number of active threads
-     multiply by 4 since large blocks that may not be moved may introduce
-     new pinned objects (actually not sure that 4 is fine)*/
-#if !defined(MULTITHREAD)
-  #define nthreads 1
-#endif
+  var uintC pinned_count=0;
+  /* count the pinned objects */
+  for_all_threads({
+    var pinned_chain_t *chain=thread->_pinned;
+    while (chain) {
+      chain = chain->_next;
+      pinned_count++;
+    }
+  });
+  /* every pinned object may introduce a hole in the heap. */
+  /* large objects that cannot be moved becasue of the pinned objects
+     mill be treated as pinned. */
   var varobj_mem_region *regions=
-    (varobj_mem_region *)alloca(4*nthreads*sizeof(varobj_mem_region));
+    (varobj_mem_region *)alloca((pinned_count+1)*sizeof(varobj_mem_region));
   var varobj_mem_region *holes_to_fill=
-    (varobj_mem_region *)alloca(4*nthreads*sizeof(varobj_mem_region));
-#if !defined(MULTITHREAD)
-  #undef nthreads
-#endif
+    (varobj_mem_region *)alloca((pinned_count+1)*sizeof(varobj_mem_region));
   var uintC holes_count=0, regions_count;
  #ifdef SPVW_PURE
   #ifdef GENERATIONAL_GC

@@ -1,3 +1,23 @@
+2008-10-14  Vladimir Tzankov  <vtzankov@gmail.com>
+	Pinned varobjects and signal handling fixes.
+
+	* lispbibl.d
+	(WITH_STOPPED_WORLD): parameters reordered.
+	* spvw.d
+	(signal_handler_thread): fixed race condition between GC and signal 
+	handler.
+	(lock_heap_from_signal_thread): removed
+	* spvw_garcol.d 
+	(gc_sweep1_varobject_page): fixed the pinned objects handling.
+	(fill_varobject_heap_holes): checks for heap corruption. 
+	TODO: fill holes in string heap in SPVW_PURE.
+	(gar_col_normal): compute the number of possible heap holes before
+	allocation of varobj_mem_region arrays.
+	* spvw_global.d
+	(add_per_thread_special_var): reorder parameters to  WITH_STOPPED_WORLD.
+	* zthread.d
+	(ensure_uint32): fixed missing return type.
+
 2008-10-10  Vladimir Tzankov  <vtzankov@gmail.com>
 	Per thread suspend/resume as GC safe points.
 

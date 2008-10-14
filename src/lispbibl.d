@@ -17271,7 +17271,7 @@ global void clear_per_thread_symvalues(object symbol);
  the order - deadlock may occur). GC_STOP_WORLD (gc_suspend_all_threads) should be
  called with acquired heap lock or with lock_heap=true. 
 */
-#define WITH_STOPPED_WORLD(statement,lock_heap,lock_thr)  \
+#define WITH_STOPPED_WORLD(lock_heap,lock_thr,statement)	\
     do {	 \
       var bool lh=lock_heap; \
       var bool lt=lock_thr; \
@@ -17282,13 +17282,13 @@ global void clear_per_thread_symvalues(object symbol);
 
   #ifndef DEBUG_GCSAFETY
     #define PERFORM_GC(statement,lock_heap) \
-      WITH_STOPPED_WORLD(statement,lock_heap,true)
+WITH_STOPPED_WORLD(lock_heap,true,statement)
   #else /* DEBUG_GCSAFETY */
     /* if we trigger GC from allocate_xxxx, than we already have 
      stopped the world and will resume it at exit.*/
     #define PERFORM_GC(statement,lock_heap) \
       do {\
-	if (lock_heap) WITH_STOPPED_WORLD(statement,true,true); else statement; \
+	if (lock_heap) WITH_STOPPED_WORLD(true,true,statement); else statement; \
       }while(0) 
     extern uintL* current_thread_alloccount();
   #endif
