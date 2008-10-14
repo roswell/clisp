@@ -1,3 +1,9 @@
+2008-10-15  Vladimir Tzankov  <vtzankov@gmail.com>
+	DEBUG_GCSAFETY fixes in signal handler thread. 
+
+	* spvw.d (signal_handler_thread): use_dummy_alloccount can be 
+	used only when the LISP threads are suspended.
+
 2008-10-14  Vladimir Tzankov  <vtzankov@gmail.com>
 	Signal handling code cleanup.
 

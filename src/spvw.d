@@ -4344,10 +4344,6 @@ local void *signal_handler_thread(void *arg)
       spinlock_acquire(&thread->_signal_reenter_ok); 
       spinlock_release(&thread->_signal_reenter_ok);
     });
-
-    #ifdef DEBUG_GCSAFETY
-     use_dummy_alloccount=true;
-    #endif
     /* now we own the heap lock and threads lock - no GC may happen. Also we are
        sure that there is no GC in progress (since we obtained the heap 
        lock while the threads lock was owned by us as well). */
@@ -4356,6 +4352,9 @@ local void *signal_handler_thread(void *arg)
       WITH_STOPPED_WORLD
 	(false,{
 	  var bool signal_sent=false;
+          #ifdef DEBUG_GCSAFETY
+	   use_dummy_alloccount=true;
+          #endif
 	  for_all_threads({
 	    if (thread->_STACK) { /* still alive ?*/
 	      gcv_object_t *saved_stack=thread->_STACK;
@@ -4376,10 +4375,10 @@ local void *signal_handler_thread(void *arg)
 	  if (!signal_sent) {
 	    fprintf(stderr, "*** SIGINT will be missed.\n");
 	  } 
+          #ifdef DEBUG_GCSAFETY
+           use_dummy_alloccount=false;
+          #endif
 	});
-      break;
-    case SIGALRM:
-      /* currently not used */
       break;
 #if defined(SIGWINCH) 
     case SIGWINCH:
@@ -4402,6 +4401,9 @@ local void *signal_handler_thread(void *arg)
 	 kill the process from delete_thread */
       WITH_STOPPED_WORLD
 	(false,{
+          #ifdef DEBUG_GCSAFETY
+	   use_dummy_alloccount=true;
+          #endif
 	  for_all_threads({
 	    if (thread->_STACK) { 
 	      NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
@@ -4411,12 +4413,12 @@ local void *signal_handler_thread(void *arg)
 			     SIG_THREAD_INTERRUPT);
 	    }
 	  });
+          #ifdef DEBUG_GCSAFETY
+           use_dummy_alloccount=false;
+          #endif
 	});
       break;
     }
-#ifdef DEBUG_GCSAFETY
-    use_dummy_alloccount=false;
-#endif
     spinlock_release(&mem.alloc_lock);
     xmutex_unlock(&allthreads_lock);
   }
