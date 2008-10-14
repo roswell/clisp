@@ -151,15 +151,17 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   /* do allocations before thread locking */ 
   pushSTACK(allocate_thread(&STACK_1)); /* put it in GC visible place */
   pushSTACK(allocate_cons());
-  /* create clsp_thread_t - no need for locking */
-  new_thread=create_thread(vstack_depth);
-  if (!new_thread) {
-    skipSTACK(5); VALUES1(NIL); return;
-  }
-  /* let's lock in order to register */
+
+  /* let's lock in order to create and register */
   begin_blocking_call(); /* give chance the GC to work while we wait*/
   lock_threads(); 
   end_blocking_call();
+  /* create clsp_thread_t */
+  new_thread=create_thread(vstack_depth);
+  if (!new_thread) {
+    unlock_threads();
+    skipSTACK(5); VALUES1(NIL); return;
+  }
   /* push 2 null objects in the thread stack in order to stop
      marking in GC while initializing the thread and stack unwinding
      in case of error. */
@@ -249,11 +251,13 @@ LISPFUNN(thread_kill,1)
     NOTREACHED;
   }
   pushSTACK(thr);
+  var bool signal_sent=false;
   /* make sure we can send signals to this thread. */
   GC_SAFE_SPINLOCK_ACQUIRE(&clt->_signal_reenter_ok);
   WITH_STOPPED_THREAD
     (clt,true,
      {
+       var gcv_object_t *saved_stack=clt->_STACK;
        if (clt->_STACK != NULL) { /* only if alive */
 	 /* let's reveal the dummy stack end */
 	 gcv_object_t *stack_end=clt->_dummy_stack_end;
@@ -263,13 +267,15 @@ LISPFUNN(thread_kill,1)
 	 NC_pushSTACK(clt->_STACK,posfixnum(0));
 	 NC_pushSTACK(clt->_STACK,posfixnum(1)); /* one argument */
 	 NC_pushSTACK(clt->_STACK,S(unwind_to_driver)); /* function to be called */
-	 xthread_signal(TheThread(thr)->xth_system,SIG_THREAD_INTERRUPT);
-       } else {
+	 signal_sent = (0 == xthread_signal(TheThread(thr)->xth_system,SIG_THREAD_INTERRUPT));
+       } 
+       if (!signal_sent) {
 	 /* release it since we are not going to signal the thread */
+	 clt->_STACK=saved_stack;
 	 spinlock_release(&clt->_signal_reenter_ok);
        }
      });
-  VALUES1(popSTACK());
+  VALUES2(popSTACK(), signal_sent ? T : NIL);
 #else
   NOTREACHED; /*win32 will have to wait*/ 
 #endif
@@ -281,11 +287,12 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
   var object thr=check_thread(STACK_(argcount+1));
   var xthread_t systhr=TheThread(thr)->xth_system;
   var clisp_thread_t *clt=TheThread(thr)->xth_globals; 
+  var bool signal_sent=false;
   if (TheThread(thr)->xth_globals == current_thread()) {
     /* we want to interrupt ourselves ? strange but let's do it */
     funcall(Before(rest_args_pointer),argcount); skipSTACK(2);
+    signal_sent=true;
   } else {
-    var bool thread_was_stopped=false;
     /* we want ot interrupt different thread. */
     STACK_(argcount+1)=thr; /* gc may happen */
     /*TODO: may be check that the function argument can be 
@@ -297,24 +304,28 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
     WITH_STOPPED_THREAD
       (clt,true,
        {
-	 if (clt->_STACK == NULL) { /* thread has terminated */
-	   thread_was_stopped=true;
-	   spinlock_release(&clt->_signal_reenter_ok);
-	 } else {
+	 var gcv_object_t *saved_stack=clt->_STACK;
+	 if (clt->_STACK != NULL) { /* thread is alive ? */
 	   while (rest_args_pointer != args_end_pointer) {
 	     var object arg = NEXT(rest_args_pointer);
 	     NC_pushSTACK(clt->_STACK,arg);
 	   }
 	   NC_pushSTACK(clt->_STACK,posfixnum(argcount));
 	   NC_pushSTACK(clt->_STACK,STACK_(argcount)); /* function */
-	   xthread_signal(systhr,SIG_THREAD_INTERRUPT);
+	   signal_sent = (0 == xthread_signal(systhr,SIG_THREAD_INTERRUPT));
 	 }
+	 if (!signal_sent) {
+	   /* for some reason we were unable to send the signal */
+	   clt->_STACK=saved_stack; 
+	   spinlock_release(&clt->_signal_reenter_ok);
+	 } 
        });
     skipSTACK(2 + (uintL)argcount);
     /* TODO: may be signal an error if we try to interrupt
        terminated thread ???*/
   }
-  VALUES1(clt->_lthread); /* return the thread */
+  /* return the thread and whether it was really interrupted*/
+  VALUES2(clt->_lthread,signal_sent ? T : NIL); 
 #else
   NOTREACHED; /* win32 not implemented */
 #endif

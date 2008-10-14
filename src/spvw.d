@@ -802,11 +802,11 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
   end_system_call();
   unlock_threads();
 }
-
-  #define for_all_threads(statement)                             \
-    do { var clisp_thread_t** _pthread = &allthreads[nthreads];  \
-      while (_pthread != &allthreads[0])                         \
-        { var clisp_thread_t* thread = *--_pthread; statement; } \
+  #define for_all_threads(statement)					\
+    do { var clisp_thread_t** _pthread = &allthreads[0];		 \
+      var clisp_thread_t **endt=&allthreads[nthreads];			\
+      while (_pthread != endt)						\
+        { var clisp_thread_t* thread = *_pthread++; statement; }	\
     } while(0)
 
 /* reallocate _ptr_symvalues in such a way that there is a place for 
@@ -4258,8 +4258,6 @@ local sigset_t async_signal_mask()
 
 /* SIG_THREAD_INTERRUPT handler */
 local void interrupt_thread_signal_handler (int sig) {
-  GC_SAFE_REGION_END(); /* end the safe region at which we are*/
-  /* BACK IN LISP LAND HERE */
   signal_acknowledge(SIG_THREAD_INTERRUPT,&interrupt_thread_signal_handler);
   /* have to unblock SIG_THREAD_INTERRUPT since 
      our funcall may exit non-locally with longjmp(). */
@@ -4269,6 +4267,9 @@ local void interrupt_thread_signal_handler (int sig) {
   xthread_sigmask(SIG_UNBLOCK,&mask,NULL);
   clisp_thread_t *thr=current_thread();
   spinlock_release(&thr->_signal_reenter_ok); /* release the signal reentry */
+
+  GC_SAFE_REGION_END(); /* end the safe region at which we are*/
+  /* BACK IN LISP LAND HERE */
   var object fun=popSTACK();
   var uintC args=posfixnum_to_V(popSTACK());
   /* NB: IT IS REALLY, REALLY NOT SAFE DO THIS ACCORDING POSIX - BUT SEEMS
@@ -4301,26 +4302,49 @@ local void *signal_handler_thread(void *arg)
 	CTRL-Z and "fg" later) */
       continue;
     }
+    /* first handle the signals that will not require LISP world stop */
+    if (sig == SIG_THREAD_INTERRUPT) {
+      /* TODO: */
+      /* this will signal for new CALL-WITH-TIMEOUT timeouts and will setup
+	 SIGALRM to this thread as well. */
+      continue;
+    } else if (sig == SIGALRM) {
+      /* TODO: */
+      /* this will decide which thread has time-ed out in CALL-WITH-TIMEOUT
+	 and will send SIG_THREAD_INTERRUPT to it execute the timeout form.
+	 (and will reschedule the SIGALRM if needed) */
+      continue;
+    }
+    /*next signals require the lisp world to be stopped. */ 
     /* before proceeding we have to be sure that there is no GC 
        in progress at the moment. This is the only situation in 
        which we have to delay the signal. */
-    {
+    while (1) {
       var int retrys=0;
-      xmutex_lock(&allthreads_lock);
-      /* if we do spinlock_acquire(&mem.alloc_lock) - clasical deadlock 
-	 may happen. let's try up to 10 times to get it. */
+      xmutex_lock(&allthreads_lock); /* NO GC after this line */
       while (!spinlock_tryacquire(&mem.alloc_lock)) {
-	if (retrys == 10) break;
-	xthread_yield(); retrys++;
+	xthread_yield(); 
+	if (retrys == 10) 
+	  break;
+	retrys++;
       }
       if (retrys == 10) {
-	/* give up - not good but do not want to deal with SIGALRM for now 
-	   want to keep it for with-timeout together with SIGUSR2 */
+	/* may be a deadlock situation - another thread is trying to stop the
+	   world and cannot obtain the threads lock that we own (but has
+	   obtained the heap lock that we miss). */
 	xmutex_unlock(&allthreads_lock);
-	fprintf(stderr, "*** signal will be missed due the GC in progress : %d\n",sig);
+	xthread_yield();
 	continue;
-      }
-    }    
+      } else 
+	break;
+    }
+    /* we own both - the heap lock and threads lock*/
+    /* be sure that all threads are ready to be signaled */
+    for_all_threads({ 
+      spinlock_acquire(&thread->_signal_reenter_ok); 
+      spinlock_release(&thread->_signal_reenter_ok);
+    });
+
     #ifdef DEBUG_GCSAFETY
      use_dummy_alloccount=true;
     #endif
@@ -4329,36 +4353,30 @@ local void *signal_handler_thread(void *arg)
        lock while the threads lock was owned by us as well). */
     switch (sig) {
     case SIGINT:
-      {
-	var clisp_thread_t *thread=allthreads[0];
-	var bool signal_sent=false;
-	spinlock_acquire(&thread->_signal_reenter_ok); 
-	WITH_STOPPED_THREAD
-	  (thread,false,{
-	    if (thread->_STACK) { 
-	      gcv_object_t *stack=thread->_STACK;
+      WITH_STOPPED_WORLD
+	(false,{
+	  var bool signal_sent=false;
+	  for_all_threads({
+	    if (thread->_STACK) { /* still alive ?*/
+	      gcv_object_t *saved_stack=thread->_STACK;
 	      /* line below is not needed but detects bugs */
 	      NC_pushSTACK(thread->_STACK,O(thread_break_description));
 	      NC_pushSTACK(thread->_STACK,S(interrupt_condition)); /* arg */
 	      NC_pushSTACK(thread->_STACK,posfixnum(2)); /* two arguments */
 	      NC_pushSTACK(thread->_STACK,S(cerror)); /* function */
-	      if (xthread_signal(TheThread(thread->_lthread)->xth_system,
-				 SIG_THREAD_INTERRUPT) != 0) {
-		thread->_STACK=stack; /* restore the stack */
+	      signal_sent = 
+		(0 == xthread_signal(TheThread(thread->_lthread)->xth_system,
+				     SIG_THREAD_INTERRUPT));
+	      if (!signal_sent) {
+		thread->_STACK=saved_stack;
 	      } else 
-		signal_sent=true;
+		break;
 	    }
 	  });
-	if (!signal_sent) {
-	  spinlock_release(&thread->_signal_reenter_ok); 
-	  fprintf(stderr, "*** SIGINT will be missed.\n");
-	} else {
-	  /* wait for acknoweldge from the thread signal handler */
-	  spinlock_acquire(&thread->_signal_reenter_ok); 	  
-	  spinlock_release(&thread->_signal_reenter_ok); 
-	}
-      }
-      
+	  if (!signal_sent) {
+	    fprintf(stderr, "*** SIGINT will be missed.\n");
+	  } 
+	});
       break;
     case SIGALRM:
       /* currently not used */
@@ -4383,14 +4401,12 @@ local void *signal_handler_thread(void *arg)
       /* just terminate all threads - the last one will 
 	 kill the process from delete_thread */
       WITH_STOPPED_WORLD
-	(false,false,{
+	(false,{
 	  for_all_threads({
 	    if (thread->_STACK) { 
 	      NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
 	      NC_pushSTACK(thread->_STACK,posfixnum(1)); /* 1 argument */
 	      NC_pushSTACK(thread->_STACK,S(thread_kill)); /* thread kill */
-	      /* the real killing will begin after we leave the 
-		 WITH_STOPED_WORLD. */
 	      xthread_signal(TheThread(thread->_lthread)->xth_system,
 			     SIG_THREAD_INTERRUPT);
 	    }

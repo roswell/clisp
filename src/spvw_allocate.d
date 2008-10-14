@@ -22,9 +22,9 @@ local void* mymalloc (uintM need);
 
 #if defined(MULTITHREAD)
   #ifdef DEBUG_GCSAFETY
-    #define LOCK_ALLOCATE()	ACQUIRE_HEAP_LOCK(); GC_STOP_WORLD(false,true)
+    #define LOCK_ALLOCATE()	ACQUIRE_HEAP_LOCK(); GC_STOP_WORLD(false)
     #define RETURN_OBJ(obj) \
-      GC_RESUME_WORLD(false,true);    \
+      GC_RESUME_WORLD(false);    \
       RELEASE_HEAP_LOCK(); \
       return obj
   #else

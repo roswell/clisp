@@ -1149,7 +1149,8 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 	}
       }
       /* we should not reach here */
-      abort();
+      DEBUG_SPVW_ASSERT(0);
+      abort(); /* for the release build */
     }
   advance:
     #ifdef TYPECODES
@@ -1700,7 +1701,7 @@ local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
      #else
       ptr->tfl = vrecord_tfl(Rectype_Sb8vector,len);
      #endif
-      if (holes->size != objsize(ptr)) abort();
+     DEBUG_SPVW_ASSERT(holes->size == objsize(ptr));
     #else  /* SPVW_PURE ==> TYPECODES */
       /* depending on the heap type we have to allocate differently. since 
 	 all varobjects have length/type encoded in their header - we will

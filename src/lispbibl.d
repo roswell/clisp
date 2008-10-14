@@ -17099,6 +17099,7 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
 %%  puts("     spinlock_t _gc_suspend_request;");
 %%  puts("     spinlock_t _gc_suspend_ack;");
 %%  puts("     xmutex_t _gc_suspend_lock;"); 
+%%  puts("     uintC _suspend_count;");
 %%  puts("     gcv_object_t *_ptr_symvalues;");
 %%  puts("     object _mv_space [unspecified];");
 %%  puts("} clisp_thread_t;");
@@ -17204,10 +17205,10 @@ global void unlock_threads();
    assumed that the calling thread already has it).
    (this is needed since GC may be called from allocation or explicitly - when 
    the heap lock is not held - the same for lock_thr) */
-global void gc_suspend_all_threads(bool lock_heap, bool lock_thr);
+global void gc_suspend_all_threads(bool lock_heap);
 /* Resumes all suspended threads /besides the current/ 
    should match a call to suspend_all_threads() */
-global void gc_resume_all_threads(bool unlock_heap,bool unlock_thr);
+global void gc_resume_all_threads(bool unlock_heap);
 /* suspends at safe point and increases the _suspend_count of the thread 
  lock_heap specifies whether the caller DOES NOT own  the heap spinlock */
 global void suspend_thread(clisp_thread_t *thr, bool lock_heap);
@@ -17256,39 +17257,32 @@ global void clear_per_thread_symvalues(object symbol);
     resume_thread(thread,lh);				\
   } while(0)
 
-#define GC_STOP_WORLD(lock_heap,lock_thr) \
-  gc_suspend_all_threads(lock_heap,lock_thr) 
-#define GC_RESUME_WORLD(unlock_heap,lock_thr) \
-  gc_resume_all_threads(unlock_heap,lock_thr)
+#define GC_STOP_WORLD(lock_heap) \
+  gc_suspend_all_threads(lock_heap) 
+#define GC_RESUME_WORLD(unlock_heap) \
+  gc_resume_all_threads(unlock_heap)
 
 /* all calls to GC should be via this macro.
- The statement is executed, if lock_heap is true the heap is locked first.
- If lock_thr is true - the thread lock is acquired.
+ The statement is executed. If lock_heap is true the heap is locked first.
  (this is needed since GC may be called from allocation or explicitly - when 
- the heap lock is not held. the same for the thread lock) 
- NB: In order to stop the all threads (besides the current one) two locks 
- should be obtained: heap and thread lock EXACTLY in this order (if we switch the 
- the order - deadlock may occur). GC_STOP_WORLD (gc_suspend_all_threads) should be
- called with acquired heap lock or with lock_heap=true. 
-*/
-#define WITH_STOPPED_WORLD(lock_heap,lock_thr,statement)	\
+ the heap lock is not held). */
+#define WITH_STOPPED_WORLD(lock_heap,statement)	\
     do {	 \
       var bool lh=lock_heap; \
-      var bool lt=lock_thr; \
-      GC_STOP_WORLD(lh,lt);   \
+      GC_STOP_WORLD(lh);   \
       statement;     	\
-      GC_RESUME_WORLD(lh,lt);			\
+      GC_RESUME_WORLD(lh);			\
     } while(0)
 
   #ifndef DEBUG_GCSAFETY
     #define PERFORM_GC(statement,lock_heap) \
-WITH_STOPPED_WORLD(lock_heap,true,statement)
+      WITH_STOPPED_WORLD(lock_heap,statement)
   #else /* DEBUG_GCSAFETY */
     /* if we trigger GC from allocate_xxxx, than we already have 
      stopped the world and will resume it at exit.*/
     #define PERFORM_GC(statement,lock_heap) \
       do {\
-	if (lock_heap) WITH_STOPPED_WORLD(true,true,statement); else statement; \
+	if (lock_heap) WITH_STOPPED_WORLD(true,statement); else statement; \
       }while(0) 
     extern uintL* current_thread_alloccount();
   #endif

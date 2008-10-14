@@ -517,11 +517,9 @@ local uintC gc_suspend_count=0;
 
 /* Suspends all running threads /besides the current/ on GC safe points/regions.
    if lock_heap is true the heap is locked first.
-   if lock_thr is true - the threads lock is obtained (otherwise it is 
-   assumed that the calling thread already has it).
    (this is needed since GC may be called from allocation or explicitly - when 
    the heap lock is not held - the same for lock_thr) */
-global void gc_suspend_all_threads(bool lock_heap, bool lock_thr)
+global void gc_suspend_all_threads(bool lock_heap)
 {
   /* flags for indicating whether a thread acknowedge the suspension */
   var uint8 *acklocked; 
@@ -530,7 +528,7 @@ global void gc_suspend_all_threads(bool lock_heap, bool lock_thr)
   /*fprintf(stderr,"VTZ: GC_SUSPEND(): %0x, %d\n",me,gc_suspend_count);*/
   if (lock_heap) ACQUIRE_HEAP_LOCK();
   if (gc_suspend_count == 0) { /* first time here */
-    if (lock_thr) lock_threads();
+    lock_threads();
     begin_system_call();
     acklocked=(uint8 *)alloca(nthreads*sizeof(uint8));
     memset(acklocked,0,sizeof(uint8)*nthreads);
@@ -573,7 +571,7 @@ global void gc_suspend_all_threads(bool lock_heap, bool lock_thr)
 
 /* Resumes all suspended threads /besides the current/ 
  should match a call to suspend_all_threads()*/
-global void gc_resume_all_threads(bool unlock_heap,bool unlock_thr)
+global void gc_resume_all_threads(bool unlock_heap)
 {
   /* thread lock is locked. heap lock is free. */
   var clisp_thread_t *me=current_thread();
@@ -596,7 +594,7 @@ global void gc_resume_all_threads(bool unlock_heap,bool unlock_thr)
     }
   });
   if (unlock_heap) RELEASE_HEAP_LOCK();
-  if (unlock_thr) unlock_threads();
+  unlock_threads();
 }
 
 /* resumes suspended thread (or just decreases the _suspend_count) 
@@ -647,14 +645,16 @@ global void resume_thread(clisp_thread_t *thr, bool unlock_heap)
 global maygc uintL add_per_thread_special_var(object symbol)
 {
   pushSTACK(symbol);
-  ACQUIRE_HEAP_LOCK();
-  lock_threads(); /* no chance for GC to run here */
+  /* lock threads (also this disables GC) */
+  begin_blocking_call();
+  lock_threads(); 
+  end_blocking_call();
   symbol=popSTACK();
   var uintL symbol_index = TheSymbol(symbol)->tls_index;
   /* check whether till we have been waiting for the threads lock
      another thread has already done the job !!! */
   if (symbol_index != SYMBOL_TLS_INDEX_NONE) {
-    goto failed; /* not really failed :) */
+    goto leave; 
   }
   if (num_symvalues == maxnum_symvalues) {
     /* we have to reallocate the _ptr_symvalues storage in all
@@ -665,25 +665,22 @@ global maygc uintL add_per_thread_special_var(object symbol)
     2. "stop the world" during this reallocation (as in GC).
     Since this will be relatively rear event - we prefer the second way.*/
     var uintL nsyms=num_symvalues + SYMVALUES_PER_PAGE;
-    /* do not lock heap and threads - we have already done so */
     WITH_STOPPED_WORLD
-      (false,false, 
-       {
-	 for_all_threads({
-	   if (!realloc_thread_symvalues(thread,nsyms))
-	     goto failed;
-	 });
-       }); 
+      (true, {
+	for_all_threads({
+	  if (!realloc_thread_symvalues(thread,nsyms)) {
+	    fprintf(stderr,"*** could not make symbol value per-thread. aborting\n");
+	    abort();
+	  }
+	});
+      });
     maxnum_symvalues = nsyms;
   }
   symbol_index=num_symvalues++;
   TheSymbol(symbol)->tls_index=symbol_index;
   for_all_threads({ thread->_ptr_symvalues[symbol_index] = SYMVALUE_EMPTY; });
- failed:
-  begin_system_call();
+ leave:
   unlock_threads();
-  end_system_call();
-  RELEASE_HEAP_LOCK();
   if (symbol_index == SYMBOL_TLS_INDEX_NONE)
     error(error_condition,GETTEXT("could not make symbol value per-thread"));
   return symbol_index;

@@ -1,4 +1,45 @@
 2008-10-14  Vladimir Tzankov  <vtzankov@gmail.com>
+	Signal handling code cleanup.
+
+	* lispbibl.d: export updated (with _suspend_count) clisp_thread_t
+	to modules. Suspend and resume always lock the threads and do not
+	care anymore whether the lock has been already acquired (since all
+	mutexes are recursive now).
+	(gc_suspend/resume_all_threads): does not take lock_threads anymore.
+	(GC_STOP/RESUME_WORLD): does not take lock_threads anymore.
+	(WITH_STOPPED_WORLD): does not take lock_threads anymore. parameters
+	reordered.
+	* spvw.d 
+	(for_all_threads): traverse the threads array in ascending order (most 
+	of the time gives more natural SIGINT handling).
+	(interrupt_thread_signal_handler): release the "ok to reenter" spinlock 
+	before "entering LISP land".
+	(signal_handler_thread): more sane signal handling. No signal will be 
+	missed due to GC in progress.
+	* spvw_global.d
+	(gc_suspend/resume_all_threads): does not take lock_thread parameter 
+	anymore. always acquires threads lock (it's safe due to the fact that 
+	all mutexes are recursive now).
+	(add_per_thread_special_var): code cleanup.
+	* spvw_allocate.d: changes due to GC_STOP/RESUME_WORLD parameter change.
+	* spvw_garcol.d
+	(gc_sweep1_varobject_page): assert and abort on impossible case (that 
+	will lead to segfault shortly if happens).
+	(fill_varobject_heap_holes): assert if the created object for hole 
+	filling does not have the same length as the heap hole.
+	* zthread.d
+	(MAKE-THREAD): clisp_thread_t allocation is guarded  by the threads
+	lock (because of add_per_thread_special_var() possible race condition).
+	(THREAD-INTERRUPT): returns two values - the thread itself and T/NIL 
+	depending whether it has really tryed to interrupt the thread (in case 
+	the thread has terminated or there is some OS error - the second 
+	return value is NIL).
+	(THREAD-KILL): same as THREAD-INTERRUPT.
+	* xthread.d
+	(xmutex_init): make it recursive on Solaris.
+	(xmutext_trylock): define it on Solaris.
+
+2008-10-14  Vladimir Tzankov  <vtzankov@gmail.com>
 	Pinned varobjects and signal handling fixes.
 
 	* lispbibl.d
@@ -40,7 +81,7 @@
 	into account the threads _suspend_count(s).
 	* zthread.d
 	(THREAD-INTERRUPT): use WITH_STOPPED_THREAD instead of WITH_STOPPED_WORLD.
-	(KILL-INTERRUPT): use WITH_STOPPED_THREAD instead of WITH_STOPPED_WORLD.	
+	(THREAD-KILL): use WITH_STOPPED_THREAD instead of WITH_STOPPED_WORLD.	
 
 2008-10-09  Vladimir Tzankov  <vtzankov@gmail.com>
 	Signals loss fix. Docs update. :VSTACK-SIZE --> :VSTACK_DEPTH

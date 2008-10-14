@@ -241,9 +241,9 @@ typedef thread_key_t      xthread_key_t;
 #define xcondition_signal(c)  cond_signal(c)
 #define xcondition_broadcast(c)  cond_broadcast(c)
 
-#define xmutex_init(m)  mutex_init(m,USYNC_THREAD,0)
+#define xmutex_init(m)  mutex_init(m,USYNC_THREAD|LOCK_RECURSIVE|LOCK_ERRORCHECK,0)
 #define xmutex_destroy(m)  mutex_destroy(m)
-#define xmutex_trylock(m) FIXME
+#define xmutex_trylock(m) mutex_trylock(m)
 #define xmutex_lock(m)  mutex_lock(m)
 #define xmutex_unlock(m)  mutex_unlock(m)
 
