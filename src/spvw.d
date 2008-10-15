@@ -4232,6 +4232,7 @@ local sigset_t async_signal_mask()
   sigemptyset(&sigblock_mask);
   sigaddset(&sigblock_mask,SIGINT);
   sigaddset(&sigblock_mask,SIGALRM);
+  sigaddset(&sigblock_mask,SIG_TIMEOUT_CALL);
   #ifdef SIGHUP
    sigaddset(&sigblock_mask,SIGHUP);
   #endif
@@ -4291,6 +4292,31 @@ local void interrupt_thread_signal_handler (int sig) {
   GC_SAFE_REGION_BEGIN();
 }
 
+/* acquires both heap and threads lock from signal handler thread 
+   without causing deadlock with the GC in the lisp world*/
+local void acquire_heap_and_threads_locks()
+{
+  while (1) {
+    var int retrys=0;
+    xmutex_lock(&allthreads_lock); /* NO GC after this line */
+    while (!spinlock_tryacquire(&mem.alloc_lock)) {
+      xthread_yield(); 
+      if (retrys == 10) 
+	break;
+      retrys++;
+    }
+    if (retrys == 10) {
+      /* may be a deadlock situation - another thread is trying to stop the
+	 world and cannot obtain the threads lock that we own (but has
+	 obtained the heap lock that we miss). */
+      xmutex_unlock(&allthreads_lock);
+      xthread_yield();
+      continue;
+    } else 
+      break;
+  }
+}
+
 local void *signal_handler_thread(void *arg)
 {
   int sig;
@@ -4303,12 +4329,13 @@ local void *signal_handler_thread(void *arg)
       continue;
     }
     /* first handle the signals that will not require LISP world stop */
-    if (sig == SIG_THREAD_INTERRUPT) {
+    switch (sig) {
+    case SIG_TIMEOUT_CALL:
       /* TODO: */
       /* this will signal for new CALL-WITH-TIMEOUT timeouts and will setup
 	 SIGALRM to this thread as well. */
       continue;
-    } else if (sig == SIGALRM) {
+    case SIGALRM:
       /* TODO: */
       /* this will decide which thread has time-ed out in CALL-WITH-TIMEOUT
 	 and will send SIG_THREAD_INTERRUPT to it execute the timeout form.
@@ -4319,31 +4346,10 @@ local void *signal_handler_thread(void *arg)
     /* before proceeding we have to be sure that there is no GC 
        in progress at the moment. This is the only situation in 
        which we have to delay the signal. */
-    while (1) {
-      var int retrys=0;
-      xmutex_lock(&allthreads_lock); /* NO GC after this line */
-      while (!spinlock_tryacquire(&mem.alloc_lock)) {
-	xthread_yield(); 
-	if (retrys == 10) 
-	  break;
-	retrys++;
-      }
-      if (retrys == 10) {
-	/* may be a deadlock situation - another thread is trying to stop the
-	   world and cannot obtain the threads lock that we own (but has
-	   obtained the heap lock that we miss). */
-	xmutex_unlock(&allthreads_lock);
-	xthread_yield();
-	continue;
-      } else 
-	break;
-    }
+    acquire_heap_and_threads_locks();
     /* we own both - the heap lock and threads lock*/
     /* be sure that all threads are ready to be signaled */
-    for_all_threads({ 
-      spinlock_acquire(&thread->_signal_reenter_ok); 
-      spinlock_release(&thread->_signal_reenter_ok);
-    });
+    for_all_threads({  spinlock_acquire(&thread->_signal_reenter_ok); });
     /* now we own the heap lock and threads lock - no GC may happen. Also we are
        sure that there is no GC in progress (since we obtained the heap 
        lock while the threads lock was owned by us as well). */
@@ -4352,6 +4358,7 @@ local void *signal_handler_thread(void *arg)
       WITH_STOPPED_WORLD
 	(false,{
 	  var bool signal_sent=false;
+	  var clisp_thread_t *signaled_thread;
           #ifdef DEBUG_GCSAFETY
 	   use_dummy_alloccount=true;
           #endif
@@ -4368,13 +4375,22 @@ local void *signal_handler_thread(void *arg)
 				     SIG_THREAD_INTERRUPT));
 	      if (!signal_sent) {
 		thread->_STACK=saved_stack;
-	      } else 
+	      } else {
+		signaled_thread=thread;
 		break;
+	      }
 	    }
 	  });
 	  if (!signal_sent) {
 	    fprintf(stderr, "*** SIGINT will be missed.\n");
-	  } 
+	  } else {
+	    /* signal has been sent to the signaled_thread. 
+	       release the held spinlocks of the other threads */
+	    for_all_threads({ 
+	      if (thread != signaled_thread)
+		spinlock_release(&thread->_signal_reenter_ok);
+	    });
+	  }
           #ifdef DEBUG_GCSAFETY
            use_dummy_alloccount=false;
           #endif

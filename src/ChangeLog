@@ -1,4 +1,13 @@
 2008-10-15  Vladimir Tzankov  <vtzankov@gmail.com>
+	Fix possible race condition during SIGINT handling.
+
+	* spvw.d 
+	(acquire_heap_and_threads_locks): acquires global locks from signal
+	handler without causing deadlock.
+	(signal_handler_thread): fix possible race condition in SIGINT 
+	handling. use acquire_heap_and_threads_locks.
+
+2008-10-15  Vladimir Tzankov  <vtzankov@gmail.com>
 	DEBUG_GCSAFETY fixes in signal handler thread. 
 
 	* spvw.d (signal_handler_thread): use_dummy_alloccount can be 
