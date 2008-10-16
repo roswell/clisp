@@ -565,22 +565,15 @@ nonreturning_function(global, reset, (uintL count)) {
         setSTACK(STACK = last_driver_frame);
         break;
       }
-#if defined(MULTITHREAD)
-      if (&STACK_0 == current_thread()->_dummy_stack_end) {
-	/* this is not the actual end - the top driver frame 
-	   is located 2 object from here - let's reveal it. */
-	STACK_0=NIL; STACK_1=NIL; skipSTACK(2);
-      } else 
-#endif
-	{
-      /* we used to start a new driver() here, but this is wrong because it
-         does not clean up SP & back_trace, just STACK, see
-         https://sourceforge.net/tracker/?func=detail&atid=101355&aid=1448744&group_id=1355
-         we probably cannot even do NOTREACHED - the STACK is bad. */
-	  fprintf(stderr,"\n[%s:%d] reset() found no driver frame (sp=0x%x-0x%x)\n",
-		  __FILE__,__LINE__,(aint)SP_anchor,(aint)SP());
-	  abort();
-	}
+      {
+	/* we used to start a new driver() here, but this is wrong because it
+	   does not clean up SP & back_trace, just STACK, see
+	   https://sourceforge.net/tracker/?func=detail&atid=101355&aid=1448744&group_id=1355
+	   we probably cannot even do NOTREACHED - the STACK is bad. */
+	fprintf(stderr,"\n[%s:%d] reset() found no driver frame (sp=0x%x-0x%x)\n",
+		__FILE__,__LINE__,(aint)SP_anchor,(aint)SP());
+	abort();
+      }
     }
     if (framecode(STACK_0) & bit(frame_bit_t)) {
       /* at STACK_0: beginning of a frame */

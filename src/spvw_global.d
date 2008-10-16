@@ -561,6 +561,7 @@ global void gc_suspend_all_threads(bool lock_heap)
       });
       if (!all_suspended) xthread_yield(); else break;
     } while (1);
+    unlock_threads();
   }
   gc_suspend_count++; /* increase the suspend count */
   /* keep the lock on threads, but release the heap lock. 
@@ -576,15 +577,15 @@ global void gc_resume_all_threads(bool unlock_heap)
   /* thread lock is locked. heap lock is free. */
   var clisp_thread_t *me=current_thread();
   /*fprintf(stderr,"VTZ: GC_RESUME(): %0x, %d\n",me, gc_suspend_count);*/
-  if (--gc_suspend_count) {
-    return;
-  }
   /* get the heap lock. in case we are called from allocate_xxx
      we should not allow any other thread that will be resumed shortly 
-     to acquire it. */
-  /* should not have problems from when called from signal handler since 
-     it will succeed on the first try - no other thread is running. */
+     to acquire it. Also it guards the gc_suspend_count when accessed 
+     from the signal handling thread */
   ACQUIRE_HEAP_LOCK(); 
+  if (--gc_suspend_count) {
+    RELEASE_HEAP_LOCK();
+    return;
+  }
   for_all_threads({
     if (thread == me) continue; /* skip ourself */
     /* currently all ACK locks belong to us as well the mutex lock */
@@ -594,7 +595,6 @@ global void gc_resume_all_threads(bool unlock_heap)
     }
   });
   if (unlock_heap) RELEASE_HEAP_LOCK();
-  unlock_threads();
 }
 
 /* resumes suspended thread (or just decreases the _suspend_count) 

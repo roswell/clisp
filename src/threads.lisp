@@ -18,7 +18,6 @@
 
 ;; definitions
 
-
 ;; default value (lisp stack) size is very small -  1MB
 ;; 0 - leaves the OS to decide (basically bad option)
 (defvar *DEFAULT-CONTROL-STACK-SIZE* 1048576 "C stack in bytes")
@@ -88,3 +87,7 @@ terminate and evaluate TIMEOUT-FORMS."
     `(let ((,lk ,lock))
       (unwind-protect (progn (thread-lock ,lk) ,@body)
         (thread-unlock ,lk)))))
+
+;; helper function for thread interruption
+(defun %throw-tag (tag)
+  (throw tag tag))

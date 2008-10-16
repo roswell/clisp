@@ -38,7 +38,7 @@ global void release_threads (object list) {
   }
 }
 
-/* VTZ: All newly created threads start here.*/
+/* All newly created threads start here.*/
 local /*maygc*/ void *thread_stub(void *arg)
 {
   #if USE_CUSTOM_TLS == 2
@@ -57,39 +57,39 @@ local /*maygc*/ void *thread_stub(void *arg)
   back_trace = &bt;
   /* establish driver frame so on thread exit by 
    thread-kill we can unwind the stack properly by reset(0); */
-  var gcv_object_t *initial_bindings = &STACK_0;
-  var gcv_object_t *funptr = &STACK_1;
-  /* make "top" driver frame */
-  var gcv_object_t* top_of_frame = STACK; /* pointer above frame */
-  var sp_jmp_buf returner; /* remember entry point */
-  /* driver frame in order to be able to kill the thread and unwind the stack 
-     via reset(0) call. */
-  finish_entry_frame(DRIVER,returner,,{skipSTACK(2);goto end_of_thread;});
-  /* mark dummy end of stack - only upon request we will reveal ourselves */
-  pushSTACK(nullobj); pushSTACK(nullobj); 
-  me->_dummy_stack_end = &STACK_0;
-  /* create special vars initial dynamic bindings. 
-     we do not create DYNBIND frame since anyway we are at the 
-     "top level" of the thread. */
-  if (boundp(*initial_bindings) && !endp(*initial_bindings)) {
-    while (!endp(*initial_bindings)) {
-      var object pair=Car(*initial_bindings);
-      if (consp(pair) && symbolp(Car(pair))) {
-	/* only if the symbol is special per thread variable */
-	if (TheSymbol(Car(pair))->tls_index != SYMBOL_TLS_INDEX_NONE) {
-	  eval(Cdr(pair)); /* maygc */
-	  pair=Car(*initial_bindings);
-	  Symbol_thread_value(Car(pair)) = value1;
+  var gcv_object_t *initial_bindings = &STACK_1;
+  var gcv_object_t *funptr = &STACK_2;
+  /* create the thread exit CATCH frame */
+  var gcv_object_t* top_of_frame = STACK STACKop 1;
+  var sp_jmp_buf returner; /* return point */
+  finish_entry_frame(CATCH,returner,,{skipSTACK(3);goto end_of_thread;});
+  {
+    /* make "top" driver frame */
+    var gcv_object_t* top_of_frame = STACK; /* pointer above frame */
+    var sp_jmp_buf returner; /* remember entry point */
+    /* driver frame in order to be able to kill the thread and unwind the stack 
+       via reset(0) call. */
+    finish_entry_frame(DRIVER,returner,,{skipSTACK(2+3);goto end_of_thread;});
+    /* create special vars initial dynamic bindings. 
+       we do not create DYNBIND frame since anyway we are at the 
+       "top level" of the thread. */
+    if (boundp(*initial_bindings) && !endp(*initial_bindings)) {
+      while (!endp(*initial_bindings)) {
+	var object pair=Car(*initial_bindings);
+	if (consp(pair) && symbolp(Car(pair))) {
+	  /* only if the symbol is special per thread variable */
+	  if (TheSymbol(Car(pair))->tls_index != SYMBOL_TLS_INDEX_NONE) {
+	    eval(Cdr(pair)); /* maygc */
+	    pair=Car(*initial_bindings);
+	    Symbol_thread_value(Car(pair)) = value1;
+	  }
 	}
-      }
       *initial_bindings = Cdr(*initial_bindings);
+      }
     }
+    funcall(*funptr,0); /* call fun */
+    reset(0);  /* unwind what we have till now */
   }
-  /* now execute the function */
-  funcall(*funptr,0); /* call fun */
-  /* the return value(s) are in the mv_space of the clisp_thread_t */
-  skipSTACK(2); /* skip the dummy null objects */
-  reset(0);  /* unwind what we have till now */
  end_of_thread:
   skipSTACK(2); /* function + init bindings */
   /* the lisp stack should be unwound here. check it and complain. */
@@ -102,12 +102,6 @@ local /*maygc*/ void *thread_stub(void *arg)
   delete_thread(me,false); 
   xthread_exit(0);
   return NULL;
-}
-
-local inline uint32 ensure_uint32(object x)
-{
-  return 
-    (uint32_p(x) ? I_to_uint32(x) : I_to_uint32(check_uint32_replacement(x)));
 }
 
 LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
@@ -123,9 +117,9 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   if (missingp(STACK_0)) STACK_0 = Symbol_value(S(default_value_stack_depth));
   if (missingp(STACK_1)) STACK_1 = Symbol_value(S(default_control_stack_size));
   /* vstack_size */
-  var uintM vstack_depth = ensure_uint32(popSTACK());
+  var uintM vstack_depth = I_to_uint32(check_uint32(popSTACK()));
   /* cstack_size */
-  var uintM cstack_size = ensure_uint32(popSTACK());
+  var uintM cstack_size = I_to_uint32(check_uint32(popSTACK()));
   if (!vstack_depth) { /* lisp stack empty ??? */
     /* use the same as the caller */
     vstack_depth=STACK_item_count(STACK_bound,STACK_start); /*skip 2 nullobj*/
@@ -151,7 +145,10 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   /* do allocations before thread locking */ 
   pushSTACK(allocate_thread(&STACK_1)); /* put it in GC visible place */
   pushSTACK(allocate_cons());
-
+  /* create the thread's exit tag*/
+  pushSTACK(unbound);
+  funcall(S(gensym),1);
+  pushSTACK(value1);
   /* let's lock in order to create and register */
   begin_blocking_call(); /* give chance the GC to work while we wait*/
   lock_threads(); 
@@ -160,7 +157,7 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   new_thread=create_thread(vstack_depth);
   if (!new_thread) {
     unlock_threads();
-    skipSTACK(5); VALUES1(NIL); return;
+    skipSTACK(6); VALUES1(NIL); return;
   }
   /* push 2 null objects in the thread stack in order to stop
      marking in GC while initializing the thread and stack unwinding
@@ -168,9 +165,13 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   NC_pushSTACK(new_thread->_STACK,nullobj);
   NC_pushSTACK(new_thread->_STACK,nullobj);
   /* push the function to be executed */ 
-  NC_pushSTACK(new_thread->_STACK,STACK_4);
+  NC_pushSTACK(new_thread->_STACK,STACK_5);
   /* push the initial bindings alist */
-  NC_pushSTACK(new_thread->_STACK,STACK_2);
+  NC_pushSTACK(new_thread->_STACK,STACK_3);
+  /* push the exit tag */
+  NC_pushSTACK(new_thread->_STACK,popSTACK());
+  new_thread->_thread_exit_tag = new_thread->_STACK STACKop 1;
+  
   if (register_thread(new_thread)<0) {
     /* total failure */
     unlock_threads();
@@ -195,19 +196,120 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
     pushSTACK(lthr);
     delete_thread(new_thread,false); /* remove it from the list */
     lthr=popSTACK();
-    /*TODO: signal an error */
-    VALUES1(NIL); /* for now jsut return NIL - however the threadobj is here*/
+    VALUES1(NIL); 
   } else
     VALUES1(lthr);
 }
 
+/* lock for the timeout_call_chain */
+global spinlock_t timeout_call_chain_lock=0;
+/* chain of sorted by expire time timeout_calls */
+global timeout_call *timeout_call_chain=NULL;
+
+/* returns true if p1 is before p2 (or equal) */
+global bool timeval_less(struct timeval *p1, struct timeval *p2)
+{
+  return p1->tv_sec < p2->tv_sec ? true :
+    (p1->tv_sec == p2->tv_sec) ? ((p1->tv_usec <= p2->tv_usec)) : false;
+}
+
+/* insert into sorted chain of timeout calls. 
+   returns true if it was inserted as first element. 
+   should be called with timeout_scheduler_lock held. */
+local bool insert_timeout_call(timeout_call *tc)
+{
+  timeout_call **lastnextp=&timeout_call_chain,*chain=timeout_call_chain;
+  while (chain != NULL && timeval_less(chain->expire, tc->expire)) {
+    lastnextp=&chain->next; chain=chain->next;
+  }
+  *lastnextp=tc;
+  tc->next=chain;
+  return lastnextp == &timeout_call_chain;
+}
+/* removes a timeout_call from the chain */
+local void remove_timeout_call(timeout_call *tc) 
+{
+   timeout_call **lastnextp=&timeout_call_chain,*chain=timeout_call_chain;
+   while (chain && chain != tc) {
+     lastnextp=&chain->next; chain=chain->next;
+   }
+   /* it's possible not to find the item here - if it has been 
+      already removed by the signal handling thread */
+   if (chain)
+     *lastnextp=chain->next;
+}
+
 LISPFUNN(call_with_timeout,3)
 { /* (CALL-WITH-TIMEOUT timeout timeout-function body-function)
-     It's two expensive to spawn a new OS thread for any call here.
-     We are going to do it via hackich signal handling within 
-     the current thread. 
-     TODO: implement.  */
+     It's too expensive to spawn a new OS thread here.
+     Instead CATCH frame is established, a timeout_call is queued 
+     in our signal handling thread and the body is executed. If the timeout
+     elapses - the signal handling thread will interrupt the body 
+     and the timeout function will be executed. */
+#ifdef HAVE_SIGNALS
+  var struct timeval tv;
+  var struct timeval *tvp = sec_usec(STACK_2,unbound,&tv);
+  if (tvp) {
+    pushSTACK(unbound);
+    funcall(S(gensym),1);
+    pushSTACK(value1);
+    var gcv_object_t* top_of_frame = STACK STACKop 1;
+    var sp_jmp_buf returner; /* return point */
+    finish_entry_frame(CATCH,returner,,{skipSTACK(3);goto timeout_function;});
+    GC_SAFE_SPINLOCK_ACQUIRE(&timeout_call_chain_lock);
+    /* start calculating the timeout after we get the spinlock ???
+       may be before is better and not to try anything if we are delayed */
+    var struct timeval now;
+    var struct timeval timeout;
+    gettimeofday(&now,NULL);
+    timeout.tv_sec = now.tv_sec + tv.tv_sec;
+    timeout.tv_usec = (now.tv_usec + tv.tv_usec);
+    /* no more than a second of carry */
+    if (timeout.tv_usec > 1000000) {
+      timeout.tv_sec += 1;
+      timeout.tv_sec -= 1000000;
+    }
+    var timeout_call tc={current_thread(),&STACK_2,&timeout,NULL};
+    /* insert in sorted chain and signal if needed */
+    if (insert_timeout_call(&tc)) {
+      /* first item - let's signal the thread */
+      raise(SIG_TIMEOUT_CALL);
+    } else {
+      /* not a first item in the chain - so no signal */
+      spinlock_release(&timeout_call_chain_lock); 
+    }
+    {
+      /* funcall in UNWIND_PROTECT frame in order to cleanup the 
+	 chain */
+      var gcv_object_t* top_of_frame = STACK;
+      var sp_jmp_buf returner; /* return point */
+      finish_entry_frame
+	(UNWIND_PROTECT,returner,,
+	 {
+	   GC_SAFE_SPINLOCK_ACQUIRE(&timeout_call_chain_lock);
+	   var restartf_t fun = unwind_protect_to_save.fun;
+	   var gcv_object_t* arg = unwind_protect_to_save.upto_frame;
+	   remove_timeout_call(&tc);
+	   spinlock_release(&timeout_call_chain_lock); 
+	   skipSTACK(2); /* unwind the frame */
+	   fun(arg); /* jump further */
+	 });
+      funcall(STACK_5,0); /* call the body function */
+      /* hmm - not timeout (or unwind_protect)*/
+      skipSTACK(2); /* unwind_protect frame */
+      GC_SAFE_SPINLOCK_ACQUIRE(&timeout_call_chain_lock);
+      remove_timeout_call(&tc);
+      spinlock_release(&timeout_call_chain_lock); 
+      skipSTACK(3); /* skip the CATCH frame and the catch tag */
+    }
+  } else {
+  timeout_function:
+    funcall(STACK_1,0);
+  }
+  skipSTACK(3);
+#else /* WIN32 has to wait */
   NOTREACHED;
+#endif
 }
 
 LISPFUN(thread_wait,seclass_default,3,0,rest,nokey,0,NIL)
@@ -229,56 +331,24 @@ LISPFUNN(thread_yield,0)
 
 LISPFUNN(thread_kill,1)
 { /* (THREAD-KILL thread) */
-#ifdef HAVE_SIGNALS 
-  var object thr = check_thread(popSTACK());
-  var xthread_t systhr=TheThread(thr)->xth_system;
-  var clisp_thread_t *clt=TheThread(thr)->xth_globals;
-  /* This is the same as THREAD-INTERRUPT with the special case 
-     that the dummy stack end is revealed for unwinding.
-     It's possible to "reuse" THREAD-INTERRUPT but we will have to 
-     stop the world twice (_dummy_stack_end may be accessed
-     safely only from the thread itself ot when the world is stopped).
-   */
-  if (clt == current_thread()) {
-    /* we want to kill ourselves :). 
-       no need to stop the world for this */
-    gcv_object_t *stack_end=clt->_dummy_stack_end;
-    *stack_end=NIL;
-    stack_end skipSTACKop 1; /* advance */
-    *stack_end=NIL; 
-    pushSTACK(posfixnum(0));
-    funcall(S(unwind_to_driver),1);
-    NOTREACHED;
+  STACK_0=check_thread(STACK_0);
+  /* locking the threads since _thread_exit_tag may become invalid meanwhile  */
+  begin_blocking_call();
+  lock_threads(); 
+  end_blocking_call();
+  var object thr=STACK_0; /*thread */
+  /* exit throw tag */
+  var gcv_object_t *exit_tag=(TheThread(thr)->xth_globals->_thread_exit_tag);
+  if (exit_tag) { /* thread is alive */
+    pushSTACK(S(thread_throw_tag));
+    pushSTACK(*exit_tag);
+    unlock_threads();
+    funcall(S(thread_interrupt),3);
+  } else { /* thread has gone */
+    unlock_threads();
+    skipSTACK(1);
+    VALUES2(thr,NIL);
   }
-  pushSTACK(thr);
-  var bool signal_sent=false;
-  /* make sure we can send signals to this thread. */
-  GC_SAFE_SPINLOCK_ACQUIRE(&clt->_signal_reenter_ok);
-  WITH_STOPPED_THREAD
-    (clt,true,
-     {
-       var gcv_object_t *saved_stack=clt->_STACK;
-       if (clt->_STACK != NULL) { /* only if alive */
-	 /* let's reveal the dummy stack end */
-	 gcv_object_t *stack_end=clt->_dummy_stack_end;
-	 *stack_end=NIL;
-	 stack_end skipSTACKop 1; /* advance */
-	 *stack_end=NIL; 
-	 NC_pushSTACK(clt->_STACK,posfixnum(0));
-	 NC_pushSTACK(clt->_STACK,posfixnum(1)); /* one argument */
-	 NC_pushSTACK(clt->_STACK,S(unwind_to_driver)); /* function to be called */
-	 signal_sent = (0 == xthread_signal(TheThread(thr)->xth_system,SIG_THREAD_INTERRUPT));
-       } 
-       if (!signal_sent) {
-	 /* release it since we are not going to signal the thread */
-	 clt->_STACK=saved_stack;
-	 spinlock_release(&clt->_signal_reenter_ok);
-       }
-     });
-  VALUES2(popSTACK(), signal_sent ? T : NIL);
-#else
-  NOTREACHED; /*win32 will have to wait*/ 
-#endif
 }
 
 LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
@@ -299,11 +369,11 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
       funcall-ed, since it is not very nice to get errors
       in interrupted thread (but basically this is not a 
       problem)*/
-    /* be sure that the signal we send will be received */
-    GC_SAFE_SPINLOCK_ACQUIRE(&clt->_signal_reenter_ok);
     WITH_STOPPED_THREAD
       (clt,true,
        {
+	 /* be sure that the signal we send will be received */
+	 spinlock_acquire(&clt->_signal_reenter_ok);
 	 var gcv_object_t *saved_stack=clt->_STACK;
 	 if (clt->_STACK != NULL) { /* thread is alive ? */
 	   while (rest_args_pointer != args_end_pointer) {
@@ -313,12 +383,12 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
 	   NC_pushSTACK(clt->_STACK,posfixnum(argcount));
 	   NC_pushSTACK(clt->_STACK,STACK_(argcount)); /* function */
 	   signal_sent = (0 == xthread_signal(systhr,SIG_THREAD_INTERRUPT));
+	   if (!signal_sent) {
+	     /* for some reason we were unable to send the signal */
+	     clt->_STACK=saved_stack; 
+	     spinlock_release(&clt->_signal_reenter_ok);
+	   } 
 	 }
-	 if (!signal_sent) {
-	   /* for some reason we were unable to send the signal */
-	   clt->_STACK=saved_stack; 
-	   spinlock_release(&clt->_signal_reenter_ok);
-	 } 
        });
     skipSTACK(2 + (uintL)argcount);
     /* TODO: may be signal an error if we try to interrupt
@@ -369,18 +439,16 @@ LISPFUNN(list_threads,0)
   /* we cannot copy the all_threads list, since it maygc 
      and while we hold the threads lock - deadlock will occur. */
   var uintC count=0;
-  begin_blocking_system_call();
+  begin_blocking_call();
   lock_threads(); /* stop GC and thread creation*/
-  end_blocking_system_call();
+  end_blocking_call();
   var object list=O(all_threads);
   while (!endp(list)) {
     count++;
     pushSTACK(Car(list));
     list=Cdr(list);
   }
-  begin_system_call();
   unlock_threads();
-  end_system_call();
   VALUES1(listof(count));
 }
 

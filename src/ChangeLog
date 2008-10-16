@@ -1,3 +1,56 @@
+2008-10-16  Vladimir Tzankov  <vtzankov@gmail.com>
+	CALL-WITH-TIMEOUT implemented. CATCH frame for THREAD-KILL. 
+
+	* lispbibl.d
+	(clisp_thread_t): _dummy_stack_end is replaced by _thread_exit_tag.
+	for immediate thread exit (with stack unwind) the tag pointed by it
+	should be thrown in the thread context.
+	(struct timeout_call): structure for describing CALL-WITH-TIMEOUT call 
+	in progress.
+	(timeout_call_chain): global chain of timeout_call(s) sorted by their
+	expiration time.
+	(timeout_call_chain_lock): spinlock for guarding the access to 
+	timeout_call_chain.
+	(timeval_less): compares two timeval structures.
+	* spvw.d
+	(main_actions): establish CATCH frame for thread exit before calling
+	driver().
+	(acquire_heap_and_threads_locks): renamed to lock_heap_from_signal. Now 
+	it acquires only the heap lock and ensures that there is no GC in 
+	progress (and will not be possible until signal handler releases it).
+	(timeval_subtract): subtracts two timeval structures. used for 
+	computing SIGALRM time.
+	(signal_handler_thread): handle SIGALRM and SIG_TIMEOUT_CALL signals 
+	i.e. CALL-WITH-TIMEOUT without spawning new OS thread.
+	* spvw_global.d
+	(gc_suspend/resume_all_threads): no need to keep the threads lock while
+	all threads are suspended. Makes signals handler thread easier.
+	(gc_suspend_count): now it is guarded by the heap lock ("guarded" from
+	the signal handler thread).
+	* time.d
+	(SYSTEM::%SLEEP): do not use sleep()/usleep() in multithread builds since.
+	* eval.d
+	(reset): restored it. no more "dummy stack end" for thread exit. 
+	* threads.lisp
+	(%THROW_TAG): throws it's argument. Needed in order to interrupt 
+	thread by from signal handler. (THROW is special form and cannot 
+	be funcall-ed).
+	* constsym.d
+	(thread_throw_tag): symbol for accessing the %THROW_TAG function from 
+	THREADS package.
+	* zthread.d
+	(ensure_uint32): removed - not need for it.
+	(thread_stub): establish CATCH frame for thread exit before the driver 
+	frame.
+	(MAKE-THREAD): initialize the _thread_exit_tag for the newly created 
+	thread.
+	(insert_timeout_call): inserts new timeout call into the sorted chain
+	of pending ones (timeout_call_chain). Should be called with lock held.
+	(remove_timeout_call): removes an item from timeout_call_chain. Should
+	be called with the lock held.
+	(CALL-WITH-TIMEOUT): implemented without spawning OS threads.
+	(THREAD-KILL): use THREAD-INTERRUPT and %THROW_TAG.
+
 2008-10-15  Vladimir Tzankov  <vtzankov@gmail.com>
 	Fix possible race condition during SIGINT handling.
 

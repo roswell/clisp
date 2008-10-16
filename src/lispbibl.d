@@ -16915,9 +16915,9 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
     /* do not rely on SA_NODEFER for signal nesting */
       spinlock_t _signal_reenter_ok;
 #endif
-    /* pointer to the dummy end (start actually) of the lisp stack 
-      used for proper thread termination. see eval.d:reset()*/
-      gcv_object_t *_dummy_stack_end; 
+    /* pointer to the the lisp stack where the CATCH tag for 
+       thread termination is located. */
+      gcv_object_t *_thread_exit_tag;
       bool _own_stack; /* who owns our lisp stack. should it be freed? */
     /* Used for exception handling only: */
       handler_args_t _handler_args;
@@ -17238,6 +17238,21 @@ global void clear_per_thread_symvalues(object symbol);
 #endif
 #define NC_pushSTACK(non_current_stack,obj)  \
   (NC_STACK_(non_current_stack,-1) = (obj), non_current_stack skipSTACKop -1)
+
+/* every CALL-WITH-TIMEOUT adds an item in the chain below.
+   upon timeout the thread is interrupted with (THROW TAG) */
+typedef struct timeout_call {
+  clisp_thread_t *thread; /* thread to be interrupted */
+  gcv_object_t *throw_tag; /* pointer to thread STACK */
+  struct timeval *expire;  /* timeout expire time */
+  struct timeout_call *next; /* next timeout call */
+} timeout_call;
+/* lock for the timeout_call_chain */
+global spinlock_t timeout_call_chain_lock;
+/* chain of sorted by expire time timeout_calls */
+global timeout_call *timeout_call_chain;
+/* returns true if p1 is before p2 */
+global bool timeval_less(struct timeval *p1, struct timeval *p2);
 
 #if defined(HAVE_SIGNALS)
   /* SIGUSR1 is used for thread interrupt */

@@ -714,9 +714,13 @@ LISPFUNN(sleep,2)
       if ((result<0) && !(errno==EINTR)) { end_blocking_call(); OS_error(); }
     }
    #else
-    if (seconds>0) { sleep(seconds); }
-    #ifdef HAVE_USLEEP
-    if (useconds>0) { usleep(useconds); }
+    #if defined(MULTITHREAD) && defined(HAVE_SIGNALS)
+     #error using sleep() will interfere with threads CALL-WITH-TIMEOUT.
+    #else
+     if (seconds>0) { sleep(seconds); }
+     #ifdef HAVE_USLEEP
+     if (useconds>0) { usleep(useconds); }
+     #endif
     #endif
    #endif
     end_blocking_call();

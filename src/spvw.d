@@ -790,7 +790,8 @@ global void delete_thread (clisp_thread_t *thread, bool full) {
   begin_system_call();
   if (thread->_own_stack)
     free(THREAD_LISP_STACK_START(thread));
-  thread->_STACK=NULL;  /* marks thread as non active */
+  thread->_STACK = NULL;  /* marks thread as non active */
+  thread->_thread_exit_tag = NULL;
   /* VTZ: the clisp_thread_t itself will be deallocated during 
      finalization phase of GC - when the thread record is discarded.
      why? (somebody may want to inspect the mv_space for "thread return 
@@ -3641,12 +3642,14 @@ local inline void main_actions (struct argv_actions *p) {
   }
   /* call read-eval-print-loop: */
 #if defined(MULTITHREAD)
-  var gcv_object_t* top_of_frame = STACK; /* pointer over frame */
-  var sp_jmp_buf out_of_lisp; /* return point */
-  finish_entry_frame(DRIVER,out_of_lisp,,{skipSTACK(4);return;});
-  /* mark dummy end of stack - anyway nothing interesting on it */
-  pushSTACK(nullobj); pushSTACK(nullobj);
-  current_thread()->_dummy_stack_end = &STACK_0;
+  /* create a CATCH frame here for thread exit */
+  pushSTACK(unbound);
+  funcall(S(gensym),1);
+  pushSTACK(value1);
+  current_thread()->_thread_exit_tag=&STACK_0;
+  var gcv_object_t* top_of_frame = STACK STACKop 1;
+  var sp_jmp_buf returner; /* return point */
+  finish_entry_frame(CATCH,returner,,{skipSTACK(3);return;});
 #endif
   driver();
 }
@@ -4294,27 +4297,43 @@ local void interrupt_thread_signal_handler (int sig) {
 
 /* acquires both heap and threads lock from signal handler thread 
    without causing deadlock with the GC in the lisp world*/
-local void acquire_heap_and_threads_locks()
+local void lock_heap_from_signal()
 {
   while (1) {
-    var int retrys=0;
-    xmutex_lock(&allthreads_lock); /* NO GC after this line */
-    while (!spinlock_tryacquire(&mem.alloc_lock)) {
+    while (!spinlock_tryacquire(&mem.alloc_lock)) 
       xthread_yield(); 
-      if (retrys == 10) 
-	break;
-      retrys++;
-    }
-    if (retrys == 10) {
-      /* may be a deadlock situation - another thread is trying to stop the
-	 world and cannot obtain the threads lock that we own (but has
-	 obtained the heap lock that we miss). */
-      xmutex_unlock(&allthreads_lock);
-      xthread_yield();
-      continue;
-    } else 
-      break;
+    /* we got the heap lock, let's check that there is no GC in progress */
+    if (!gc_suspend_count) 
+      break; /* no GC in progress */
+    /* give chance to GC to finish */
+    spinlock_release(&mem.alloc_lock); 
+    xthread_yield(); 
   }
+}
+
+/* Subtract the `struct timeval' values X and Y,
+   storing the result in RESULT.
+   Return 1 if the difference is negative, otherwise 0.  */
+local int timeval_subtract(struct timeval *result,
+			   struct timeval *x,struct timeval *y)
+{
+  /* Perform the carry for the later subtraction by updating y. */
+  if (x->tv_usec < y->tv_usec) {
+    int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
+      y->tv_usec -= 1000000 * nsec;
+    y->tv_sec += nsec;
+  }
+  if (x->tv_usec - y->tv_usec > 1000000) {
+    int nsec = (x->tv_usec - y->tv_usec) / 1000000;
+      y->tv_usec += 1000000 * nsec;
+    y->tv_sec -= nsec;
+  }
+  /* Compute the time remaining to wait.
+     tv_usec is certainly positive. */
+  result->tv_sec = x->tv_sec - y->tv_sec;
+  result->tv_usec = x->tv_usec - y->tv_usec;
+  /* Return 1 if result is negative. */
+  return x->tv_sec < y->tv_sec;
 }
 
 local void *signal_handler_thread(void *arg)
@@ -4328,32 +4347,78 @@ local void *signal_handler_thread(void *arg)
 	CTRL-Z and "fg" later) */
       continue;
     }
-    /* first handle the signals that will not require LISP world stop */
-    switch (sig) {
-    case SIG_TIMEOUT_CALL:
-      /* TODO: */
-      /* this will signal for new CALL-WITH-TIMEOUT timeouts and will setup
-	 SIGALRM to this thread as well. */
-      continue;
-    case SIGALRM:
-      /* TODO: */
-      /* this will decide which thread has time-ed out in CALL-WITH-TIMEOUT
-	 and will send SIG_THREAD_INTERRUPT to it execute the timeout form.
-	 (and will reschedule the SIGALRM if needed) */
-      continue;
-    }
-    /*next signals require the lisp world to be stopped. */ 
     /* before proceeding we have to be sure that there is no GC 
        in progress at the moment. This is the only situation in 
        which we have to delay the signal. */
-    acquire_heap_and_threads_locks();
-    /* we own both - the heap lock and threads lock*/
-    /* be sure that all threads are ready to be signaled */
-    for_all_threads({  spinlock_acquire(&thread->_signal_reenter_ok); });
-    /* now we own the heap lock and threads lock - no GC may happen. Also we are
-       sure that there is no GC in progress (since we obtained the heap 
-       lock while the threads lock was owned by us as well). */
+    lock_heap_from_signal();
     switch (sig) {
+    case SIGALRM:
+      /* timeout happened. get the chain lock. */
+      spinlock_acquire(&timeout_call_chain_lock); 
+    case SIG_TIMEOUT_CALL:
+      /* CALL-WITH-TIMEOUT has just inserted a timeout_call at the beginning 
+	 of the chain. So let's set na alarm for it (that we cancel any previous 
+	 alrams). The chain lock is on - CALL-WITH-TIMEOUT has obtained it and 
+	 here we have to release it at the end */
+      {
+	timeout_call *chain=timeout_call_chain;
+	var struct timeval now;
+	gettimeofday(&now,NULL);
+	/* let's "timeout" first threads if needed */
+	/* with DEBUG_GCSAFETY we stop all threads and use the dummy
+	   alloccount. Generally with DEBUG_GCSAFETY we cannot suspend
+	   single thread from signal handler without interfering other
+	   threads allocacounts */
+#ifdef DEBUG_GCSAFETY
+	use_dummy_alloccount=true;
+	WITH_STOPPED_WORLD(false,{
+#endif
+	while (chain && timeval_less(chain->expire,&now)) {
+#ifndef DEBUG_GCSAFETY
+	  WITH_STOPPED_THREAD
+	    (chain->thread,false,{
+#endif
+	      if (chain->thread->_STACK) { /* alive ? */
+		spinlock_acquire(&chain->thread->_signal_reenter_ok);
+		gcv_object_t *saved_stack=chain->thread->_STACK;
+		NC_pushSTACK(chain->thread->_STACK,*chain->throw_tag);
+		NC_pushSTACK(chain->thread->_STACK,posfixnum(1)); 
+		NC_pushSTACK(chain->thread->_STACK,S(thread_throw_tag)); 
+		if (xthread_signal(TheThread(chain->thread->_lthread)->xth_system,
+				   SIG_THREAD_INTERRUPT)) {
+		  /* hmm - signal send failed. restore the stack and spinlock 
+		     but the timeout will be lost !!!*/
+		  chain->thread->_STACK=saved_stack;
+		  spinlock_release(&chain->thread->_signal_reenter_ok);
+		  fprintf(stderr,"*** CALL-WITH-TIMEOUT will fail for thread %x\n",
+			  chain->thread);
+		}
+	      }
+#ifndef DEBUG_GCSAFETY
+	    });
+#endif
+	  chain=chain->next;
+	}
+#ifdef DEBUG_GCSAFETY
+	});
+	use_dummy_alloccount=false;
+#endif
+	timeout_call_chain=chain;
+	/* should we set new alarm ? */
+	if (chain) { 
+	  var struct timeval diff;
+	  timeval_subtract(&diff, chain->expire, &now);
+	  if (diff.tv_sec > 10) {
+	    /* if we have more that 10 secs - schedule for 10 sec. */
+	    ualarm(10000000,0);
+	  } else {
+	    ualarm(diff.tv_sec*1000000+diff.tv_usec,0);
+	  }
+	}
+	/* release the chain spinlock */
+	spinlock_release(&timeout_call_chain_lock); 
+      }
+      break;
     case SIGINT:
       WITH_STOPPED_WORLD
 	(false,{
@@ -4364,6 +4429,7 @@ local void *signal_handler_thread(void *arg)
           #endif
 	  for_all_threads({
 	    if (thread->_STACK) { /* still alive ?*/
+	      spinlock_acquire(&thread->_signal_reenter_ok);
 	      gcv_object_t *saved_stack=thread->_STACK;
 	      /* line below is not needed but detects bugs */
 	      NC_pushSTACK(thread->_STACK,O(thread_break_description));
@@ -4375,6 +4441,7 @@ local void *signal_handler_thread(void *arg)
 				     SIG_THREAD_INTERRUPT));
 	      if (!signal_sent) {
 		thread->_STACK=saved_stack;
+		spinlock_release(&thread->_signal_reenter_ok);
 	      } else {
 		signaled_thread=thread;
 		break;
@@ -4383,13 +4450,6 @@ local void *signal_handler_thread(void *arg)
 	  });
 	  if (!signal_sent) {
 	    fprintf(stderr, "*** SIGINT will be missed.\n");
-	  } else {
-	    /* signal has been sent to the signaled_thread. 
-	       release the held spinlocks of the other threads */
-	    for_all_threads({ 
-	      if (thread != signaled_thread)
-		spinlock_release(&thread->_signal_reenter_ok);
-	    });
 	  }
           #ifdef DEBUG_GCSAFETY
            use_dummy_alloccount=false;
@@ -4422,6 +4482,8 @@ local void *signal_handler_thread(void *arg)
           #endif
 	  for_all_threads({
 	    if (thread->_STACK) { 
+	      /* be sure the signal handler can be reentered */
+	      spinlock_acquire(&thread->_signal_reenter_ok);
 	      NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
 	      NC_pushSTACK(thread->_STACK,posfixnum(1)); /* 1 argument */
 	      NC_pushSTACK(thread->_STACK,S(thread_kill)); /* thread kill */
@@ -4436,7 +4498,6 @@ local void *signal_handler_thread(void *arg)
       break;
     }
     spinlock_release(&mem.alloc_lock);
-    xmutex_unlock(&allthreads_lock);
   }
   return NULL;
 }
