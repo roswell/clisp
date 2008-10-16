@@ -17248,9 +17248,9 @@ typedef struct timeout_call {
   struct timeout_call *next; /* next timeout call */
 } timeout_call;
 /* lock for the timeout_call_chain */
-global spinlock_t timeout_call_chain_lock;
+extern spinlock_t timeout_call_chain_lock;
 /* chain of sorted by expire time timeout_calls */
-global timeout_call *timeout_call_chain;
+extern timeout_call *timeout_call_chain;
 /* returns true if p1 is before p2 */
 global bool timeval_less(struct timeval *p1, struct timeval *p2);
 

@@ -1,4 +1,10 @@
 2008-10-16  Vladimir Tzankov  <vtzankov@gmail.com>
+	Fix declaration of timeout_call_chain and timeout_call_chain_lock.
+
+	* lispbibl.d: timeout_call_chain and timeout_call_chain_lock 
+	declared as extern.
+
+2008-10-16  Vladimir Tzankov  <vtzankov@gmail.com>
 	CALL-WITH-TIMEOUT implemented. CATCH frame for THREAD-KILL. 
 
 	* lispbibl.d
