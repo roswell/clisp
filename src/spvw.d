@@ -327,6 +327,7 @@ local xmutex_t allthreads_lock;
 #define MAXNTHREADS  128
 local uintC nthreads = 0;
 local clisp_thread_t* allthreads[MAXNTHREADS];
+global xthread_t thr_signal_handler; /* the id of the signal handling thread */
 
 /* POSIX threads with no recursive mutex support */
 #if (defined(POSIX_THREADS) || defined(POSIXOLD_THREADS)) && !defined(PTHREAD_MUTEX_RECURSIVE_NP)
@@ -3873,6 +3874,7 @@ global int main (argc_t argc, char* argv[]) {
   }
   /* IMPORTANT: set the current tls thread to NULL */
   set_current_thread(NULL); 
+  thr_signal_handler = xthread_self();
   /* let's handle signals now :)*/
   signal_handler_thread(0);
   /* NOTREACHED */
@@ -4288,7 +4290,7 @@ local void interrupt_thread_signal_handler (int sig) {
      execute the handler after we are unblocked. And here came the problem:
      All I/O (unixaux.d) is done by retrying on EINTR - so with the above 
      scheme we cannot interrupt the system calls - our GC_SAFE_REGIONs are 
-     plced above the low level stuff in unixaux.d.
+     placed above the low level stuff in unixaux.d.
 
      It's tested on osx and debian 32 bit. */
   funcall(fun,args);
@@ -4353,9 +4355,9 @@ local void *signal_handler_thread(void *arg)
     lock_heap_from_signal();
     switch (sig) {
     case SIGALRM:
-      /* timeout happened. get the chain lock. */
-      spinlock_acquire(&timeout_call_chain_lock); 
     case SIG_TIMEOUT_CALL:
+      /* hmm, may be we can use just single signal - SIGALRM ??? */
+      spinlock_acquire(&timeout_call_chain_lock); 
       /* CALL-WITH-TIMEOUT has just inserted a timeout_call at the beginning 
 	 of the chain. So let's set na alarm for it (that we cancel any previous 
 	 alrams). The chain lock is on - CALL-WITH-TIMEOUT has obtained it and 
@@ -4423,7 +4425,6 @@ local void *signal_handler_thread(void *arg)
       WITH_STOPPED_WORLD
 	(false,{
 	  var bool signal_sent=false;
-	  var clisp_thread_t *signaled_thread;
           #ifdef DEBUG_GCSAFETY
 	   use_dummy_alloccount=true;
           #endif
@@ -4442,10 +4443,8 @@ local void *signal_handler_thread(void *arg)
 	      if (!signal_sent) {
 		thread->_STACK=saved_stack;
 		spinlock_release(&thread->_signal_reenter_ok);
-	      } else {
-		signaled_thread=thread;
+	      } else 
 		break;
-	      }
 	    }
 	  });
 	  if (!signal_sent) {

@@ -1,3 +1,21 @@
+2008-10-17  Vladimir Tzankov  <vtzankov@gmail.com>
+	CALL-WITH-TIMEOUT fix on linux. Code cleanup
+
+	* lispbibl.d
+	(main_threadp): removed. no more special LISP threads.
+	(thr_signal_handler): declaration of the id of the signal handling
+	thread (needed for process signal raising).
+	* spvw.d 
+	(main): initialize thr_signal_handler.
+	(signal_handling_thread): SIGALRM and SIG_TIMEOUT_CALL handled the 
+	same way. May be abandon SIG_TIMEOUT_CALL in future.
+	* spvw_garcol.d
+	(gar_col_normal): fix the single threaded build.
+	* zthread.d: comments added.
+	(CALL-WITH-TIMEOUT): use pthread_kill()/xthread_signal() instead of 
+	raise(sig). On 32 bit Debian(2.6 kernel) the raise()-ed signals are 
+	not delivered to the sigwait().
+
 2008-10-16  Vladimir Tzankov  <vtzankov@gmail.com>
 	Fix declaration of timeout_call_chain and timeout_call_chain_lock.
 

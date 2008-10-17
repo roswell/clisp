@@ -17225,9 +17225,6 @@ global maygc uintL add_per_thread_special_var(object symbol);
    of the symbol to invalid. */
 global void clear_per_thread_symvalues(object symbol);
 
-/* true if we are in the main thread - fo signal/semaphores */
-#define main_threadp() (current_thread()->_index == 0)
-
 /* operations on a lisp stack that is not the current one (NC) 
    - ie. belongs to other not yet started threads */
 #ifdef STACK_DOWN
@@ -17262,6 +17259,11 @@ global bool timeval_less(struct timeval *p1, struct timeval *p2);
   /* installs the global "synchronous" signal handler for async 
    POSIX signals. */
   global void install_async_signal_handlers();
+ /* the id of the signal handling thread. 
+    on linux raise(sig) does not deliver the signal with pthreads.
+    pthread_kill()/xthread_signal() work fine.
+ */
+  extern xthread_t thr_signal_handler; 
 #endif
 
 #define WITH_STOPPED_THREAD(thread,lock_heap,statement)	\

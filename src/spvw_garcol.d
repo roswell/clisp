@@ -1893,7 +1893,7 @@ local void gar_col_normal (void)
   for_each_cons_page(page, { gc_compact_cons_page(page); } );
  #endif
   /* prepare objects of variable length for compacting below: */
-
+#if defined(MULTITHREAD)
   var uintC pinned_count=0;
   /* count the pinned objects */
   for_all_threads({
@@ -1903,6 +1903,9 @@ local void gar_col_normal (void)
       pinned_count++;
     }
   });
+#else
+  #define pinned_count 0
+#endif
   /* every pinned object may introduce a hole in the heap. */
   /* large objects that cannot be moved becasue of the pinned objects
      mill be treated as pinned. */
@@ -1911,6 +1914,9 @@ local void gar_col_normal (void)
   var varobj_mem_region *holes_to_fill=
     (varobj_mem_region *)alloca((pinned_count+1)*sizeof(varobj_mem_region));
   var uintC holes_count=0, regions_count;
+#if !defined(MULTITHREAD)
+  #undef pinned_count
+#endif
  #ifdef SPVW_PURE
   #ifdef GENERATIONAL_GC
   if (generation == 0) {

@@ -32,8 +32,10 @@ local maygc object check_thread(object obj)
 global void release_threads (object list) {
   while (!endp(list)) {
     clisp_thread_t *thread = TheThread(Car(list))->xth_globals;
+    begin_system_call();
     free(thread->_ptr_symvalues);
     free(thread);
+    end_system_call();
     list = Cdr(list);
   }
 }
@@ -55,8 +57,6 @@ local /*maygc*/ void *thread_stub(void *arg)
   bt.bt_stack = STACK STACKop -1;
   bt.bt_num_arg = -1;
   back_trace = &bt;
-  /* establish driver frame so on thread exit by 
-   thread-kill we can unwind the stack properly by reset(0); */
   var gcv_object_t *initial_bindings = &STACK_1;
   var gcv_object_t *funptr = &STACK_2;
   /* create the thread exit CATCH frame */
@@ -68,10 +68,11 @@ local /*maygc*/ void *thread_stub(void *arg)
     var gcv_object_t* top_of_frame = STACK; /* pointer above frame */
     var sp_jmp_buf returner; /* remember entry point */
     /* driver frame in order to be able to kill the thread and unwind the stack 
-       via reset(0) call. */
+       via reset(0) call. It discards the CATCH frame as well. Useful when an
+       error (error xxx) happens in the thread. */
     finish_entry_frame(DRIVER,returner,,{skipSTACK(2+3);goto end_of_thread;});
     /* create special vars initial dynamic bindings. 
-       we do not create DYNBIND frame since anyway we are at the 
+       do not create DYNBIND frame since anyway we are at the 
        "top level" of the thread. */
     if (boundp(*initial_bindings) && !endp(*initial_bindings)) {
       while (!endp(*initial_bindings)) {
@@ -120,13 +121,13 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   var uintM vstack_depth = I_to_uint32(check_uint32(popSTACK()));
   /* cstack_size */
   var uintM cstack_size = I_to_uint32(check_uint32(popSTACK()));
-  if (!vstack_depth) { /* lisp stack empty ??? */
+  if (!vstack_depth) { /* lisp stack empty ? */
     /* use the same as the caller */
-    vstack_depth=STACK_item_count(STACK_bound,STACK_start); /*skip 2 nullobj*/
+    vstack_depth=STACK_item_count(STACK_bound,STACK_start); 
   }
   if (cstack_size > 0 && cstack_size < 0x10000) { /* cstack too small ? */
-    /*TODO: or may be signal an error */
-    /* lets allocate at least 64 K */
+    /* TODO: or may be signal an error */
+    /* lets allocate at least 64K */
     cstack_size = 0x10000;
   }
   if (vstack_depth < ca_limit_1) {
@@ -145,7 +146,11 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   /* do allocations before thread locking */ 
   pushSTACK(allocate_thread(&STACK_1)); /* put it in GC visible place */
   pushSTACK(allocate_cons());
-  /* create the thread's exit tag*/
+  /* create the thread's exit tag - we may do this from the thread body 
+   but have to be sure that special variables for GENSYM counter are per 
+   thread bound. since the user may pass initial-bindings - it is possible 
+   to get an error/condition/etc while evaluating them and at that time we 
+   will not have valid exit tag. So allocte it here. */
   pushSTACK(unbound);
   funcall(S(gensym),1);
   pushSTACK(value1);
@@ -159,9 +164,7 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
     unlock_threads();
     skipSTACK(6); VALUES1(NIL); return;
   }
-  /* push 2 null objects in the thread stack in order to stop
-     marking in GC while initializing the thread and stack unwinding
-     in case of error. */
+  /* push 2 null objects in the thread stack to mark it's end (bottom) */
   NC_pushSTACK(new_thread->_STACK,nullobj);
   NC_pushSTACK(new_thread->_STACK,nullobj);
   /* push the function to be executed */ 
@@ -170,6 +173,7 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   NC_pushSTACK(new_thread->_STACK,STACK_3);
   /* push the exit tag */
   NC_pushSTACK(new_thread->_STACK,popSTACK());
+  /* initialize the exit tag pointer */
   new_thread->_thread_exit_tag = new_thread->_STACK STACKop 1;
   
   if (register_thread(new_thread)<0) {
@@ -193,8 +197,10 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
   unlock_threads(); /* allow GC and other thread creation. */
   /* create the OS thread */
   if (xthread_create(&TheThread(lthr)->xth_system, &thread_stub,new_thread,cstack_size)) {
+    /* side effect - we return NIL but the not started thread is 
+       present in all_threads (will not survive GC since no references to it). */
     pushSTACK(lthr);
-    delete_thread(new_thread,false); /* remove it from the list */
+    delete_thread(new_thread,false);
     lthr=popSTACK();
     VALUES1(NIL); 
   } else
@@ -271,12 +277,16 @@ LISPFUNN(call_with_timeout,3)
     }
     var timeout_call tc={current_thread(),&STACK_2,&timeout,NULL};
     /* insert in sorted chain and signal if needed */
-    if (insert_timeout_call(&tc)) {
-      /* first item - let's signal the thread */
-      raise(SIG_TIMEOUT_CALL);
-    } else {
-      /* not a first item in the chain - so no signal */
-      spinlock_release(&timeout_call_chain_lock); 
+    var bool to_signal=insert_timeout_call(&tc);    
+    spinlock_release(&timeout_call_chain_lock); /* release the lock */
+    if (to_signal) {
+      begin_system_call();
+      xthread_signal(thr_signal_handler,SIG_TIMEOUT_CALL);
+      /* on linux raise(sig) does not deliver the signal to the signal handling
+	 thread !!! so we use xthread_signal()/pthread_kill() which works fine.
+      */
+      /* raise(SIG_TIMEOUT_CALL);*/
+      end_system_call();
     }
     {
       /* funcall in UNWIND_PROTECT frame in order to cleanup the 
@@ -323,7 +333,7 @@ LISPFUN(thread_wait,seclass_default,3,0,rest,nokey,0,NIL)
 
 LISPFUNN(thread_yield,0)
 { /* (THREAD-YIELD) */
-  begin_blocking_system_call();
+  begin_blocking_system_call(); /* give GC chance */
   xthread_yield();
   end_blocking_system_call();
   VALUES1(current_thread()->_lthread);
@@ -332,11 +342,12 @@ LISPFUNN(thread_yield,0)
 LISPFUNN(thread_kill,1)
 { /* (THREAD-KILL thread) */
   STACK_0=check_thread(STACK_0);
-  /* locking the threads since _thread_exit_tag may become invalid meanwhile  */
+  /* locking the threads since _thread_exit_tag may become invalid meanwhile if
+     the thread terminates.*/
   begin_blocking_call();
   lock_threads(); 
   end_blocking_call();
-  var object thr=STACK_0; /*thread */
+  var object thr=STACK_0; /* thread */
   /* exit throw tag */
   var gcv_object_t *exit_tag=(TheThread(thr)->xth_globals->_thread_exit_tag);
   if (exit_tag) { /* thread is alive */
@@ -394,7 +405,7 @@ LISPFUN(thread_interrupt,seclass_default,2,0,rest,nokey,0,NIL)
     /* TODO: may be signal an error if we try to interrupt
        terminated thread ???*/
   }
-  /* return the thread and whether it was really interrupted*/
+  /* return the thread and whether it was really interrupted */
   VALUES2(clt->_lthread,signal_sent ? T : NIL); 
 #else
   NOTREACHED; /* win32 not implemented */
