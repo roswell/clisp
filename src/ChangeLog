@@ -1,4 +1,11 @@
 2008-10-20  Vladimir Tzankov  <vtzankov@gmail.com>
+	Code cleanup.
+
+	* spvw.d (signal_handler_thread): better comment.
+	* spvw_global.d (gc_resume_all_threads): code cleanup (removed
+	garbage code).
+
+2008-10-20  Vladimir Tzankov  <vtzankov@gmail.com>
 	CALL-WITH-TIMEOUT bugfix and user warning on failure.
 
 	* lispbibl.d

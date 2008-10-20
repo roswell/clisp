@@ -4484,7 +4484,7 @@ local void *signal_handler_thread(void *arg)
 	      spinlock_acquire(&thread->_signal_reenter_ok);
 	      NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
 	      NC_pushSTACK(thread->_STACK,posfixnum(1)); /* 1 argument */
-	      NC_pushSTACK(thread->_STACK,S(thread_kill)); /* thread kill */
+	      NC_pushSTACK(thread->_STACK,S(thread_kill)); /* THREAD-KILL */
 	      some_failed |= 
 		(0!=xthread_signal(TheThread(thread->_lthread)->xth_system,
 				   SIG_THREAD_INTERRUPT));
@@ -4492,7 +4492,7 @@ local void *signal_handler_thread(void *arg)
 	  });
 	  if (some_failed) {
 	    fprintf(stderr,"*** some threads were not signaled to terminate.");
-	    quit(); /* force quit from here. lisp will not be unwound*/
+	    quit(); /* force quit from here. lisp stacks will not be unwound */
 	  }
           #ifdef DEBUG_GCSAFETY
            use_dummy_alloccount=false;

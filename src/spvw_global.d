@@ -580,9 +580,9 @@ global void gc_resume_all_threads(bool unlock_heap)
 
   /* before resuming let's report if any timeout call has failed. no need
      to acquire any lock - since no other thread LISP is running (and the 
-     signal is waiting on on the heap lock/gc_suspend_count anyway). It's
-     important to do this before we get the heap lock since WARN may/will
-     cause allocations. */
+     signal handling thread will wait on the heap lock/gc_suspend_count 
+     anyway). It's important to do this before we get the heap lock since 
+     WARN may/will cause allocations. */
   var timeout_call *tc=timeout_call_chain;
   while (tc && tc->failed) {
     pushSTACK(CLSTEXT("CALL-WITH-TIMEOUT has failed in thread ~S."));
@@ -607,18 +607,7 @@ global void gc_resume_all_threads(bool unlock_heap)
       spinlock_release(&thread->_gc_suspend_ack); /* release the ACK lock*/
       xmutex_unlock(&thread->_gc_suspend_lock); /* enable thread */
     }
-  });
-  
-  /* before returning let's report if any timeout call has failed. no need
-     to acquire any lock - since no other thread LISP is running (and the 
-     signal is waiting on on the heap lock anyway)
-  */
-  var timeout_call *tc=timeout_call_chain;
-  while (tc && tc->failed) {
-
-  }
-  
-
+  });  
   if (unlock_heap) RELEASE_HEAP_LOCK();
 }
 
