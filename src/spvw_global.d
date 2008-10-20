@@ -577,6 +577,20 @@ global void gc_resume_all_threads(bool unlock_heap)
   /* thread lock is locked. heap lock is free. */
   var clisp_thread_t *me=current_thread();
   /*fprintf(stderr,"VTZ: GC_RESUME(): %0x, %d\n",me, gc_suspend_count);*/
+
+  /* before resuming let's report if any timeout call has failed. no need
+     to acquire any lock - since no other thread LISP is running (and the 
+     signal is waiting on on the heap lock/gc_suspend_count anyway). It's
+     important to do this before we get the heap lock since WARN may/will
+     cause allocations. */
+  var timeout_call *tc=timeout_call_chain;
+  while (tc && tc->failed) {
+    pushSTACK(CLSTEXT("CALL-WITH-TIMEOUT has failed in thread ~S."));
+    pushSTACK(tc->thread->_lthread);
+    /* not to warn twice in case of nested GC (not really likely) */
+    timeout_call_chain = tc = tc->next; 
+    funcall(S(warn),2);
+  }
   /* get the heap lock. in case we are called from allocate_xxx
      we should not allow any other thread that will be resumed shortly 
      to acquire it. Also it guards the gc_suspend_count when accessed 
@@ -594,6 +608,17 @@ global void gc_resume_all_threads(bool unlock_heap)
       xmutex_unlock(&thread->_gc_suspend_lock); /* enable thread */
     }
   });
+  
+  /* before returning let's report if any timeout call has failed. no need
+     to acquire any lock - since no other thread LISP is running (and the 
+     signal is waiting on on the heap lock anyway)
+  */
+  var timeout_call *tc=timeout_call_chain;
+  while (tc && tc->failed) {
+
+  }
+  
+
   if (unlock_heap) RELEASE_HEAP_LOCK();
 }
 

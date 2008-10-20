@@ -17241,6 +17241,7 @@ global void clear_per_thread_symvalues(object symbol);
 typedef struct timeout_call {
   clisp_thread_t *thread; /* thread to be interrupted */
   gcv_object_t *throw_tag; /* pointer to thread STACK */
+  bool failed; /* true if the thread signal has failed */
   struct timeval *expire;  /* timeout expire time */
   struct timeout_call *next; /* next timeout call */
 } timeout_call;

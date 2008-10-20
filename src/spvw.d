@@ -4356,12 +4356,9 @@ local void *signal_handler_thread(void *arg)
     switch (sig) {
     case SIGALRM:
     case SIG_TIMEOUT_CALL:
-      /* hmm, may be we can use just single signal - SIGALRM ??? */
+      /* we got and alarm or just a new CALL-WITH-TIMEOUT call has been 
+	 inserrted in the front of the chain. */
       spinlock_acquire(&timeout_call_chain_lock); 
-      /* CALL-WITH-TIMEOUT has just inserted a timeout_call at the beginning 
-	 of the chain. So let's set na alarm for it (that we cancel any previous 
-	 alrams). The chain lock is on - CALL-WITH-TIMEOUT has obtained it and 
-	 here we have to release it at the end */
       {
 	timeout_call *chain=timeout_call_chain;
 	var struct timeval now;
@@ -4388,12 +4385,14 @@ local void *signal_handler_thread(void *arg)
 		NC_pushSTACK(chain->thread->_STACK,S(thread_throw_tag)); 
 		if (xthread_signal(TheThread(chain->thread->_lthread)->xth_system,
 				   SIG_THREAD_INTERRUPT)) {
-		  /* hmm - signal send failed. restore the stack and spinlock 
-		     but the timeout will be lost !!!*/
+		  /* hmm - signal send failed. restore the stack and spinlock, 
+		     and mark the timeout as failed. The next time when we come 
+		     here we will retry it - if not reported as warning to the user.
+		     The user will always get a warning.
+		    */
+		  chain->failed=true;
 		  chain->thread->_STACK=saved_stack;
 		  spinlock_release(&chain->thread->_signal_reenter_ok);
-		  fprintf(stderr,"*** CALL-WITH-TIMEOUT will fail for thread %x\n",
-			  chain->thread);
 		}
 	      }
 #ifndef DEBUG_GCSAFETY
@@ -4405,7 +4404,6 @@ local void *signal_handler_thread(void *arg)
 	});
 	use_dummy_alloccount=false;
 #endif
-	timeout_call_chain=chain;
 	/* should we set new alarm ? */
 	if (chain) { 
 	  var struct timeval diff;
@@ -4448,7 +4446,7 @@ local void *signal_handler_thread(void *arg)
 	    }
 	  });
 	  if (!signal_sent) {
-	    fprintf(stderr, "*** SIGINT will be missed.\n");
+	    fprintf(stderr, "*** SIGINT will be missed.\n"); abort();
 	  }
           #ifdef DEBUG_GCSAFETY
            use_dummy_alloccount=false;
@@ -4476,6 +4474,7 @@ local void *signal_handler_thread(void *arg)
 	 kill the process from delete_thread */
       WITH_STOPPED_WORLD
 	(false,{
+	  var bool some_failed=false;
           #ifdef DEBUG_GCSAFETY
 	   use_dummy_alloccount=true;
           #endif
@@ -4486,10 +4485,15 @@ local void *signal_handler_thread(void *arg)
 	      NC_pushSTACK(thread->_STACK,thread->_lthread); /* thread object */
 	      NC_pushSTACK(thread->_STACK,posfixnum(1)); /* 1 argument */
 	      NC_pushSTACK(thread->_STACK,S(thread_kill)); /* thread kill */
-	      xthread_signal(TheThread(thread->_lthread)->xth_system,
-			     SIG_THREAD_INTERRUPT);
+	      some_failed |= 
+		(0!=xthread_signal(TheThread(thread->_lthread)->xth_system,
+				   SIG_THREAD_INTERRUPT));
 	    }
 	  });
+	  if (some_failed) {
+	    fprintf(stderr,"*** some threads were not signaled to terminate.");
+	    quit(); /* force quit from here. lisp will not be unwound*/
+	  }
           #ifdef DEBUG_GCSAFETY
            use_dummy_alloccount=false;
           #endif

@@ -232,9 +232,11 @@ local bool insert_timeout_call(timeout_call *tc)
   tc->next=chain;
   return lastnextp == &timeout_call_chain;
 }
-/* removes a timeout_call from the chain */
-local void remove_timeout_call(timeout_call *tc) 
+/* removes a timeout_call from the chain and warns if it has failed.
+   should be called without holding timeout_scheduler_lock (acquires it) */
+local maygc void remove_timeout_call(timeout_call *tc) 
 {
+  GC_SAFE_SPINLOCK_ACQUIRE(&timeout_call_chain_lock);
    timeout_call **lastnextp=&timeout_call_chain,*chain=timeout_call_chain;
    while (chain && chain != tc) {
      lastnextp=&chain->next; chain=chain->next;
@@ -243,6 +245,13 @@ local void remove_timeout_call(timeout_call *tc)
       already removed by the signal handling thread */
    if (chain)
      *lastnextp=chain->next;
+   spinlock_release(&timeout_call_chain_lock); 
+   /* tc is on the current thread stack */
+   if (chain && tc->failed) { /* tc == chain, if chain != NULL*/
+     pushSTACK(CLSTEXT("CALL-WITH-TIMEOUT has failed in thread ~S."));
+     pushSTACK(current_thread()->_lthread); /* tc->thread->_lthread */
+     funcall(S(warn),2);
+   }
 }
 
 LISPFUNN(call_with_timeout,3)
@@ -271,11 +280,11 @@ LISPFUNN(call_with_timeout,3)
     timeout.tv_sec = now.tv_sec + tv.tv_sec;
     timeout.tv_usec = (now.tv_usec + tv.tv_usec);
     /* no more than a second of carry */
-    if (timeout.tv_usec > 1000000) {
+    if (timeout.tv_usec >= 1000000) {
       timeout.tv_sec += 1;
-      timeout.tv_sec -= 1000000;
+      timeout.tv_usec -= 1000000;
     }
-    var timeout_call tc={current_thread(),&STACK_2,&timeout,NULL};
+    var timeout_call tc={current_thread(),&STACK_2,false,&timeout,NULL};
     /* insert in sorted chain and signal if needed */
     var bool to_signal=insert_timeout_call(&tc);    
     spinlock_release(&timeout_call_chain_lock); /* release the lock */
@@ -289,28 +298,21 @@ LISPFUNN(call_with_timeout,3)
       end_system_call();
     }
     {
-      /* funcall in UNWIND_PROTECT frame in order to cleanup the 
-	 chain */
+      /* funcall in UNWIND_PROTECT frame in order to cleanup the chain */
       var gcv_object_t* top_of_frame = STACK;
       var sp_jmp_buf returner; /* return point */
       finish_entry_frame
 	(UNWIND_PROTECT,returner,,
 	 {
-	   GC_SAFE_SPINLOCK_ACQUIRE(&timeout_call_chain_lock);
 	   var restartf_t fun = unwind_protect_to_save.fun;
 	   var gcv_object_t* arg = unwind_protect_to_save.upto_frame;
 	   remove_timeout_call(&tc);
-	   spinlock_release(&timeout_call_chain_lock); 
 	   skipSTACK(2); /* unwind the frame */
 	   fun(arg); /* jump further */
 	 });
       funcall(STACK_5,0); /* call the body function */
-      /* hmm - not timeout (or unwind_protect)*/
-      skipSTACK(2); /* unwind_protect frame */
-      GC_SAFE_SPINLOCK_ACQUIRE(&timeout_call_chain_lock);
-      remove_timeout_call(&tc);
-      spinlock_release(&timeout_call_chain_lock); 
-      skipSTACK(3); /* skip the CATCH frame and the catch tag */
+      remove_timeout_call(&tc); /* everything seems fine - no timeout */
+      skipSTACK(2 + 3); /* unwind_protect frame + CATCH frame*/
     }
   } else {
   timeout_function:

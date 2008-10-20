@@ -1,3 +1,25 @@
+2008-10-20  Vladimir Tzankov  <vtzankov@gmail.com>
+	CALL-WITH-TIMEOUT bugfix and user warning on failure.
+
+	* lispbibl.d
+	(struct timeout_call): added new member - failed - set to true
+	if thread has failed to be interrupted.
+	* spvw.d
+	(signal_handler_thread): on SIGINT abort if no thread can be 
+	interrupted. on SIGALRM (CALL-WITH-TIMEOUT) just mark the 
+	timeout_call as failed if xthread_signal() fails. on termination
+	signals - call quit() if some thread cannot be signaled.
+	* spvw_global.d
+	(gc_resume_all_threads): before resuming threads - report failed
+	timeout_calls if any.
+	* zthread.d
+	(remove_timeout_call): is maygc now. acquires the timeout_call_chain
+	lock before executing. If the timeout_call has failed - reports it as
+	warning.
+	(CALL-WITH-TIMEOUT): bugfix when the timeout is fraction number and 
+	there is overflow in microseconds.
+	* pathname.d: sync with CVS head.
+
 2008-10-17  Vladimir Tzankov  <vtzankov@gmail.com>
 	CALL-WITH-TIMEOUT fix on linux. Code cleanup
 
