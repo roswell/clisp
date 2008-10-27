@@ -1,3 +1,21 @@
+2008-10-26  Vladimir Tzankov  <vtzankov@gmail.com>
+	GC safe regions on system calls in pathname.d
+
+	* lispbibl.d
+	(clisp_thread_t): reordered the fields. Mostly used are first. added
+	_running_handle_directory_encoding_error - global variable in pathname.d
+	(open_files_lock): global mutex guarding access/modifications of 
+	O(open_files).
+	* spvw.d
+	(init_multithreading): initialize open_files_lock.
+	* stream.d
+	(open_files_lock): declaration.
+	(add_to_open_streams): serialize calls via open_files_lock.
+	(find_open_file): maygc. serialize calls via open_files_lock.
+	* pathname.d: added GC safe regions around possibly blocking
+	system calls.
+	(openp): maygc. serialize calls via open_files_lock.
+
 2008-10-20  Vladimir Tzankov  <vtzankov@gmail.com>
 	Code cleanup.
 

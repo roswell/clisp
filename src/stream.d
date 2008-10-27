@@ -7993,6 +7993,9 @@ local maygc object make_buffered_stream (uintB type, direction_t direction,
   return stream;
 }
 
+/* O(open_files) should be guarded by global lock */
+global xmutex_t open_files_lock;
+
 /* UP: add a stream to the list of open streams O(open_files)
  add_to_open_streams()
  <> stream
@@ -8001,31 +8004,52 @@ local maygc object make_buffered_stream (uintB type, direction_t direction,
 local maygc object add_to_open_streams (object stream) {
   pushSTACK(stream);
   var object new_cons = allocate_cons();
+  pushSTACK(new_cons);
+  /* get the lock */
+  begin_blocking_system_call();
+  xmutex_lock(&open_files_lock);
+  end_blocking_system_call();
+  new_cons = popSTACK();
   Car(new_cons) = stream = popSTACK();
   Cdr(new_cons) = O(open_files);
   O(open_files) = new_cons;
+  /* release the lock */
+  begin_system_call();
+  xmutex_unlock(&open_files_lock);
+  end_system_call();
   return stream;
 }
 
 /* Find an open file that matches the given file ID
  > struct file_id fid = file ID to match
- > uintB* data = open flags to filter
+ > uintB flags = open flags to filter
  < pointer to the stream saved on STACK or NULL
    i.e., on success, adds 1 element to STACK */
 /* TODO: needs global lock */
-global void* find_open_file (struct file_id *fid, void* data);
-global void* find_open_file (struct file_id *fid, void* data) {
+global maygc void* find_open_file (struct file_id *fid, uintB flags);
+global maygc void* find_open_file (struct file_id *fid, uintB flags) {
+  /* get the lock */
+  begin_blocking_system_call();
+  xmutex_lock(&open_files_lock);
+  end_blocking_system_call();
   var object tail = O(open_files);
-  var uintB flags = *(uintB*)data;
   while (consp(tail)) {
     var object stream = Car(tail); tail = Cdr(tail);
     if (TheStream(stream)->strmtype == strmtype_file
         && TheStream(stream)->strmflags & flags
         && file_id_eq(fid,&ChannelStream_file_id(stream))) {
       pushSTACK(stream);
+      /* release the lock */
+      begin_system_call();
+      xmutex_unlock(&open_files_lock);
+      end_system_call();
       return (void*)&STACK_0;
     }
   }
+  /* release the lock */
+  begin_system_call();
+  xmutex_unlock(&open_files_lock);
+  end_system_call();
   return NULL;
 }
 

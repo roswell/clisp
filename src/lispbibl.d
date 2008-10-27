@@ -16894,13 +16894,18 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       /* The values of per-thread symbols: */
       gcv_object_t *_ptr_symvalues; /* allocated separately */
       object _mv_space [mv_limit-1]; 
+    /* The lexical environment: */
+      gcv_environment_t _aktenv;
+    /* Used for exception handling only: */
+      handler_args_t _handler_args;
+      stack_range_t* _inactive_handlers;
+      unwind_protect_caller_t _unwind_protect_to_save;
       #ifndef NO_SP_CHECK
         void* _SP_bound;
       #endif
       void* _SP_anchor;
       gcv_object_t* _STACK_bound;
       gcv_object_t* _STACK_start;
-      unwind_protect_caller_t _unwind_protect_to_save;
       pinned_chain_t * _pinned; /* chain of pinned objects for this thread */
       uintC _index; /* this thread's index in allthreads[] */
     /* signal handling stuff - NOT USED actually */
@@ -16911,6 +16916,8 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
       #if defined(PENDING_INTERRUPTS)
        uintB _interrupt_pending;
       #endif
+    /* moved here from pathname.d */
+      bool _running_handle_directory_encoding_error;
 #ifdef HAVE_SIGNALS
     /* do not rely on SA_NODEFER for signal nesting */
       spinlock_t _signal_reenter_ok;
@@ -16919,14 +16926,8 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
        thread termination is located. */
       gcv_object_t *_thread_exit_tag;
       bool _own_stack; /* who owns our lisp stack. should it be freed? */
-    /* Used for exception handling only: */
-      handler_args_t _handler_args;
-      stack_range_t* _inactive_handlers;
     /* the current thread. NOT GC VISIBLE. */
       gcv_object_t _lthread; 
-    /* Now the lisp objects (seen by the GC). */
-      /* The lexical environment: */
-      gcv_environment_t _aktenv;
   } clisp_thread_t;
 
   #define GC_SAFE_SPINLOCK_ACQUIRE(s)			\
@@ -17165,6 +17166,8 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
   #if defined(PENDING_INTERRUPTS)
    #define interrupt_pending current_thread()->_interrupt_pending
   #endif
+  #define running_handle_directory_encoding_error \
+     current_thread()->_running_handle_directory_encoding_error
 
 /* needed for building modules */
 %% export_def(current_thread());
@@ -17224,6 +17227,8 @@ global maygc uintL add_per_thread_special_var(object symbol);
 /* Clears any per thread value for symbol. Also set tls_index
    of the symbol to invalid. */
 global void clear_per_thread_symvalues(object symbol);
+/* O(open_files) needs a global locks when accessed/modified */
+extern xmutex_t open_files_lock;
 
 /* operations on a lisp stack that is not the current one (NC) 
    - ie. belongs to other not yet started threads */
@@ -17318,9 +17323,10 @@ global bool timeval_less(struct timeval *p1, struct timeval *p2);
       skipSTACK(3);\
       unpin_varobject_i(vo);\
     } while(0)
-  /* not quite good styled macro */
+  /* not quite good styled macro, but since it should be paired with 
+     unpin_varobject() - we cannot "indent" it in a block {} */
   #define pin_varobject(vo)\
-    pushSTACK(vo);\
+    pushSTACK(vo);					\
     var gcv_object_t* top_of_frame = STACK;\
     var sp_jmp_buf returner;\
     finish_entry_frame(UNWIND_PROTECT,returner,, {\
