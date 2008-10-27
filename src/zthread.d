@@ -237,14 +237,14 @@ local bool insert_timeout_call(timeout_call *tc)
 local maygc void remove_timeout_call(timeout_call *tc) 
 {
   GC_SAFE_SPINLOCK_ACQUIRE(&timeout_call_chain_lock);
-   timeout_call **lastnextp=&timeout_call_chain,*chain=timeout_call_chain;
-   while (chain && chain != tc) {
-     lastnextp=&chain->next; chain=chain->next;
+   timeout_call **chain=&timeout_call_chain;
+   while (*chain && *chain != tc) {
+     *chain = (*chain)->next;
    }
    /* it's possible not to find the item here - if it has been 
       already removed by the signal handling thread */
-   if (chain)
-     *lastnextp=chain->next;
+   if (*chain)
+     *chain = (*chain)->next;
    spinlock_release(&timeout_call_chain_lock); 
    /* tc is on the current thread stack */
    if (chain && tc->failed) { /* tc == chain, if chain != NULL*/

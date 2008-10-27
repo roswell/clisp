@@ -1,4 +1,13 @@
 2008-10-27  Vladimir Tzankov  <vtzankov@gmail.com>
+	Code cleanup
+
+	* lispbibl.d (unpin_varobject_i): remove just a single
+	pinned object from the chain (anyway it was not possible
+	to remove more).
+	* zthread.d (remove_timeout_call): iterate with single 
+	variable over the timeout_call_chain.
+
+2008-10-27  Vladimir Tzankov  <vtzankov@gmail.com>
 	Fix single thread build
 
 	* pathname.d (openp): use open_files_lock only in MT.

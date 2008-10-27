@@ -17314,9 +17314,9 @@ global bool timeval_less(struct timeval *p1, struct timeval *p2);
      with unwind-protect frame. */
   #define unpin_varobject_i(vo) \
     do {\
-      var pinned_chain_t *p=current_thread()->_pinned;\
-      while (p && !eq(p->_o, vo)) p = p->_next;	      \
-      current_thread()->_pinned=p ? p->_next : NULL; \
+      var pinned_chain_t **p=&(current_thread()->_pinned); \
+      while (*p && !eq((*p)->_o, vo)) *p = (*p)->_next;	   \
+      if (*p) *p=(*p)->_next;				   \
     } while(0)
   #define unpin_varobject(vo) \
     do {\
