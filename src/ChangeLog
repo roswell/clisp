@@ -1,3 +1,11 @@
+2008-10-27  Vladimir Tzankov  <vtzankov@gmail.com>
+	Fix single thread build
+
+	* pathname.d (openp): use open_files_lock only in MT.
+	* stream.d 
+	(add_to_open_streams): use open_files_lock only in MT.
+	(find_open_file): use open_files_lock only in MT.
+
 2008-10-26  Vladimir Tzankov  <vtzankov@gmail.com>
 	GC safe regions on system calls in pathname.d
 

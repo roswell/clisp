@@ -6217,28 +6217,34 @@ global maygc object OSdir_to_pathname (const char* path) {
 #endif
 /* < result: true, if an opened file-stream exits for this file. */
 local maygc bool openp (object pathname) {
+#if defined(MULTITHREAD)
   pushSTACK(pathname);
   /* get the lock */
   begin_blocking_system_call();
   xmutex_lock(&open_files_lock);
   end_blocking_system_call();
   pathname = popSTACK();
+#endif
   var object flist = O(open_files); /* traverse list of all open files */
   while (consp(flist)) {
     var object f = Car(flist); /* next open stream */
     if (TheStream(f)->strmtype == strmtype_file) { /* file-stream ? */
       if (equal(TheStream(f)->strm_file_truename,pathname)) {
+#if defined(MULTITHREAD)
 	begin_system_call();
 	xmutex_unlock(&open_files_lock);
 	end_system_call();
+#endif
         return true;
       }
     }
     flist = Cdr(flist);
   }
+#if defined(MULTITHREAD)
   begin_system_call();
   xmutex_unlock(&open_files_lock);
   end_system_call();
+#endif
   return false;
 }
 
