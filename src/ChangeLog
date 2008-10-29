@@ -1,3 +1,19 @@
+2008-10-29  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
+
+	* spvw.d (init_multithreading): initialize timeout_call_chain_lock 
+	spinlock.
+	* zthread.d (timeout_call_chain_lock): just declare it - do not 
+	initialize.
+	* xthread.d
+	(SPINLOCK_INIT): remove it. spinlocks should be initialized with
+	spinlock_init().
+	(xmutex_lock): do not use "var" for local variables.
+	(xmutex_trylock): fix typo error.
+	(spinlock_acquire): do not check for errors when spinlock_t=xmutex_t
+	(spinlock_release): do not check for errors when spinlock_t=xmutex_t
+	* spvw_garcol.d (gc_sweep1_varobject_page): holes_count should be 
+	pointer to uintC. Do not mark explicitly pinned objects.
+
 2008-10-29  Sam Steingold  <sds@gnu.org>
 
 	* spvw.d (main): avoid a compilation warning;
