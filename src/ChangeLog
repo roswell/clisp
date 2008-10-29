@@ -4,9 +4,8 @@
 	spinlock.
 	* zthread.d (timeout_call_chain_lock): just declare it - do not 
 	initialize.
-	* xthread.d
-	(SPINLOCK_INIT): remove it. spinlocks should be initialized with
-	spinlock_init().
+	* xthread.d (SPINLOCK_INIT): remove it.
+	spinlocks should be initialized with spinlock_init().
 	(xmutex_lock): do not use "var" for local variables.
 	(xmutex_trylock): fix typo error.
 	(spinlock_acquire): do not check for errors when spinlock_t=xmutex_t
