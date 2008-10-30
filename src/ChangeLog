@@ -1,5 +1,15 @@
 2008-10-30  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
 
+	* lispbibl.d (Symbol_value): do not use gcc extensions.
+	(Symbol_thread_value): do not use gcc extensions.
+	(Symbolflagged_value): do not use gcc extensions.
+	(symbol_value_i / symbol_value_h): helper static inline 
+	functions for preventing multiple time argument execution.
+	(roughly_SP): define "generic" version that does not use gcc 
+	extensions.
+
+2008-10-30  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
+
 	* lispbibl.d (GC_SAFE_SYSTEM_CALL): do not use gcc extensions.
 	(GC_SAFE_CALL): do not use gcc extensions.
 	(current_thread): do not use gcc extensions.

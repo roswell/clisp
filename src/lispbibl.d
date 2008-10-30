@@ -7281,29 +7281,6 @@ typedef struct {
  Access to objects that are conses: */
 #define Car(obj)  (TheCons(obj)->car)
 #define Cdr(obj)  (TheCons(obj)->cdr)
-/* Access to objects that are symbols: */
-#if defined(MULTITHREAD)
-  #define Symbol_value(obj) \
-    *({var Symbol s=TheSymbol(obj);  \
-       var clisp_thread_t *thr=current_thread();\
-       var gcv_object_t *r;         \
-       r=(s->tls_index && !eq(SYMVALUE_EMPTY,thr->_ptr_symvalues[s->tls_index]) ? \
-          thr->_ptr_symvalues+s->tls_index : &s->symvalue); \
-       r;})
-  #define Symbol_value_helper(sym) \
-    *({var Symbol s=sym;  \
-       var clisp_thread_t *thr=current_thread();\
-       var gcv_object_t *r;         \
-       r=(s->tls_index ? \
-          thr->_ptr_symvalues+s->tls_index : &s->symvalue); \
-       r;})
-  #define Symbol_thread_value(obj) Symbol_value_helper(TheSymbol(obj))
-  #define Symbolflagged_value(obj) Symbol_value_helper(TheSymbolflagged(obj))
-#else
-  #define Symbol_value(obj)  (TheSymbol(obj)->symvalue)
-  #define Symbol_thread_value(obj) Symbol_value(obj)
-  #define Symbolflagged_value(obj) (TheSymbolflagged(obj)->symvalue)
-#endif
 #define Symbol_function(obj)  (TheSymbol(obj)->symfunction)
 #define Symbol_plist(obj)  (TheSymbol(obj)->proplist)
 #define Symbol_name(obj)  (TheSymbol(obj)->pname)
@@ -7337,7 +7314,6 @@ typedef struct {
    : SXrecord_nonweak_length(obj))
 %% export_def(Car(obj));
 %% export_def(Cdr(obj));
-%% export_def(Symbol_value(obj));
 %% export_def(Symbol_function(obj));
 %% export_def(Symbol_plist(obj));
 %% export_def(Symbol_name(obj));
@@ -7366,6 +7342,40 @@ typedef struct {
   #define eq(obj1,obj2)  ((obj1) == (obj2))
 #endif
 %% export_def(eq(obj1,obj2));
+
+/* Symbol_value() definition moved here - since in MT we need eq() to be defined. */
+/* Access to objects that are symbols: */
+#if defined(MULTITHREAD)
+  /* helper inline functions to keep ANSI compliance and prevent multiple 
+     time arguments evaluation. Should we __forceinline them ? */
+  static inline gcv_object_t *symbol_value_i(Symbol s, gcv_object_t *thrsyms) {
+    return (s->tls_index && !eq(SYMVALUE_EMPTY,thrsyms[s->tls_index]) ?
+	    thrsyms+s->tls_index : &s->symvalue);
+  }
+  static inline gcv_object_t *symbol_value_h(Symbol s, gcv_object_t *thrsyms) {
+    return (s->tls_index ? thrsyms+s->tls_index : &s->symvalue);
+  }
+  #define Symbol_value(obj) \
+    *(symbol_value_i(TheSymbol(obj),current_thread()->_ptr_symvalues))
+  #define Symbol_thread_value(obj) \
+    *(symbol_value_h(TheSymbol(obj),current_thread()->_ptr_symvalues))
+  #define Symbolflagged_value(obj) \
+    *(symbol_value_h(TheSymbolflagged(obj),current_thread()->_ptr_symvalues))
+#else
+  #define Symbol_value(obj)  (TheSymbol(obj)->symvalue)
+  #define Symbol_thread_value(obj) Symbol_value(obj)
+  #define Symbolflagged_value(obj) (TheSymbolflagged(obj)->symvalue)
+#endif
+%% #if defined(MULTITHREAD)
+%%   export_def(SYMVALUE_EMPTY);
+%%   export_def(SYMBOL_TLS_INDEX_NONE);
+%%   puts("static inline gcv_object_t *symbol_value_i(Symbol s, gcv_object_t *thrsyms) {");
+%%   puts("return (s->tls_index && !eq(SYMVALUE_EMPTY,thrsyms[s->tls_index]) ?");
+%%   puts("thrsyms+s->tls_index : &s->symvalue);}");
+%%   puts("static inline gcv_object_t *symbol_value_h(Symbol s, gcv_object_t *thrsyms) {");
+%%   puts(" return (s->tls_index ? thrsyms+s->tls_index : &s->symvalue);}");
+%% #endif
+%% export_def(Symbol_value(obj));
 
 /* Test for NIL */
 #define nullp(obj)  (eq(obj,NIL))
@@ -16992,13 +17002,21 @@ extern void convert_to_foreign (object fvd, object obj, void* data, converter_ma
    #if USE_CUSTOM_TLS >=2
     #define TLS_SP_SHIFT  12
     #define TLS_PAGE_SIZE 4096
+
     #if defined(ASM_get_SP_register)
-     #define roughly_SP()  \
-        ({ var aint __SP; __asm__ ASM_get_SP_register(__SP); __SP; })
-    #else
-     /* TODO: Win32 MSVC implementation should be here as well (when NO_ASM) */
-     #define roughly_SP()  (aint)__builtin_frame_address(0)
-    #endif
+     /* means we have also GNU - so can use the extension */
+     #define roughly_SP() \
+       ({ var aint __SP; __asm__ ASM_get_SP_register(__SP); __SP;})
+    #else /* !defined(ASM_get_SP_register) */
+     #if defined(GNU)
+       /* may be use SP() as well ?? */
+       #define roughly_SP()  (aint)__builtin_frame_address(0)
+     #elif
+       /* this may expand to function call !!! */
+       /* MSVC falls here (and all other non-gcc 32 bit compilers) */
+       #define roughly_SP()  (aint)SP()
+     #endif /* GNU */
+    #endif /* ASM_get_SP_register) */
    #endif
 
    /* xthread_key_get/set - slowest way to do things.*/
