@@ -1084,19 +1084,6 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
   while (1) {
     if (p2==end) break; /* we have finished */
     objlen=objsize((Varobject)p2);
-    /* Check for pinned object. Currently we assume that it is
-       possible to have pinned object that is not marked !!!
-       This is quite unlikely (at least I do not see normal
-       case in which this may occur). moving this after the mark is checked
-       will improve the performance of course. */
-    if (p2==next_pinned) { /* is the current object pinned? */
-      cur_used=NULL; /* no current memory region */       
-      /* advance to next pinned object */
-      pin_watch++; next_pinned=pin_watch->start+pin_watch->size;
-      new_loc=p2; /* stay here */
-      /* p2 is marked since before pinning it is pushed in the stack */
-      goto advance;
-    }
     if (!marked(p2)) { 
       /* in the original implementation the loops were unrolled
 	 but here we will pay the price for pin object support :( 
@@ -1107,6 +1094,15 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
       } 
       p2+=objlen; 
       continue; 
+    }
+    /* Check for pinned object. */
+    if (p2==next_pinned) { /* is the current object pinned? */
+      cur_used=NULL; /* no current memory region */       
+      /* advance to next pinned object */
+      pin_watch++; next_pinned=pin_watch->start+pin_watch->size;
+      new_loc=p2; /* stay here */
+      /* p2 is marked since before pinning it is pushed in the stack */
+      goto advance;
     }
     /* we have marked object that is not pinned. 
        we should calculate the new address at which we will move it */

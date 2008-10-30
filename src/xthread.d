@@ -616,8 +616,10 @@ typedef DWORD              xthread_key_t;
 
   typedef xmutex_t spinlock_t;
 
+  /* do not check for errors from xmutex_xxxx() even if there is 
+     problem it is too generic in order to be handled properly.*/
   static inline void spinlock_init (spinlock_t* spinlock)
-  { int err = xmutex_init(spinlock); if (err) OS_error(); }
+  { xmutex_init(spinlock); }
   static inline bool spinlock_tryacquire(spinlock_t* spinlock)
   { return xmutex_trylock(spinlock); }
   static inline void spinlock_acquire (spinlock_t* spinlock)
@@ -625,7 +627,7 @@ typedef DWORD              xthread_key_t;
   static inline void spinlock_release (spinlock_t* spinlock)
   { xmutex_unlock(spinlock); }
   static inline void spinlock_destroy (spinlock_t* spinlock)
-  { int err = xmutex_destroy(spinlock); if (err) OS_error(); }
+  { xmutex_destroy(spinlock); }
 
 #endif
 

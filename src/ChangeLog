@@ -1,3 +1,18 @@
+2008-10-30  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
+
+	* lispbibl.d (GC_SAFE_SYSTEM_CALL): do not use gcc extensions.
+	(GC_SAFE_CALL): do not use gcc extensions.
+	(current_thread): do not use gcc extensions.
+	* pathname.d: use new GC_SAFE_SYSTEM_CALL()/GC_SAFE_CALL().
+	(check_file_reopen): fix GCSAFETY bug.
+	* stream.d: use new GC_SAFE_SYSTEM_CALL()/GC_SAFE_CALL().
+
+2008-10-30  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
+	
+	* spvw_garcol.d (gc_sweep1_varobject_page): pinned objects
+	are always marked.
+	* xthread.d: do not check for errors when spinlock_t=mutex_t.
+
 2008-10-29  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
 
 	* spvw.d (init_multithreading): initialize timeout_call_chain_lock 
