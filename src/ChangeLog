@@ -1,5 +1,11 @@
 2008-10-30  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
 
+	* xthread.d: add AMD64 spinlock implementation.
+	(xthread_create): do not use gcc extensions
+	for POSIX_THREADS.
+
+2008-10-30  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
+
 	* lispbibl.d (Symbol_value): do not use gcc extensions.
 	(Symbol_thread_value): do not use gcc extensions.
 	(Symbolflagged_value): do not use gcc extensions.

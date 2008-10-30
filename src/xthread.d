@@ -115,40 +115,43 @@
 
 typedef pthread_t         xthread_t;
 typedef pthread_cond_t    xcondition_t;
-/* on some platforms PTHREAD_MUTEXT_RECURSIVE_NP is not macrop but in an enum */
+/* on some platforms PTHREAD_MUTEXT_RECURSIVE_NP is not macro but in an enum */
 #if defined(PTHREAD_MUTEX_RECURSIVE_NP) || defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP)
-typedef pthread_mutex_t   xmutex_t;
-/* cache the global mutex attribute for recursive mutex creation */
-extern pthread_mutexattr_t recursive_mutexattr;
-#define xthread_init() \
-  do {                 \
-    pthread_mutexattr_init(&recursive_mutexattr);\
-    pthread_mutexattr_settype(&recursive_mutexattr,PTHREAD_MUTEX_RECURSIVE_NP);\
-  } while (0)
+  typedef pthread_mutex_t xmutex_t;
+  /* cache the global mutex attribute for recursive mutex creation */
+  extern pthread_mutexattr_t recursive_mutexattr;
+  #define xthread_init() \
+    do {                 \
+      pthread_mutexattr_init(&recursive_mutexattr);\
+      pthread_mutexattr_settype(&recursive_mutexattr,PTHREAD_MUTEX_RECURSIVE_NP);\
+    } while (0)
 #else
-typedef struct xmutex_t {
-  pthread_mutex_t cs;
-  int count;
-  xthread_t owner;
-} xmutex_t;
-#define xthread_init()
+  typedef struct xmutex_t {
+    pthread_mutex_t cs;
+    int count;
+    xthread_t owner;
+  } xmutex_t;
+  #define xthread_init()
 #endif
 typedef pthread_key_t     xthread_key_t;
 
 #define xthread_self()  pthread_self()
 #ifdef POSIX_THREADS
-#define xthread_create(thread,startroutine,arg,stacksize)       \
-  ({                                                            \
-    int r;                                                      \
-    pthread_attr_t attr;                                        \
-    pthread_attr_init(&attr);                                   \
-    if (stacksize)                                              \
-      pthread_attr_setstacksize(&attr,stacksize);               \
-    pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED); \
-    r=pthread_create(thread,&attr,startroutine,arg);            \
-    pthread_attr_destroy(&attr);                                \
-    r;})
+static inline int xthread_create(xthread_t *thread,void *(*startroutine)(void *),
+				 void *arg, size_t stacksize)
+{
+  int r;
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  if (stacksize)
+    pthread_attr_setstacksize(&attr,stacksize);
+  pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+  r=pthread_create(thread,&attr,startroutine,arg);
+  pthread_attr_destroy(&attr);
+  return r;
+} 
 #endif
+/*TODO: who will create thread for POSIXOLD_THREADS? Do we need them at all ? */
 #define xthread_exit(v)  pthread_exit(v)
 #define xthread_yield()  do { if (sched_yield() < 0) OS_error(); } while(0)
 #define xthread_equal(t1,t2)  pthread_equal(t1,t2)
@@ -156,10 +159,10 @@ typedef pthread_key_t     xthread_key_t;
 #define xthread_sigmask(how,iset,oset) pthread_sigmask(how,iset,oset)
 
 #ifdef POSIX_THREADS
-#define xcondition_init(c)  pthread_cond_init(c,NULL)
+  #define xcondition_init(c)  pthread_cond_init(c,NULL)
 #endif
 #ifdef POSIXOLD_THREADS
-#define xcondition_init(c)  pthread_cond_init(c,pthread_condattr_default)
+  #define xcondition_init(c)  pthread_cond_init(c,pthread_condattr_default)
 #endif
 #define xcondition_destroy(c)  pthread_cond_destroy(c)
 #define xcondition_wait(c,m)  pthread_cond_wait(c,m)
@@ -201,15 +204,15 @@ typedef pthread_key_t     xthread_key_t;
 #endif
 
 #ifdef POSIX_THREADS
-#define xthread_key_create(key)  pthread_key_create(key,NULL)
-#define xthread_key_delete(key)  pthread_key_delete(key)
-#define xthread_key_get(key)  pthread_getspecific(key)
+  #define xthread_key_create(key)  pthread_key_create(key,NULL)
+  #define xthread_key_delete(key)  pthread_key_delete(key)
+  #define xthread_key_get(key)  pthread_getspecific(key)
 #endif
 #ifdef POSIXOLD_THREADS
-#define xthread_key_create(key)  pthread_keycreate(key,NULL)
-#define xthread_key_delete(key)  0
-#define xthread_key_get(key)  \
-  ({ void* _tmp; pthread_getspecific(key,&_tmp); _tmp; })
+  #define xthread_key_create(key)  pthread_keycreate(key,NULL)
+  #define xthread_key_delete(key)  0
+  #define xthread_key_get(key)  \
+    ({ void* _tmp; pthread_getspecific(key,&_tmp); _tmp; })
 #endif
 #define xthread_key_set(key,val)  pthread_setspecific(key,val)
 
@@ -250,6 +253,7 @@ typedef thread_key_t      xthread_key_t;
 
 #define xthread_key_create(key)  thr_keycreate(key,NULL)
 #define xthread_key_delete(key)  0
+/* on Solaris - Sun and GNU compilers support "statement expression" */
 #define xthread_key_get(key)  \
   ({ void* _tmp; thr_getspecific(key,&_tmp); _tmp; })
 #define xthread_key_set(key,val)  thr_setspecific(key,val)
@@ -446,7 +450,7 @@ typedef DWORD              xthread_key_t;
 #endif
 
 
-#if (defined(MC680X0) || defined(SPARC) || defined(MIPS) || defined(I80386) || defined(DECALPHA) || defined(POWERPC))
+#if (defined(MC680X0) || defined(SPARC) || defined(MIPS) || defined(I80386) || defined(DECALPHA) || defined(POWERPC) || defined(AMD64))
 
   typedef int spinlock_t; /* A value 0 means unlocked, != 0 means locked. */
 
@@ -526,6 +530,19 @@ typedef DWORD              xthread_key_t;
     static inline void spinlock_release (int* spinlock)
     { *spinlock = 0; }
   #endif
+  #ifdef AMD64
+    static inline long testandset (int* spinlock)
+    { int ret;
+      __asm__ __volatile__("xchgq %0,%1"
+                           : "=r" (ret), "=m" (*spinlock)
+                           : "0" (1), "m" (*spinlock)
+                           : "memory"
+                          );
+      return ret;
+    }
+    static inline void spinlock_release (int* spinlock)
+    { *spinlock = 0; }
+  #endif
   #ifdef POWERPC
     static inline long testandset (int* spinlock)
     { int ret;
@@ -541,14 +558,11 @@ typedef DWORD              xthread_key_t;
                            : "cr0", "memory");
       return ret;
     }
-
-
     static inline void spinlock_release (int* spinlock)
     {
       __asm__ __volatile__("sync" : : : "memory");
       *spinlock = 0;
     }
-
   #endif
   #ifdef DECALPHA
     static inline long testandset (int* spinlock)
