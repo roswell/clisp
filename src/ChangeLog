@@ -1,3 +1,7 @@
+2008-10-31  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
+
+	* xthread.d: AMD64 spinlocks are the same as I80386 
+
 2008-10-30  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
 
 	* xthread.d: add AMD64 spinlock implementation.

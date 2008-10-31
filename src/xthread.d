@@ -516,24 +516,11 @@ typedef DWORD              xthread_key_t;
     static inline void spinlock_release (int* spinlock)
     { *spinlock = 0; }
   #endif
-  #ifdef I80386
+  #if defined(I80386) || defined(AMD64)
 /* TODO: special version of assembler syntax when compiling with MSVC !!!*/
     static inline long testandset (int* spinlock)
     { int ret;
       __asm__ __volatile__("xchgl %0,%1"
-                           : "=r" (ret), "=m" (*spinlock)
-                           : "0" (1), "m" (*spinlock)
-                           : "memory"
-                          );
-      return ret;
-    }
-    static inline void spinlock_release (int* spinlock)
-    { *spinlock = 0; }
-  #endif
-  #ifdef AMD64
-    static inline long testandset (int* spinlock)
-    { int ret;
-      __asm__ __volatile__("xchgq %0,%1"
                            : "=r" (ret), "=m" (*spinlock)
                            : "0" (1), "m" (*spinlock)
                            : "memory"
@@ -599,7 +586,6 @@ typedef DWORD              xthread_key_t;
 
   typedef int spinlock_t __attribute__((__aligned__(16)));
   /* A value -1 means unlocked, 0 means locked. */
-  #define SPINLOCK_INIT =0
 
   /* testandset(spinlock) tries to acquire the spinlock. It returns
    0 if it succeeded (i.e. the old value was -1, the new one is 0).
