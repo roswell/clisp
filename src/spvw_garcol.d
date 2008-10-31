@@ -2381,9 +2381,9 @@ local bool page_contains_pinned_object(Page *page)
 {
 var_prepare_objsize;
   for_all_threads({
-    chain = thread->_pinned;
+    var pinned_chain_t *chain = thread->_pinned;
     while (chain) {
-      vs=(aint)TheVarobject(chain->_o);
+      var aint vs=(aint)TheVarobject(chain->_o);
       /* are we inside range? */
       if (page->page_start<=vs && page->page_end>vs) 
 	return true;
