@@ -527,7 +527,7 @@ global uintL* current_thread_alloccount()
       if (get_stack_region(&base,&size))
         return base;
     }
-    fprintf(stderr,"FATAL: current_stack_base(): cannot find stack base address.");
+    fputs("FATAL: current_stack_base(): cannot find stack base address.",stderr);
     return 0; /* certinaly will cause problems */
   }
   /* should return maximum possible thread stack size */
@@ -898,9 +898,9 @@ global bool near_SP_overflow (void) {
 nonreturning_function(global, SP_ueber, (void)) {
   var bool interactive_p = interactive_stream_p(Symbol_value(S(debug_io)));
   begin_system_call();
-  fputs("\n",stderr);
+  fputc('\n',stderr);
   fputs(GETTEXTL("*** - " "Program stack overflow. RESET"),stderr);
-  fputs("\n",stderr);
+  fputc('\n',stderr);
   fflush(stderr);
   end_system_call();
   if (interactive_p)
@@ -913,9 +913,9 @@ nonreturning_function(global, SP_ueber, (void)) {
 nonreturning_function(global, STACK_ueber, (void)) {
   var bool interactive_p = interactive_stream_p(Symbol_value(S(debug_io)));
   begin_system_call();
-  fputs("\n",stderr);
+  fputc('\n',stderr);
   fputs(GETTEXTL("*** - " "Lisp stack overflow. RESET"),stderr);
-  fputs("\n",stderr);
+  fputc('\n',stderr);
   fflush(stderr);
   end_system_call();
   if (interactive_p)
@@ -1249,7 +1249,7 @@ local subr_argtype_t subr_argtype (uintW req_count, uintW opt_count,
           req_count,opt_count,rest_flag,key_flag);
   if (sid)
     fprintf(stderr," (%s::%s)\n",sid->packname,sid->symname);
-  else fputs("\n",stderr);
+  else fputc('\n',stderr);
   quit_instantly(1);
 }
 /* set the argtype of a subr_t *ptr */
@@ -1996,11 +1996,11 @@ local void init_module_2 (module_t* module) {
           && !nullp(Symbol_function(symbol))) { /* package lock error */
         fprintf(stderr,GETTEXTL("module '%s' redefines symbol "),module->name);
         nobject_out(stderr,symbol);
-        fprintf(stderr,GETTEXTL(" in the locked package "));
+        fputs(GETTEXTL(" in the locked package "),stderr);
         nobject_out(stderr,Symbol_package(symbol));
-        fprintf(stderr,GETTEXTL("\nold definition: "));
+        fputs(GETTEXTL("\nold definition: "),stderr);
         nobject_out(stderr,Symbol_function(symbol));
-        fprintf(stderr,"\n");
+        fputc('\n',stderr);
         quit_instantly(1);
       }
       Symbol_function(symbol) = subr_tab_ptr_as_object(subr_ptr); /* define function */
@@ -2033,58 +2033,61 @@ local void init_other_modules_2 (void) {
 }
 
 /* print usage */
-local void usage (void) {
+local void usage (bool delegating) {
   printf(PACKAGE_NAME " (" PACKAGE_BUGREPORT ") ");
-  printf(GETTEXTL("is an ANSI Common Lisp implementation."));
-  printf("\n");
-  printf(GETTEXTL("Usage:  "));
-  printf(program_name);
-  printf(GETTEXTL(" [options] [lispfile [argument ...]]\n"
+  puts(GETTEXTL("is an ANSI Common Lisp implementation."));
+  if (delegating) {
+    printf(GETTEXTL("This image does not process the usual command line arguments.\n"
+                    "To create a normal image \"myclisp\", please do\n"
+                    "%s --clisp-x '(ext:saveinitmem \"myclisp\" :executable t :init-function nil)'\n"),program_name);
+    return;
+  }
+  printf(GETTEXTL("Usage:  %s [options] [lispfile [argument ...]]\n"
                   " When 'lispfile' is given, it is loaded and '*ARGS*' is set\n"
                   " to the list of argument strings. Otherwise, an interactive\n"
-                  " read-eval-print loop is entered.\n"));
-  printf(GETTEXTL("Informative output:\n"));
-  printf(GETTEXTL(" -h, --help    - print this help and exit\n"));
-  printf(GETTEXTL(" --version     - print the version information\n"));
-  printf(GETTEXTL(" --license     - print the licensing information\n"));
-  printf(GETTEXTL(" -help-image   - print image-specific help and exit\n"));
-  printf(GETTEXTL("Memory image selection:\n"));
-  printf(GETTEXTL(" -B lisplibdir - set the installation directory\n"));
+                  " read-eval-print loop is entered.\n"),program_name);
+  puts(GETTEXTL("Informative output:"));
+  puts(GETTEXTL(" -h, --help    - print this help and exit"));
+  puts(GETTEXTL(" --version     - print the version information"));
+  puts(GETTEXTL(" --license     - print the licensing information"));
+  puts(GETTEXTL(" -help-image   - print image-specific help and exit"));
+  puts(GETTEXTL("Memory image selection:"));
+  puts(GETTEXTL(" -B lisplibdir - set the installation directory"));
  #if defined(UNIX) || defined(WIN32_NATIVE)
-  printf(GETTEXTL(" -K linkingset - use this executable and memory image\n"));
+  puts(GETTEXTL(" -K linkingset - use this executable and memory image"));
  #endif
-  printf(GETTEXTL(" -M memfile    - use this memory image\n"));
-  printf(GETTEXTL(" -m size       - memory size (size = nB or nKB or nMB)\n"));
-  printf(GETTEXTL("Internationalization:\n"));
-  printf(GETTEXTL(" -L language   - set user language\n"));
-  printf(GETTEXTL(" -N nlsdir     - NLS catalog directory\n"));
-  printf(GETTEXTL(" -Edomain encoding - set encoding\n"));
-  printf(GETTEXTL("Interoperability:\n"));
-  printf(GETTEXTL(" -q, --quiet, --silent, -v, --verbose - verbosity level:\n"
-                  "     affects banner, *LOAD-VERBOSE*/*COMPILE-VERBOSE*,\n"
-                  "     and *LOAD-PRINT*/*COMPILE-PRINT*\n"));
-  printf(GETTEXTL(" -w            - wait for a keypress after program termination\n"));
-  printf(GETTEXTL(" -I            - be ILISP-friendly\n"));
-  printf(GETTEXTL("Startup actions:\n"));
-  printf(GETTEXTL(" -ansi         - more ANSI CL compliance\n"));
-  printf(GETTEXTL(" -traditional  - traditional (undoes -ansi)\n"));
-  printf(GETTEXTL(" -modern       - start in a case-sensitive lowercase-preferring package\n"));
-  printf(GETTEXTL(" -p package    - start in the package\n"));
-  printf(GETTEXTL(" -C            - set *LOAD-COMPILING* to T\n"));
-  printf(GETTEXTL(" -norc         - do not load the user ~/.clisprc file\n"));
-  printf(GETTEXTL(" -lp dir       - add dir to *LOAD-PATHS* (can be repeated)\n"));
-  printf(GETTEXTL(" -i file       - load initfile (can be repeated)\n"));
-  printf(GETTEXTL("Actions:\n"));
-  printf(GETTEXTL(" -c [-l] lispfile [-o outputfile] - compile lispfile\n"));
-  printf(GETTEXTL(" -x expressions - execute the expressions, then exit\n"));
-  printf(GETTEXTL(" Depending on the image, positional arguments can mean:\n"));
-  printf(GETTEXTL("   lispscript [argument ...] - load script, then exit\n"));
-  printf(GETTEXTL("   [argument ...]            - run the init-function\n"));
-  printf(GETTEXTL("  arguments are placed in EXT:*ARGS* as strings.\n"));
-  printf(GETTEXTL("These actions put CLISP into a batch mode, which is overridden by\n"));
-  printf(GETTEXTL(" -on-error action - action can be one of debug, exit, abort, appease\n"));
-  printf(GETTEXTL(" -repl            - enter the interactive read-eval-print loop when done\n"));
-  printf(GETTEXTL("Default action is an interactive read-eval-print loop.\n"));
+  puts(GETTEXTL(" -M memfile    - use this memory image"));
+  puts(GETTEXTL(" -m size       - memory size (size = nB or nKB or nMB)"));
+  puts(GETTEXTL("Internationalization:"));
+  puts(GETTEXTL(" -L language   - set user language"));
+  puts(GETTEXTL(" -N nlsdir     - NLS catalog directory"));
+  puts(GETTEXTL(" -Edomain encoding - set encoding"));
+  puts(GETTEXTL("Interoperability:"));
+  puts(GETTEXTL(" -q, --quiet, --silent, -v, --verbose - verbosity level:\n"
+                "     affects banner, *LOAD-VERBOSE*/*COMPILE-VERBOSE*,\n"
+                "     and *LOAD-PRINT*/*COMPILE-PRINT*"));;
+  puts(GETTEXTL(" -w            - wait for a keypress after program termination"));
+  puts(GETTEXTL(" -I            - be ILISP-friendly"));
+  puts(GETTEXTL("Startup actions:"));
+  puts(GETTEXTL(" -ansi         - more ANSI CL compliance"));
+  puts(GETTEXTL(" -traditional  - traditional (undoes -ansi)"));
+  puts(GETTEXTL(" -modern       - start in a case-sensitive lowercase-preferring package"));
+  puts(GETTEXTL(" -p package    - start in the package"));
+  puts(GETTEXTL(" -C            - set *LOAD-COMPILING* to T"));
+  puts(GETTEXTL(" -norc         - do not load the user ~/.clisprc file"));
+  puts(GETTEXTL(" -lp dir       - add dir to *LOAD-PATHS* (can be repeated)"));
+  puts(GETTEXTL(" -i file       - load initfile (can be repeated)"));
+  puts(GETTEXTL("Actions:"));
+  puts(GETTEXTL(" -c [-l] lispfile [-o outputfile] - compile lispfile"));
+  puts(GETTEXTL(" -x expressions - execute the expressions, then exit"));
+  puts(GETTEXTL(" Depending on the image, positional arguments can mean:"));
+  puts(GETTEXTL("   lispscript [argument ...] - load script, then exit"));
+  puts(GETTEXTL("   [argument ...]            - run the init-function"));
+  puts(GETTEXTL("  arguments are placed in EXT:*ARGS* as strings."));
+  puts(GETTEXTL("These actions put CLISP into a batch mode, which is overridden by"));
+  puts(GETTEXTL(" -on-error action - action can be one of debug, exit, abort, appease"));
+  puts(GETTEXTL(" -repl            - enter the interactive read-eval-print loop when done"));
+  puts(GETTEXTL("Default action is an interactive read-eval-print loop."));
 }
 
 /* argument diagnostics */
@@ -2094,7 +2097,7 @@ local void arg_error (const char *error_message, const char *arg) {
   else
     fprintf(stderr,"%s: %s\n",PACKAGE_NAME,error_message);
   fprintf(stderr,GETTEXTL("%s: use '-h' for help"),PACKAGE_NAME);
-  fputs("\n",stderr);
+  fputc('\n',stderr);
 }
 #define INVALID_ARG(a)  arg_error(GETTEXTL("invalid argument"),a)
 
@@ -2395,24 +2398,32 @@ local inline int size_arg (const char *arg, const char *docstring, uintM *ret,
   if (*arg != '\0') {           /* argument finished? */
     fprintf(stderr,GETTEXTL("Syntax for %s: nnnnnnn or nnnnKB or nMB"),
             docstring);
-    fputs("\n",stderr);
+    fputc('\n',stderr);
     return 1;
   }
   if (val < limit_low) {
     fprintf(stderr,GETTEXTL("warning: %s %lu too small, using %lu instead"),
             docstring, val, limit_low);
-    fputs("\n",stderr);
+    fputc('\n',stderr);
     val = limit_low;
   }
   if (val > limit_high) {
     fprintf(stderr,GETTEXTL("warning: %s %lu too large, using %lu instead"),
             docstring, val, limit_high);
-    fputs("\n",stderr);
+    fputc('\n',stderr);
     val = limit_high;
   }
   /* For multiple -m arguments, only the last counts. */
   *ret = val;
   return 0;
+}
+
+local char* delegating_cookie = "should clisp delegate non --clisp args? N";
+local int delegating_cookie_length = -1;
+local bool delegating_p (void) {
+  if (delegating_cookie_length == -1)
+    delegating_cookie_length = asciz_length(delegating_cookie);
+  return delegating_cookie[delegating_cookie_length-1] == 'Y';
 }
 
 /* Parse the command-line options.
@@ -2421,6 +2432,7 @@ local inline int parse_options (int argc, const char* const* argv,
                                 struct argv_init_c* p0,
                                 struct argv_initparams* p1,
                                 struct argv_actions* p2) {
+  var const bool delegating = delegating_p();
   p0->argv_language = NULL;
   p0->argv_localedir = NULL;
   p1->argv_memneed = 0;
@@ -2434,7 +2446,7 @@ local inline int parse_options (int argc, const char* const* argv,
   p2->argv_init_files = (const char**) malloc((uintL)argc*sizeof(const char*)); /* max argc -x/-i options */
   p2->argv_compile = false;
   p2->argv_compile_listing = false;
-  p2->argv_norc = false;
+  p2->argv_norc = delegating; /* application should have its own RC file */
   p2->argv_on_error = ON_ERROR_DEFAULT;
   p2->argv_compile_filecount = 0;
   p2->argv_compile_files = (argv_compile_file_t*) malloc((uintL)argc*sizeof(argv_compile_file_t)); /* max argc file-arguments + -lp arguments */
@@ -2507,6 +2519,8 @@ local inline int parse_options (int argc, const char* const* argv,
     /* loop and process options, replace processed options with NULL: */
     while (argptr < argptr_limit) {
       var const char* arg = *argptr++; /* next argument */
+      if (0 == strncmp(arg,"--clisp",7)) arg += 7;
+      else if (delegating) goto non_option;
       if ((arg[0] == '-') && !(arg[1] == '\0')) {
         switch (arg[1]) {
           case 'h':             /* help */
@@ -2517,7 +2531,7 @@ local inline int parse_options (int argc, const char* const* argv,
               INVALID_ARG(arg);
               return 1;
             } else {
-              usage();
+              usage(delegating);
               return 0;
             }
             /* returns after a one-character token the rest of the
@@ -2759,7 +2773,7 @@ local inline int parse_options (int argc, const char* const* argv,
             if (arg[2] == 0) /* "--" ==> end of options */
               goto done_with_argv;
             else if (asciz_equal(&arg[2],"help")) {
-              usage();
+              usage(delegating);
               return 0;
             } else if (asciz_equal(&arg[2],"version")) {
               p2->argv_expr_count = 0;  /* discard previous -x */
@@ -2815,8 +2829,8 @@ local inline int parse_options (int argc, const char* const* argv,
         p2->argv_execute_args = argptr;
         p2->argv_execute_arg_count = argptr_limit - argptr;
         argptr = argptr_limit; /* abort loop */
-      } else {
-        /* no option -> is interpreted as file to be loaded / compiled / executed */
+      } else {             /* non option -> interpreted as file to be */
+       non_option:         /* loaded / compiled / executed */
         switch (argv_for) {
           case for_init:
             p2->argv_init_files[p2->argv_init_filecount++] = arg;
@@ -2992,13 +3006,13 @@ local inline int init_memory (struct argv_initparams *p) {
       end_system_call();
       fprintf(stderr,GETTEXTL("Return value of malloc() = %lx is not compatible with type code distribution."),
               memblock);
-      fputs("\n",stderr);
+      fputc('\n',stderr);
       return -1;
     }
     if (memneed < MINIMUM_SPACE+RESERVE) { /* but with less than MINIMUM_SPACE */
       /* we will not be satisfied: */
       fprintf(stderr,GETTEXTL("Only %ld bytes available."),memneed);
-      fputs("\n",stderr);
+      fputc('\n',stderr);
       return -1;
     }
     {                       /* round to the next lower page boundary: */
@@ -3190,8 +3204,8 @@ local inline int init_memory (struct argv_initparams *p) {
              page is 0x32000-0x32FFF, hence we can set SP_bound = 0x34000. */
             { var MEMORY_BASIC_INFORMATION info;
               if (!(VirtualQuery((void*)SP(),&info,sizeof(info)) == sizeof(info))) {
-                fprintf(stderr,GETTEXTL("Could not determine the end of the SP stack!"));
-                fputs("\n",stderr);
+                fputs(GETTEXTL("Could not determine the end of the SP stack!"),stderr);
+                fputc('\n',stderr);
                 SP_bound = 0;
               } else { /* 0x4000 might be enough, but 0x8000 will be better. */
                 SP_bound = (void*)((aint)info.AllocationBase + 0x8000);
@@ -3856,7 +3870,6 @@ global int main (argc_t argc, char* argv[]) {
         (*module->initfunction2)(module);
     });
   }
-  run_hooks(Symbol_value(S(init_hooks)));
   { /* Init O(argv). */
     O(argv) = allocate_vector(argc);
     var argc_t count;
@@ -3865,6 +3878,10 @@ global int main (argc_t argc, char* argv[]) {
       TheSvector(O(argv))->data[count] = arg;
     }
   }
+  /* do this after O(argv) is reado so that applications can detect "--clisp-"
+     options and remove setuid bits from the executable image.
+     http://clisp.podval.org/impnotes/image.html#image-exec */
+  run_hooks(Symbol_value(S(init_hooks)));
   /* Perform the desired actions (compilations, read-eval-print loop etc.): */
 #if defined(MULTITHREAD)
   /* may be set it as command line  parameter  - it should be big enough */
@@ -3889,7 +3906,7 @@ global int main (argc_t argc, char* argv[]) {
   /* if the memory does not suffice: */
   no_mem:
   fprintf(stderr,GETTEXTL("%s: Not enough memory for Lisp."),program_name);
-  fputs("\n",stderr);
+  fputc('\n',stderr);
   quit_instantly(1);
   /*NOTREACHED*/
   /* termination of program via quit_instantly(): */
@@ -4448,7 +4465,7 @@ local void *signal_handler_thread(void *arg)
             }
           });
           if (!signal_sent) {
-            fprintf(stderr, "*** SIGINT will be missed.\n"); abort();
+            fputs("*** SIGINT will be missed.\n",stderr); abort();
           }
           #ifdef DEBUG_GCSAFETY
            use_dummy_alloccount=false;
@@ -4493,7 +4510,7 @@ local void *signal_handler_thread(void *arg)
             }
           });
           if (some_failed) {
-            fprintf(stderr,"*** some threads were not signaled to terminate.");
+            fputs("*** some threads were not signaled to terminate.",stderr);
             quit(); /* force quit from here. lisp stacks will not be unwound */
           }
           #ifdef DEBUG_GCSAFETY

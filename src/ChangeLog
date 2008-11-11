@@ -1,3 +1,10 @@
+2008-11-11  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
+	Sync with CVS trunk.
+
+	* lispbibl.d: sync with trunk
+	* spvw.d: sync with trunk
+	* pathname.d: sync with trunk
+
 2008-10-31  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
 
 	* spvw_garcol.d (page_contains_pinned_object): fix SPVW_PAGES
