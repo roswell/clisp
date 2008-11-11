@@ -1713,7 +1713,7 @@ local inline void fill_varobject_heap_holes(varobj_mem_region *holes,
       case_sbvector: ((Sbvector)ptr)->length = len<<=3; break;
       case_sb2vector: ((Sbvector)ptr)->length = len<<=2; break;
       case_sb4vector: ((Sbvector)ptr)->length = len<<=1; break;
-      case_sb8vector:  ((Sbvector)ptr)->length = len break;
+      case_sb8vector:  ((Sbvector)ptr)->length = len; break;
       case_sb16vector: ((Sbvector)ptr)->length = len>>=1; break;
       case_sb32vector: ((Sbvector)ptr)->length = len>>=2; break;
       default:

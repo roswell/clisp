@@ -1,5 +1,10 @@
 2008-11-11  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
-	Sync with CVS trunk.
+
+	* spvw_garcol.d (fill_varobject_heap_holes): fix build for SPVW_PURE.
+	* threads.lisp (*DEFAULT-SPECIAL-BINDINGS*): EXT::*COMMAND-INDEX*
+	is not exported at the time threads.lisp is loaded. 
+
+2008-11-11  Vladimir Tzankov  <vtzankov@gmail.com>  [threads1]
 
 	* lispbibl.d: sync with trunk
 	* spvw.d: sync with trunk
