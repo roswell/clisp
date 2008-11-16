@@ -32,20 +32,46 @@ global object subst_circ (gcv_object_t* ptr, object alist);
 
 /* -------------------------- Implementation --------------------------- */
 
-/*#if defined(MULTITHREAD) || defined(VIRTUAL_MEMORY)*/
+/* basically in MT we would like to have reentrant ciruclar detection. 
+currently two implementations are available: MLB and HASHTABLES.
+1. MLB - it mallocs (esp. on 64 bit - huge amount of memory)
+2. HASHSTABLES - it is slow.
+That's the reason by default - we will use the GCMARK in MT as well.
+We will guard it with mutex - so single thread can execute it at a 
+time. Also the GC will not be able to run during the GC mark 
+circulat detection.
+ */
+#if 0
+ #ifdef MULTITHREAD
+  #define CIRC_DETECTION_REENTRANT
+ #endif
+#endif
 
-#if defined(MULTITHREAD)
- #if 0
+#ifdef CIRC_DETECTION_REENTRANT
 /* use MLB for 32 bit and hash table for 64 bit ??
    hashtable is much slower (about 50% - overall) */
+ #if 0
   #if (oint_addr_len <= 32)
    #define USE_MULTI_LEVEL_BITMAP
   #else
    #define USE_LISP_HASHTABLE
   #endif
  #endif
-/*#define USE_MULTI_LEVEL_BITMAP */
+ /* by default use the HASHTABLE - since it will work on 64 bit platforms. */
  #define USE_LISP_HASHTABLE
+ #ifdef MULTITHREAD
+  /* to be called from init_multithread(). does not do anything. */
+  global void initialize_circ_detection() {}
+ #endif
+#else /* use GC marks for detection */
+ #ifdef MULTITHREAD
+  /* lock for allowing just a single thread in circ detection at a time.*/
+  xmutex_t circ_detection_lock;
+  /* to be called from init_multithread(). initialize the mutex */
+  global void initialize_circ_detection() {
+    xmutex_init(&circ_detection_lock);
+  }
+ #endif
 #endif
 
 /* Common subroutines. */
@@ -478,7 +504,7 @@ local maygc bool ht_add(gcv_object_t *ht, object obj)
 
 /* Implementation of get_circularities. */
 
-#ifdef MULTITHREAD
+#ifdef CIRC_DETECTION_REENTRANT
 
 /* get_circularities(obj,pr_array,pr_closure)
  Method:
@@ -824,7 +850,7 @@ global maygc object get_circularities (object obj, bool pr_array, bool pr_closur
   }
 }
 
-#else  /* !MULTITHREAD */
+#else  /* !CIRC_DETECTION_REENTRANT */
 
 /* get_circularities(obj,pr_array,pr_closure)
  Method:
@@ -846,7 +872,13 @@ global maygc object get_circularities (object obj, bool pr_array, bool pr_closur
 {
   var get_circ_global my_global; /* counter and context (incl. STACK-value) */
                                  /* in case of an abort */
-  set_break_sem_1();             /* make Break impossible */
+  #ifdef MULTITHREAD
+   pushSTACK(obj);
+   GC_SAFE_SYSTEM_CALL(,xmutex_lock(&circ_detection_lock));
+   obj = popSTACK();
+  #else
+   set_break_sem_1();             /* make Break impossible */
+  #endif
   if (!setjmp(my_global.abort_context)) { /* save context */
     my_global.pr_array = pr_array;
     my_global.pr_closure = pr_closure;
@@ -856,7 +888,13 @@ global maygc object get_circularities (object obj, bool pr_array, bool pr_closur
     get_circ_mark(obj,&my_global);   /* mark object, push multiple */
              /* structures on the STACK count in my_global.counter */
     get_circ_unmark(obj,&my_global); /* delete marks again */
-    clr_break_sem_1();               /* make Break possible again */
+    #ifdef MULTITHREAD
+     begin_system_call();
+     xmutex_unlock(&circ_detection_lock);
+     end_system_call();
+    #else
+     clr_break_sem_1();          /* allow Break again */
+    #endif
     var uintL n = my_global.counter; /* number of objects on the STACK */
     if (n==0) {
       return NIL;            /* none there -> return NIL and finished */
@@ -874,7 +912,13 @@ global maygc object get_circularities (object obj, bool pr_array, bool pr_closur
     setSTACK(STACK = my_global.abort_STACK); /* reset STACK again */
     /* the context is now reestablished. */
     get_circ_unmark(obj,&my_global); /* delete marks again */
-    clr_break_sem_1();               /* Break is possible again */
+    #ifdef MULTITHREAD
+     begin_system_call();
+     xmutex_unlock(&circ_detection_lock);
+     end_system_call();
+    #else
+     clr_break_sem_1();               /* Break is possible again */
+    #endif
     return T;                        /* T as result */
   }
 }
@@ -1366,7 +1410,7 @@ local void get_circ_unmark (object obj, get_circ_global* env)
 
 /* Implementation of subst_circ. */
 
-#ifdef MULTITHREAD
+#ifdef CIRC_DETECTION_REENTRANT 
 
 /* Global variables during subst_circ. */
 typedef struct {
@@ -1610,7 +1654,7 @@ global object subst_circ (gcv_object_t* ptr, object alist)
   }
 }
 
-#else  /* !MULTITHREAD */
+#else  /* !CIRC_DETECTION_REENTRANT */
 
 #if 0                       /* without consideration of circularities */
 
@@ -1792,17 +1836,35 @@ local jmp_buf subst_circ_jmpbuf;
 local object subst_circ_bad;
 global object subst_circ (gcv_object_t* ptr, object alist)
 {
+  #ifdef MULTITHREAD
+   pushSTACK(alist);
+   GC_SAFE_SYSTEM_CALL(,xmutex_lock(&circ_detection_lock));
+   alist = popSTACK();
+  #else
+   set_break_sem_1();             /* make Break impossible */
+  #endif
   subst_circ_alist = alist;
-  set_break_sem_1();          /* disable Break */
   if (!setjmp(subst_circ_jmpbuf)) {
     subst_circ_mark(ptr);       /* mark and substitute */
     subst_circ_unmark(ptr);     /* delete marks again */
-    clr_break_sem_1();          /* allow Break again */
+    #ifdef MULTITHREAD
+     begin_system_call();
+     xmutex_unlock(&circ_detection_lock);
+     end_system_call();
+    #else
+     clr_break_sem_1();          /* allow Break again */
+    #endif
     return nullobj;
   } else {
     /* abort from within subst_circ_mark() */
     subst_circ_unmark(ptr);     /* first unmark everything */
-    clr_break_sem_1();          /* allow Break again */
+    #ifdef MULTITHREAD
+     begin_system_call();
+     xmutex_unlock(&circ_detection_lock);
+     end_system_call();
+    #else
+     clr_break_sem_1();          /* allow Break again */
+    #endif
     #if !(defined(NO_SP_CHECK) || defined(NOCOST_SP_CHECK))
     if (eq(subst_circ_bad,nullobj)) {
       SP_ueber();
@@ -2090,7 +2152,7 @@ local void subst_circ_unmark (gcv_object_t* ptr)
 #endif
 #endif
 
-#if defined(MULTITHREAD)
+#if defined(CIRC_DETECTION_REENTRANT)
 /* undef all macros */
 #undef HASHSET
 #undef HASHSET_INIT(pb)
