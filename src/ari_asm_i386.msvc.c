@@ -32,8 +32,6 @@
     #include "asmi386.h"
     #undef ALIGN
     #define ALIGN
-    extern unsigned long mulu32_high;
-    extern unsigned long divu_32_rest;
   #else
     #ifdef ASM_UNDERSCORE
       #define C(entrypoint) _##entrypoint
@@ -131,11 +129,10 @@
 
 
             ALIGN
-            GLOBL(C(asm_mulu32_))
-FUNBEGIN(asm_mulu32_)
+            GLOBL(C(asm_mulu32_64))
+FUNBEGIN(asm_mulu32_64)
             INSN2(mov,l	,X4 MEM_DISP(esp,4),R(eax))
             INSN1(mul,l	,X4 MEM_DISP(esp,8))
-            INSN2(mov,l	,R(edx),C(mulu32_high))
             ret
 FUNEND()
 
@@ -151,7 +148,6 @@ FUNBEGIN(asm_divu_6432_3232_)
             INSN2(mov,l	,X4 MEM_DISP(esp,4),R(edx))
             INSN2(mov,l	,X4 MEM_DISP(esp,8),R(eax))
             INSN1(div,l	,X4 MEM_DISP(esp,12))
-            INSN2(mov,l	,R(edx),C(divu_32_rest))
             ret
 FUNEND()
 
