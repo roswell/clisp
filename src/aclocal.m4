@@ -1151,7 +1151,7 @@ AC_SUBST([am__untar])
 ]) # _AM_PROG_TAR
 
 # 00gnulib.m4 serial 3
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -1198,7 +1198,7 @@ m4_version_prereq([2.63.263], [],
 AC_DEFUN([gl_00GNULIB])
 
 # absolute-header.m4 serial 16
-dnl Copyright (C) 2006-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -1301,7 +1301,7 @@ changequote([,])
 ])
 
 # alloca.m4 serial 14
-dnl Copyright (C) 2002-2004, 2006-2007, 2009-2017 Free Software Foundation,
+dnl Copyright (C) 2002-2004, 2006-2007, 2009-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -1346,7 +1346,7 @@ AC_DEFUN([gl_FUNC_ALLOCA],
 AC_DEFUN([gl_PREREQ_ALLOCA], [:])
 
 # This works around a bug in autoconf <= 2.68.
-# See <https://lists.gnu.org/archive/html/bug-gnulib/2011-06/msg00277.html>.
+# See <https://lists.gnu.org/r/bug-gnulib/2011-06/msg00277.html>.
 
 m4_version_prereq([2.69], [] ,[
 
@@ -1423,7 +1423,7 @@ AC_DEFINE_UNQUOTED(STACK_DIRECTION, $ac_cv_c_stack_direction)
 ])
 
 # arpa_inet_h.m4 serial 13
-dnl Copyright (C) 2006, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -1481,7 +1481,7 @@ AC_DEFUN([gl_ARPA_INET_H_DEFAULTS],
 ])
 
 # asm-underscore.m4 serial 3
-dnl Copyright (C) 2010-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2010-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -1553,7 +1553,7 @@ MicrosoftCompiler
 ])
 
 # btowc.m4 serial 11
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -1675,7 +1675,7 @@ AC_DEFUN([gl_PREREQ_BTOWC], [
 
 dnl Check for __builtin_expect.
 
-dnl Copyright 2016-2017 Free Software Foundation, Inc.
+dnl Copyright 2016-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -1725,7 +1725,7 @@ AC_DEFUN([gl___BUILTIN_EXPECT],
 
 # c-strtod.m4 serial 15
 
-# Copyright (C) 2004-2006, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2004-2006, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -1774,7 +1774,7 @@ AC_DEFUN([gl_C_STRTOLD],
 ])
 
 # close.m4 serial 9
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -1835,7 +1835,7 @@ AC_DEFUN([AM_LANGINFO_CODESET],
 ])
 
 # configmake.m4 serial 2
-dnl Copyright (C) 2010-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2010-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -1891,7 +1891,7 @@ AC_DEFUN([gl_CONFIGMAKE_PREP],
 ])
 
 #serial 25
-dnl Copyright (C) 2002, 2005, 2007, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002, 2005, 2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -2009,7 +2009,7 @@ AC_DEFUN([gl_FUNC_DUP2],
 AC_DEFUN([gl_PREREQ_DUP2], [])
 
 # eealloc.m4 serial 3
-dnl Copyright (C) 2003, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2003, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -2041,7 +2041,7 @@ AC_DEFUN([gl_EEREALLOC],
 ])
 
 # environ.m4 serial 6
-dnl Copyright (C) 2001-2004, 2006-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2001-2004, 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -2089,7 +2089,7 @@ AC_DEFUN([gt_CHECK_VAR_DECL],
 ])
 
 # errno_h.m4 serial 12
-dnl Copyright (C) 2004, 2006, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2004, 2006, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -2229,7 +2229,7 @@ m4_ifdef([AC_COMPUTE_INT], [], [
 # serial 17  -*- Autoconf -*-
 # Enable extensions on systems that normally disable them.
 
-# Copyright (C) 2003, 2006-2017 Free Software Foundation, Inc.
+# Copyright (C) 2003, 2006-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -2412,7 +2412,7 @@ AC_DEFUN_ONCE([gl_USE_SYSTEM_EXTENSIONS],
 
 dnl 'extern inline' a la ISO C99.
 
-dnl Copyright 2012-2017 Free Software Foundation, Inc.
+dnl Copyright 2012-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -2423,7 +2423,7 @@ AC_DEFUN([gl_EXTERN_INLINE],
 [/* Please see the Gnulib manual for how to use these macros.
 
    Suppress extern inline with HP-UX cc, as it appears to be broken; see
-   <https://lists.gnu.org/archive/html/bug-texinfo/2013-02/msg00030.html>.
+   <https://lists.gnu.org/r/bug-texinfo/2013-02/msg00030.html>.
 
    Suppress extern inline with Sun C in standards-conformance mode, as it
    mishandles inline functions that call each other.  E.g., for 'inline void f
@@ -2440,13 +2440,13 @@ AC_DEFUN([gl_EXTERN_INLINE],
    from calling static functions.  This bug is known to occur on:
 
      OS X 10.8 and earlier; see:
-     https://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00023.html
+     https://lists.gnu.org/r/bug-gnulib/2012-12/msg00023.html
 
      DragonFly; see
      http://muscles.dragonflybsd.org/bulk/bleeding-edge-potential/latest-per-pkg/ah-tty-0.3.12.log
 
      FreeBSD; see:
-     https://lists.gnu.org/archive/html/bug-gnulib/2014-07/msg00104.html
+     https://lists.gnu.org/r/bug-gnulib/2014-07/msg00104.html
 
    OS X 10.9 has a macro __header_inline indicating the bug is fixed for C and
    for clang but remains for g++; see <https://trac.macports.org/ticket/41033>.
@@ -2514,7 +2514,7 @@ AC_DEFUN([gl_EXTERN_INLINE],
 ])
 
 # fcntl-o.m4 serial 5
-dnl Copyright (C) 2006, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -2657,7 +2657,7 @@ AC_DEFUN([gl_FCNTL_O_FLAGS],
 
 # serial 15
 # Configure fcntl.h.
-dnl Copyright (C) 2006-2007, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006-2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -2709,7 +2709,7 @@ AC_DEFUN([gl_FCNTL_H_DEFAULTS],
 # serial 5
 # Check for flexible array member support.
 
-# Copyright (C) 2006, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2006, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -2755,7 +2755,7 @@ AC_DEFUN([AC_C_FLEXIBLE_ARRAY_MEMBER],
 
 # Check for fnmatch - serial 9.  -*- coding: utf-8 -*-
 
-# Copyright (C) 2000-2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2000-2007, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -2911,7 +2911,7 @@ AC_DEFUN([gl_PREREQ_FNMATCH],
 ])
 
 # gethostname.m4 serial 13
-dnl Copyright (C) 2002, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -3020,7 +3020,7 @@ AC_DEFUN([gl_PREREQ_GETHOSTNAME], [
 
 # Check for getloadavg.
 
-# Copyright (C) 1992-1996, 1999-2000, 2002-2003, 2006, 2008-2017 Free Software
+# Copyright (C) 1992-1996, 1999-2000, 2002-2003, 2006, 2008-2018 Free Software
 # Foundation, Inc.
 
 # This file is free software; the Free Software Foundation
@@ -3176,7 +3176,7 @@ AC_CHECK_HEADERS([nlist.h],
 ])# gl_PREREQ_GETLOADAVG
 
 # getpagesize.m4 serial 9
-dnl Copyright (C) 2002, 2004-2005, 2007, 2009-2017 Free Software Foundation,
+dnl Copyright (C) 2002, 2004-2005, 2007, 2009-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -3629,9 +3629,9 @@ AC_DEFUN([AM_GNU_GETTEXT_VERSION], [])
 dnl Usage: AM_GNU_GETTEXT_REQUIRE_VERSION([gettext-version])
 AC_DEFUN([AM_GNU_GETTEXT_REQUIRE_VERSION], [])
 
-# serial 24
+# serial 25
 
-# Copyright (C) 2001-2003, 2005, 2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2001-2003, 2005, 2007, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -3734,12 +3734,12 @@ AC_DEFUN([gl_FUNC_GETTIMEOFDAY_CLOBBER],
      [gl_cv_func_gettimeofday_clobber=yes],
      [# When cross-compiling:
       case "$host_os" in
-                # Guess all is fine on glibc systems.
-        *-gnu*) gl_cv_func_gettimeofday_clobber="guessing no" ;;
-                # Guess no on native Windows.
-        mingw*) gl_cv_func_gettimeofday_clobber="guessing no" ;;
-                # If we don't know, assume the worst.
-        *)      gl_cv_func_gettimeofday_clobber="guessing yes" ;;
+                       # Guess all is fine on glibc systems.
+        *-gnu* | gnu*) gl_cv_func_gettimeofday_clobber="guessing no" ;;
+                       # Guess no on native Windows.
+        mingw*)        gl_cv_func_gettimeofday_clobber="guessing no" ;;
+                       # If we don't know, assume the worst.
+        *)             gl_cv_func_gettimeofday_clobber="guessing yes" ;;
       esac
      ])])
 
@@ -3757,7 +3757,7 @@ AC_DEFUN([gl_FUNC_GETTIMEOFDAY_CLOBBER],
 AC_DEFUN([gl_PREREQ_GETTIMEOFDAY], [:])
 
 # glibc21.m4 serial 5
-dnl Copyright (C) 2000-2002, 2004, 2008, 2010-2017 Free Software Foundation,
+dnl Copyright (C) 2000-2002, 2004, 2008, 2010-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -3793,7 +3793,7 @@ AC_DEFUN([gl_GLIBC21],
 
 # Determine whether recent-enough GNU Make is being used.
 
-# Copyright (C) 2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2007, 2009-2018 Free Software Foundation, Inc.
 
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -3812,7 +3812,7 @@ AC_DEFUN([gl_GNU_MAKE],
 ])
 
 # gnulib-common.m4 serial 38
-dnl Copyright (C) 2007-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2007-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -4041,13 +4041,13 @@ m4_ifndef([AS_VAR_IF],
 # This is like AC_PROG_CC_C99, except that
 # - AC_PROG_CC_C99 did not exist in Autoconf versions < 2.60,
 # - AC_PROG_CC_C99 does not mix well with AC_PROG_CC_STDC
-#   <https://lists.gnu.org/archive/html/bug-gnulib/2011-09/msg00367.html>,
+#   <https://lists.gnu.org/r/bug-gnulib/2011-09/msg00367.html>,
 #   but many more packages use AC_PROG_CC_STDC than AC_PROG_CC_C99
-#   <https://lists.gnu.org/archive/html/bug-gnulib/2011-09/msg00441.html>.
+#   <https://lists.gnu.org/r/bug-gnulib/2011-09/msg00441.html>.
 # Remaining problems:
 # - When AC_PROG_CC_STDC is invoked twice, it adds the C99 enabling options
 #   to CC twice
-#   <https://lists.gnu.org/archive/html/bug-gnulib/2011-09/msg00431.html>.
+#   <https://lists.gnu.org/r/bug-gnulib/2011-09/msg00431.html>.
 # - AC_PROG_CC_STDC is likely to change now that C11 is an ISO standard.
 AC_DEFUN([gl_PROG_CC_C99],
 [
@@ -4280,7 +4280,7 @@ m4_ifndef([AC_PROG_SED],
 ])
 
 # DO NOT EDIT! GENERATED AUTOMATICALLY!
-# Copyright (C) 2002-2017 Free Software Foundation, Inc.
+# Copyright (C) 2002-2018 Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -4362,6 +4362,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module hard-locale:
   # Code from module havelib:
   # Code from module host-cpu-c-abi:
+  # Code from module iconv:
   # Code from module include_next:
   # Code from module inet_ntop:
   # Code from module inet_pton:
@@ -4371,6 +4372,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module largefile:
   AC_REQUIRE([AC_SYS_LARGEFILE])
   # Code from module libsigsegv:
+  # Code from module libunistring-optional:
   # Code from module limits-h:
   # Code from module link-follow:
   # Code from module listen:
@@ -4424,6 +4426,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module socklen:
   # Code from module ssize_t:
   # Code from module stat:
+  # Code from module stat-time:
   # Code from module stdalign:
   # Code from module stdbool:
   # Code from module stddef:
@@ -4588,6 +4591,9 @@ AC_DEFUN([gl_INIT],
   gl_GNU_MAKE
   gl_HARD_LOCALE
   AC_REQUIRE([gl_HOST_CPU_C_ABI])
+  AM_ICONV
+  m4_ifdef([gl_ICONV_MODULE_INDICATOR],
+    [gl_ICONV_MODULE_INDICATOR([iconv])])
   gl_FUNC_INET_NTOP
   if test $HAVE_INET_NTOP = 0 || test $REPLACE_INET_NTOP = 1; then
     AC_LIBOBJ([inet_ntop])
@@ -4608,6 +4614,7 @@ AC_DEFUN([gl_INIT],
   gl_LANGINFO_H
   AC_REQUIRE([gl_LARGEFILE])
   gl_LIBSIGSEGV
+  gl_LIBUNISTRING_OPTIONAL
   gl_LIMITS_H
   gl_FUNC_LINK_FOLLOWS_SYMLINK
   AC_REQUIRE([gl_HEADER_SYS_SOCKET])
@@ -4806,6 +4813,8 @@ AC_DEFUN([gl_INIT],
     gl_PREREQ_STAT
   fi
   gl_SYS_STAT_MODULE_INDICATOR([stat])
+  gl_STAT_TIME
+  gl_STAT_BIRTHTIME
   gl_STDALIGN_H
   AM_STDBOOL_H
   gl_STDDEF_H
@@ -4904,11 +4913,11 @@ AC_DEFUN([gl_INIT],
   fi
   gl_SYS_UTSNAME_MODULE_INDICATOR([uname])
   gl_LIBUNISTRING_LIBHEADER([0.9.5], [uniname.h])
-  gl_LIBUNISTRING_MODULE([0.9.6], [uniname/uniname])
+  gl_LIBUNISTRING_MODULE([0.9.8], [uniname/uniname])
   gl_UNISTD_H
   gl_LIBUNISTRING_LIBHEADER([0.9.4], [unitypes.h])
   gl_LIBUNISTRING_LIBHEADER([0.9.4], [uniwidth.h])
-  gl_LIBUNISTRING_MODULE([0.9.6], [uniwidth/width])
+  gl_LIBUNISTRING_MODULE([0.9.8], [uniwidth/width])
   gl_FUNC_UNSETENV
   if test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1; then
     AC_LIBOBJ([unsetenv])
@@ -5112,6 +5121,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/intprops.h
   lib/ioctl.c
   lib/langinfo.in.h
+  lib/libunistring.valgrind
   lib/limits.in.h
   lib/listen.c
   lib/localcharset.c
@@ -5170,6 +5180,8 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/socket.c
   lib/sockets.c
   lib/sockets.h
+  lib/stat-time.c
+  lib/stat-time.h
   lib/stat-w32.c
   lib/stat-w32.h
   lib/stat.c
@@ -5284,6 +5296,8 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/lib-prefix.m4
   m4/libsigsegv.m4
   m4/libunistring-base.m4
+  m4/libunistring-optional.m4
+  m4/libunistring.m4
   m4/limits-h.m4
   m4/link-follow.m4
   m4/localcharset.m4
@@ -5336,6 +5350,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/socklen.m4
   m4/sockpfaf.m4
   m4/ssize_t.m4
+  m4/stat-time.m4
   m4/stat.m4
   m4/stdalign.m4
   m4/stdbool.m4
@@ -5382,7 +5397,7 @@ AC_DEFUN([gl_FILE_LIST], [
 ])
 
 # hard-locale.m4 serial 8
-dnl Copyright (C) 2002-2006, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002-2006, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -5393,8 +5408,8 @@ AC_DEFUN([gl_HARD_LOCALE],
   :
 ])
 
-# host-cpu-c-abi.m4 serial 7
-dnl Copyright (C) 2002-2017 Free Software Foundation, Inc.
+# host-cpu-c-abi.m4 serial 8
+dnl Copyright (C) 2002-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -5463,14 +5478,23 @@ changequote([,])dnl
          #   with native Windows (mingw, MSVC).
          # - 64-bit instruction set, 32-bit pointers, 32-bit 'long': x86_64-x32.
          # - 32-bit instruction set, 32-bit pointers, 32-bit 'long': i386.
-         AC_EGREP_CPP([yes],
-           [#if defined __x86_64__ || defined __amd64__ || defined _M_X64 || defined _M_AMD64
-            yes
-            #endif],
-           [AC_EGREP_CPP([yes],
-              [#if defined __ILP32__ || defined _ILP32
-               yes
-               #endif],
+         AC_COMPILE_IFELSE(
+           [AC_LANG_SOURCE(
+              [[#if (defined __x86_64__ || defined __amd64__ \
+                     || defined _M_X64 || defined _M_AMD64)
+                 int ok;
+                #else
+                 error fail
+                #endif
+              ]])],
+           [AC_COMPILE_IFELSE(
+              [AC_LANG_SOURCE(
+                 [[#if defined __ILP32__ || defined _ILP32
+                    int ok;
+                   #else
+                    error fail
+                   #endif
+                 ]])],
               [gl_cv_host_cpu_c_abi=x86_64-x32],
               [gl_cv_host_cpu_c_abi=x86_64])],
            [gl_cv_host_cpu_c_abi=i386])
@@ -5489,14 +5513,22 @@ changequote([,])dnl
          # - aarch64 instruction set, 64-bit pointers, 64-bit 'long': arm64.
          # - aarch64 instruction set, 32-bit pointers, 32-bit 'long': arm64-ilp32.
          # - 32-bit instruction set, 32-bit pointers, 32-bit 'long': arm or armhf.
-         AC_EGREP_CPP([yes],
-           [#if defined __aarch64__
-            yes
-            #endif],
-           [AC_EGREP_CPP([yes],
-              [#if defined __ILP32__ || defined _ILP32
-               yes
-               #endif],
+         AC_COMPILE_IFELSE(
+           [AC_LANG_SOURCE(
+              [[#ifdef __aarch64__
+                 int ok;
+                #else
+                 error fail
+                #endif
+              ]])],
+           [AC_COMPILE_IFELSE(
+              [AC_LANG_SOURCE(
+                [[#if defined __ILP32__ || defined _ILP32
+                   int ok;
+                  #else
+                   error fail
+                  #endif
+                ]])],
               [gl_cv_host_cpu_c_abi=arm64-ilp32],
               [gl_cv_host_cpu_c_abi=arm64])],
            [# Don't distinguish little-endian and big-endian arm, since they
@@ -5525,10 +5557,14 @@ changequote([,])dnl
        hppa1.0 | hppa1.1 | hppa2.0* | hppa64 )
          # On hppa, the C compiler may be generating 32-bit code or 64-bit
          # code. In the latter case, it defines _LP64 and __LP64__.
-         AC_EGREP_CPP([yes],
-           [#if defined(__LP64__)
-            yes
-            #endif],
+         AC_COMPILE_IFELSE(
+           [AC_LANG_SOURCE(
+              [[#ifdef __LP64__
+                 int ok;
+                #else
+                 error fail
+                #endif
+              ]])],
            [gl_cv_host_cpu_c_abi=hppa64],
            [gl_cv_host_cpu_c_abi=hppa])
          ;;
@@ -5536,10 +5572,14 @@ changequote([,])dnl
        ia64* )
          # On ia64 on HP-UX, the C compiler may be generating 64-bit code or
          # 32-bit code. In the latter case, it defines _ILP32.
-         AC_EGREP_CPP([yes],
-           [#if defined _ILP32
-            yes
-            #endif],
+         AC_COMPILE_IFELSE(
+           [AC_LANG_SOURCE(
+              [[#ifdef _ILP32
+                 int ok;
+                #else
+                 error fail
+                #endif
+              ]])],
            [gl_cv_host_cpu_c_abi=ia64-ilp32],
            [gl_cv_host_cpu_c_abi=ia64])
          ;;
@@ -5547,19 +5587,27 @@ changequote([,])dnl
        mips* )
          # We should also check for (_MIPS_SZPTR == 64), but gcc keeps this
          # at 32.
-         AC_EGREP_CPP([yes],
-           [#if defined _MIPS_SZLONG && (_MIPS_SZLONG == 64)
-            yes
-            #endif],
+         AC_COMPILE_IFELSE(
+           [AC_LANG_SOURCE(
+              [[#if defined _MIPS_SZLONG && (_MIPS_SZLONG == 64)
+                 int ok;
+                #else
+                 error fail
+                #endif
+              ]])],
            [gl_cv_host_cpu_c_abi=mips64],
            [# In the n32 ABI, _ABIN32 is defined, _ABIO32 is not defined (but
             # may later get defined by <sgidefs.h>), and _MIPS_SIM == _ABIN32.
             # In the 32 ABI, _ABIO32 is defined, _ABIN32 is not defined (but
             # may later get defined by <sgidefs.h>), and _MIPS_SIM == _ABIO32.
-            AC_EGREP_CPP([yes],
-              [#if (_MIPS_SIM == _ABIN32)
-               yes
-               #endif],
+            AC_COMPILE_IFELSE(
+              [AC_LANG_SOURCE(
+                 [[#if (_MIPS_SIM == _ABIN32)
+                    int ok;
+                   #else
+                    error fail
+                   #endif
+                 ]])],
               [gl_cv_host_cpu_c_abi=mipsn32],
               [gl_cv_host_cpu_c_abi=mips])])
          ;;
@@ -5571,16 +5619,24 @@ changequote([,])dnl
          # On powerpc64 systems, the C compiler may still be generating
          # 32-bit code. And on powerpc-ibm-aix systems, the C compiler may
          # be generating 64-bit code.
-         AC_EGREP_CPP([yes],
-           [#if defined __powerpc64__ || defined _ARCH_PPC64
-            yes
-            #endif],
+         AC_COMPILE_IFELSE(
+           [AC_LANG_SOURCE(
+              [[#if defined __powerpc64__ || defined _ARCH_PPC64
+                 int ok;
+                #else
+                 error fail
+                #endif
+              ]])],
            [# On powerpc64, there are two ABIs on Linux: The AIX compatible
             # one and the ELFv2 one. The latter defines _CALL_ELF=2.
-            AC_EGREP_CPP([yes],
-              [#if defined _CALL_ELF && _CALL_ELF == 2
-               yes
-               #endif],
+            AC_COMPILE_IFELSE(
+              [AC_LANG_SOURCE(
+                 [[#if defined _CALL_ELF && _CALL_ELF == 2
+                    int ok;
+                   #else
+                    error fail
+                   #endif
+                 ]])],
               [gl_cv_host_cpu_c_abi=powerpc64-elfv2],
               [gl_cv_host_cpu_c_abi=powerpc64])
            ],
@@ -5594,10 +5650,14 @@ changequote([,])dnl
        s390* )
          # On s390x, the C compiler may be generating 64-bit (= s390x) code
          # or 31-bit (= s390) code.
-         AC_EGREP_CPP([yes],
-           [#if defined(__LP64__) || defined(__s390x__)
-            yes
-            #endif],
+         AC_COMPILE_IFELSE(
+           [AC_LANG_SOURCE(
+              [[#if defined __LP64__ || defined __s390x__
+                  int ok;
+                #else
+                  error fail
+                #endif
+              ]])],
            [gl_cv_host_cpu_c_abi=s390x],
            [gl_cv_host_cpu_c_abi=s390])
          ;;
@@ -5605,10 +5665,14 @@ changequote([,])dnl
        sparc | sparc64 )
          # UltraSPARCs running Linux have `uname -m` = "sparc64", but the
          # C compiler still generates 32-bit code.
-         AC_EGREP_CPP([yes],
-           [#if defined __sparcv9 || defined __arch64__
-            yes
-            #endif],
+         AC_COMPILE_IFELSE(
+           [AC_LANG_SOURCE(
+              [[#if defined __sparcv9 || defined __arch64__
+                 int ok;
+                #else
+                 error fail
+                #endif
+              ]])],
            [gl_cv_host_cpu_c_abi=sparc64],
            [gl_cv_host_cpu_c_abi=sparc])
          ;;
@@ -5715,7 +5779,8 @@ EOF
 ])
 
 # iconv.m4 serial 21
-dnl Copyright (C) 2000-2002, 2007-2014, 2016-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2000-2002, 2007-2014, 2016-2018 Free Software Foundation,
+dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -6003,7 +6068,7 @@ size_t iconv();
 ])
 
 # include_next.m4 serial 24
-dnl Copyright (C) 2006-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -6228,7 +6293,7 @@ dnl until we can assume autoconf 2.64 or newer.
 m4_define_default([AC_LANG_DEFINES_PROVIDED])
 
 # inet_ntop.m4 serial 20
-dnl Copyright (C) 2005-2006, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2005-2006, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -6298,7 +6363,7 @@ AC_DEFUN([gl_PREREQ_INET_NTOP], [
 ])
 
 # inet_pton.m4 serial 18
-dnl Copyright (C) 2006, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -6425,7 +6490,7 @@ AC_DEFUN([gt_INTL_MACOSX],
 ])
 
 # ioctl.m4 serial 5
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -6470,7 +6535,7 @@ AC_DEFUN([gl_FUNC_IOCTL],
 ])
 
 # langinfo_h.m4 serial 7
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -6577,7 +6642,7 @@ AC_DEFUN([gl_LANGINFO_H_DEFAULTS],
 
 # Enable large files on systems where this is not the default.
 
-# Copyright 1992-1996, 1998-2017 Free Software Foundation, Inc.
+# Copyright 1992-1996, 1998-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -6737,8 +6802,8 @@ AC_DEFUN([gl_LARGEFILE],
   esac
 ])
 
-# lib-ld.m4 serial 8
-dnl Copyright (C) 1996-2003, 2009-2017 Free Software Foundation, Inc.
+# lib-ld.m4 serial 9
+dnl Copyright (C) 1996-2003, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -6859,11 +6924,14 @@ else
     fi
     case $host in
       *-*-aix*)
-        AC_EGREP_CPP([yes],
-          [#if defined __powerpc64__ || defined _ARCH_PPC64
-           yes
-           #endif
-          ],
+        AC_COMPILE_IFELSE(
+          [AC_LANG_SOURCE(
+             [[#if defined __powerpc64__ || defined _ARCH_PPC64
+                int ok;
+               #else
+                error fail
+               #endif
+             ]])],
           [# The compiler produces 64-bit code. Add option '-b64' so that the
            # linker groks 64-bit object files.
            case "$acl_cv_path_LD " in
@@ -6873,10 +6941,14 @@ else
           ], [])
         ;;
       sparc64-*-netbsd*)
-        AC_EGREP_CPP([yes],
-          [#if defined __sparcv9 || defined __arch64__
-           yes
-           #endif],
+        AC_COMPILE_IFELSE(
+          [AC_LANG_SOURCE(
+             [[#if defined __sparcv9 || defined __arch64__
+                int ok;
+               #else
+                error fail
+               #endif
+             ]])],
           [],
           [# The compiler produces 32-bit code. Add option '-m elf32_sparc'
            # so that the linker groks 32-bit object files.
@@ -6900,7 +6972,7 @@ AC_LIB_PROG_LD_GNU
 ])
 
 # lib-link.m4 serial 26 (gettext-0.18.2)
-dnl Copyright (C) 2001-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2001-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -7677,8 +7749,8 @@ AC_DEFUN([AC_LIB_LINKFLAGS_FROM_LIBS],
   AC_SUBST([$1])
 ])
 
-# lib-prefix.m4 serial 9
-dnl Copyright (C) 2001-2005, 2008-2017 Free Software Foundation, Inc.
+# lib-prefix.m4 serial 11
+dnl Copyright (C) 2001-2005, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -7867,11 +7939,16 @@ AC_DEFUN([AC_LIB_PREPARE_MULTILIB],
          dnl But we want to recognize the sparcv9 or amd64 subdirectory also if the
          dnl symlink is missing, so we set acl_libdirstem2 too.
          AC_CACHE_CHECK([for 64-bit host], [gl_cv_solaris_64bit],
-           [AC_EGREP_CPP([sixtyfour bits], [
-#ifdef _LP64
-sixtyfour bits
-#endif
-              ], [gl_cv_solaris_64bit=yes], [gl_cv_solaris_64bit=no])
+           [AC_COMPILE_IFELSE(
+              [AC_LANG_SOURCE(
+                 [[#ifdef _LP64
+                    int ok;
+                   #else
+                    error fail
+                   #endif
+                 ]])],
+              [gl_cv_solaris_64bit=yes],
+              [gl_cv_solaris_64bit=no])
            ])
          if test $gl_cv_solaris_64bit = yes; then
            acl_libdirstem=lib/64
@@ -7929,7 +8006,7 @@ sixtyfour bits
 ])
 
 # libsigsegv.m4 serial 4
-dnl Copyright (C) 2002-2003, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002-2003, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -7946,7 +8023,7 @@ AC_DEFUN([gl_LIBSIGSEGV],
 ])
 
 # libunistring-base.m4 serial 5
-dnl Copyright (C) 2010-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2010-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8087,9 +8164,183 @@ dnl gl_LIBUNISTRING_ARG_OR_ZERO([ARG], [ORIG]) expands to ARG if it is not the
 dnl same as ORIG, otherwise to 0.
 m4_define([gl_LIBUNISTRING_ARG_OR_ZERO], [m4_if([$1], [$2], [0], [$1])])
 
+# libunistring-optional.m4 serial 1
+dnl Copyright (C) 2010-2018 Free Software Foundation, Inc.
+dnl This file is free software; the Free Software Foundation
+dnl gives unlimited permission to copy and/or distribute it,
+dnl with or without modifications, as long as this notice is preserved.
+
+dnl gl_LIBUNISTRING_OPTIONAL
+dnl Searches for an installed libunistring or uses the included source code
+dnl parts.
+dnl If found, it sets and AC_SUBSTs HAVE_LIBUNISTRING=yes and the LIBUNISTRING
+dnl and LTLIBUNISTRING variables and augments the CPPFLAGS variable, and
+dnl #defines HAVE_LIBUNISTRING to 1. Otherwise, it sets and AC_SUBSTs
+dnl HAVE_LIBUNISTRING=no and LIBUNISTRING and LTLIBUNISTRING to empty.
+
+AC_DEFUN([gl_LIBUNISTRING_OPTIONAL],
+[
+  dnl gl_LIBUNISTRING does a couple of extra things if this macro is used.
+  AC_REQUIRE([gl_LIBUNISTRING])
+
+  AC_MSG_CHECKING([whether to use the included libunistring])
+  AC_MSG_RESULT([$gl_libunistring_use_included])
+])
+
+# libunistring.m4 serial 11
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
+dnl This file is free software; the Free Software Foundation
+dnl gives unlimited permission to copy and/or distribute it,
+dnl with or without modifications, as long as this notice is preserved.
+
+dnl gl_LIBUNISTRING
+dnl Searches for an installed libunistring.
+dnl If found, it sets and AC_SUBSTs HAVE_LIBUNISTRING=yes and the LIBUNISTRING
+dnl and LTLIBUNISTRING variables, sets the LIBUNISTRING_VERSION variable, and
+dnl augments the CPPFLAGS variable, and #defines HAVE_LIBUNISTRING to 1.
+dnl Otherwise, it sets and AC_SUBSTs HAVE_LIBUNISTRING=no and LIBUNISTRING and
+dnl LTLIBUNISTRING to empty.
+
+dnl Define gl_LIBUNISTRING using AC_DEFUN_ONCE for Autoconf >= 2.64, in order
+dnl to avoid warnings like
+dnl "warning: AC_REQUIRE: `gl_LIBUNISTRING' was expanded before it was required".
+dnl This is tricky because of the way 'aclocal' is implemented:
+dnl - It requires defining an auxiliary macro whose name ends in AC_DEFUN.
+dnl   Otherwise aclocal's initial scan pass would miss the macro definition.
+dnl - It requires a line break inside the AC_DEFUN_ONCE and AC_DEFUN expansions.
+dnl   Otherwise aclocal would emit many "Use of uninitialized value $1"
+dnl   warnings.
+m4_define([gl_libunistring_AC_DEFUN],
+  m4_version_prereq([2.64],
+    [[AC_DEFUN_ONCE(
+        [$1], [$2])]],
+    [m4_ifdef([gl_00GNULIB],
+       [[AC_DEFUN_ONCE(
+           [$1], [$2])]],
+       [[AC_DEFUN(
+           [$1], [$2])]])]))
+gl_libunistring_AC_DEFUN([gl_LIBUNISTRING],
+[
+  AC_BEFORE([$0], [gl_LIBUNISTRING_MODULE])
+  AC_BEFORE([$0], [gl_LIBUNISTRING_LIBHEADER])
+  AC_BEFORE([$0], [gl_LIBUNISTRING_LIB_PREPARE])
+
+  m4_ifdef([gl_LIBUNISTRING_OPTIONAL],
+    [
+      AC_MSG_CHECKING([whether included libunistring is requested])
+      AC_ARG_WITH([included-libunistring],
+        [  --with-included-libunistring  use the libunistring parts included here],
+        [gl_libunistring_force_included=$withval],
+        [gl_libunistring_force_included=no])
+      AC_MSG_RESULT([$gl_libunistring_force_included])
+      gl_libunistring_use_included="$gl_libunistring_force_included"
+      if test "$gl_libunistring_use_included" = yes; then
+        dnl Assume that libunistring is not installed until some other macro
+        dnl explicitly invokes gl_LIBUNISTRING_CORE.
+        if test -z "$HAVE_LIBUNISTRING"; then
+          HAVE_LIBUNISTRING=no
+        fi
+        LIBUNISTRING=
+        LTLIBUNISTRING=
+      else
+        gl_LIBUNISTRING_CORE
+        if test $HAVE_LIBUNISTRING = no; then
+          gl_libunistring_use_included=yes
+          LIBUNISTRING=
+          LTLIBUNISTRING=
+        fi
+      fi
+    ],
+    [gl_LIBUNISTRING_CORE])
+])
+
+AC_DEFUN([gl_LIBUNISTRING_CORE],
+[
+  AC_REQUIRE([AM_ICONV])
+  if test -n "$LIBICONV"; then
+    dnl First, try to link without -liconv. libunistring often depends on
+    dnl libiconv, but we don't know (and often don't need to know) where
+    dnl libiconv is installed.
+    AC_LIB_HAVE_LINKFLAGS([unistring], [],
+      [#include <uniconv.h>], [u8_strconv_from_locale((char*)0);],
+      [no, trying again together with libiconv])
+    if test "$ac_cv_libunistring" != yes; then
+      dnl Second try, with -liconv.
+      dnl We have to erase the cached result of the first AC_LIB_HAVE_LINKFLAGS
+      dnl invocation, otherwise the second one will not be run.
+      unset ac_cv_libunistring
+      glus_save_LIBS="$LIBS"
+      LIBS="$LIBS $LIBICONV"
+      AC_LIB_HAVE_LINKFLAGS([unistring], [],
+        [#include <uniconv.h>], [u8_strconv_from_locale((char*)0);],
+        [no, consider installing GNU libunistring])
+      if test -n "$LIBUNISTRING"; then
+        LIBUNISTRING="$LIBUNISTRING $LIBICONV"
+        LTLIBUNISTRING="$LTLIBUNISTRING $LTLIBICONV"
+      fi
+      LIBS="$glus_save_LIBS"
+    fi
+  else
+    AC_LIB_HAVE_LINKFLAGS([unistring], [],
+      [#include <uniconv.h>], [u8_strconv_from_locale((char*)0);],
+      [no, consider installing GNU libunistring])
+  fi
+  if test $HAVE_LIBUNISTRING = yes; then
+    dnl Determine the installed version.
+    AC_CACHE_CHECK([for libunistring version], [gl_cv_libunistring_version],
+      [AC_COMPUTE_INT([gl_libunistring_hexversion],
+                      [_LIBUNISTRING_VERSION],
+                      [#include <unistring/version.h>])
+       dnl Versions <= 0.9.3 had a hexversion of 0x0009.
+       dnl Use other tests to distinguish them.
+       if test $gl_libunistring_hexversion = 9; then
+         dnl Version 0.9.2 introduced the header <unistring/cdefs.h>.
+         AC_COMPILE_IFELSE(
+           [AC_LANG_PROGRAM([[#include <unistring/cdefs.h>]], [[]])],
+           [gl_cv_libunistring_version092=true],
+           [gl_cv_libunistring_version092=false])
+         if $gl_cv_libunistring_version092; then
+           dnl Version 0.9.3 changed a comment in <unistr.h>.
+           gl_ABSOLUTE_HEADER_ONE([unistr.h])
+           if test -n "$gl_cv_absolute_unistr_h" \
+              && grep 'Copy no more than N units of SRC to DEST.  Return a pointer' $gl_cv_absolute_unistr_h > /dev/null; then
+             dnl Detected version 0.9.3.
+             gl_libunistring_hexversion=2307
+           else
+             dnl Detected version 0.9.2.
+             gl_libunistring_hexversion=2306
+           fi
+         else
+           dnl Version 0.9.1 introduced the type casing_suffix_context_t.
+           AC_COMPILE_IFELSE(
+             [AC_LANG_PROGRAM(
+                [[#include <unicase.h>
+                  casing_suffix_context_t ct;]],
+                [[]])],
+             [gl_cv_libunistring_version091=true],
+             [gl_cv_libunistring_version091=false])
+           if $gl_cv_libunistring_version091; then
+             dnl Detected version 0.9.1.
+             gl_libunistring_hexversion=2305
+           else
+             dnl Detected version 0.9.
+             gl_libunistring_hexversion=2304
+           fi
+         fi
+       fi
+       dnl Transform into the usual major.minor.subminor notation.
+       gl_libunistring_major=`expr $gl_libunistring_hexversion / 65536`
+       gl_libunistring_minor=`expr $gl_libunistring_hexversion / 256 % 256`
+       gl_libunistring_subminor=`expr $gl_libunistring_hexversion % 256`
+       gl_cv_libunistring_version="$gl_libunistring_major.$gl_libunistring_minor.$gl_libunistring_subminor"
+      ])
+    LIBUNISTRING_VERSION="$gl_cv_libunistring_version"
+  fi
+])
+
 dnl Check whether limits.h has needed features.
 
-dnl Copyright 2016-2017 Free Software Foundation, Inc.
+dnl Copyright 2016-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8119,11 +8370,11 @@ AC_DEFUN_ONCE([gl_LIMITS_H],
   AM_CONDITIONAL([GL_GENERATE_LIMITS_H], [test -n "$LIMITS_H"])
 ])
 
-# serial 19
+# serial 20
 dnl Run a program to determine whether link(2) follows symlinks.
 dnl Set LINK_FOLLOWS_SYMLINKS accordingly.
 
-# Copyright (C) 1999-2001, 2004-2006, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 1999-2001, 2004-2006, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -8207,10 +8458,10 @@ AC_DEFUN([gl_FUNC_LINK_FOLLOWS_SYMLINK],
             dnl The past results are "yes" on Mac OS X, FreeBSD, NetBSD,
             dnl OpenBSD, Minix, AIX, HP-UX, OSF/1, and "no" on Linux, Cygwin.
             case "$host_os" in
-                           # On glibc/Linux we know the result.
-              linux*-gnu*) gl_cv_func_link_follows_symlink="guessing no" ;;
-                           # Otherwise, we don't know.
-              *)           gl_cv_func_link_follows_symlink=unknown ;;
+                                  # On glibc/Linux we know the result.
+              linux*-gnu* | gnu*) gl_cv_func_link_follows_symlink="guessing no" ;;
+                                  # Otherwise, we don't know.
+              *)                  gl_cv_func_link_follows_symlink=unknown ;;
             esac
            ])
          rm -f conftest.file conftest.sym conftest.hard
@@ -8229,7 +8480,7 @@ AC_DEFUN([gl_FUNC_LINK_FOLLOWS_SYMLINK],
 ])
 
 # localcharset.m4 serial 7
-dnl Copyright (C) 2002, 2004, 2006, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002, 2004, 2006, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8247,7 +8498,7 @@ AC_DEFUN([gl_LOCALCHARSET],
 ])
 
 # locale-fr.m4 serial 18
-dnl Copyright (C) 2003, 2005-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2003, 2005-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8505,7 +8756,7 @@ changequote([,])dnl
 ])
 
 # locale-ja.m4 serial 13
-dnl Copyright (C) 2003, 2005-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2003, 2005-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8651,7 +8902,7 @@ changequote([,])dnl
 ])
 
 # locale-zh.m4 serial 13
-dnl Copyright (C) 2003, 2005-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2003, 2005-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8791,7 +9042,7 @@ changequote([,])dnl
 ])
 
 # locale_h.m4 serial 20
-dnl Copyright (C) 2007, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8914,7 +9165,7 @@ AC_DEFUN([gl_LOCALE_H_DEFAULTS],
 ])
 
 # localeconv.m4 serial 1
-dnl Copyright (C) 2012-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2012-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8937,7 +9188,7 @@ AC_DEFUN([gl_PREREQ_LOCALECONV],
 ])
 
 # localtime-buffer.m4 serial 1
-dnl Copyright (C) 2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2017-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -8959,7 +9210,7 @@ AC_DEFUN([gl_LOCALTIME_BUFFER_NEEDED],
 ])
 
 # lock.m4 serial 14
-dnl Copyright (C) 2005-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2005-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -9007,7 +9258,7 @@ return !x;
 AC_DEFUN([gl_PREREQ_LOCK], [:])
 
 # longlong.m4 serial 17
-dnl Copyright (C) 1999-2007, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 1999-2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -9120,9 +9371,9 @@ AC_DEFUN([_AC_TYPE_LONG_LONG_SNIPPET],
               | (ullmax / ull) | (ullmax % ull));]])
 ])
 
-# serial 29
+# serial 31
 
-# Copyright (C) 1997-2001, 2003-2017 Free Software Foundation, Inc.
+# Copyright (C) 1997-2001, 2003-2018 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -9132,14 +9383,15 @@ dnl From Jim Meyering.
 
 AC_DEFUN([gl_FUNC_LSTAT],
 [
+  AC_REQUIRE([AC_CANONICAL_HOST])
   AC_REQUIRE([gl_SYS_STAT_H_DEFAULTS])
   dnl If lstat does not exist, the replacement <sys/stat.h> does
   dnl "#define lstat stat", and lstat.c is a no-op.
   AC_CHECK_FUNCS_ONCE([lstat])
   if test $ac_cv_func_lstat = yes; then
     AC_REQUIRE([gl_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK])
-    case "$gl_cv_func_lstat_dereferences_slashed_symlink" in
-      *no)
+    case $host_os,$gl_cv_func_lstat_dereferences_slashed_symlink in
+      solaris* | *no)
         REPLACE_LSTAT=1
         ;;
     esac
@@ -9174,7 +9426,7 @@ AC_DEFUN([gl_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK],
        [gl_cv_func_lstat_dereferences_slashed_symlink=yes],
        [gl_cv_func_lstat_dereferences_slashed_symlink=no],
        [case "$host_os" in
-          *-gnu*)
+          *-gnu* | gnu*)
             # Guess yes on glibc systems.
             gl_cv_func_lstat_dereferences_slashed_symlink="guessing yes" ;;
           mingw*)
@@ -9196,8 +9448,8 @@ AC_DEFUN([gl_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK],
   esac
 ])
 
-# malloc.m4 serial 15
-dnl Copyright (C) 2007, 2009-2017 Free Software Foundation, Inc.
+# malloc.m4 serial 16
+dnl Copyright (C) 2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -9230,7 +9482,7 @@ AC_DEFUN([_AC_FUNC_MALLOC_IF],
        [ac_cv_func_malloc_0_nonnull=no],
        [case "$host_os" in
           # Guess yes on platforms where we know the result.
-          *-gnu* | freebsd* | netbsd* | openbsd* \
+          *-gnu* | gnu* | freebsd* | netbsd* | openbsd* \
           | hpux* | solaris* | cygwin* | mingw*)
             ac_cv_func_malloc_0_nonnull=yes ;;
           # If we don't know, assume the worst.
@@ -9299,7 +9551,7 @@ AC_DEFUN([gl_CHECK_MALLOC_POSIX],
 ])
 
 # malloca.m4 serial 1
-dnl Copyright (C) 2003-2004, 2006-2007, 2009-2017 Free Software Foundation,
+dnl Copyright (C) 2003-2004, 2006-2007, 2009-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -9314,8 +9566,8 @@ AC_DEFUN([gl_MALLOCA],
   AC_REQUIRE([AC_TYPE_LONG_LONG_INT])
 ])
 
-# mbrtowc.m4 serial 29  -*- coding: utf-8 -*-
-dnl Copyright (C) 2001-2002, 2004-2005, 2008-2017 Free Software Foundation,
+# mbrtowc.m4 serial 30  -*- coding: utf-8 -*-
+dnl Copyright (C) 2001-2002, 2004-2005, 2008-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -9879,12 +10131,11 @@ AC_DEFUN([gl_MBRTOWC_EMPTY_INPUT],
       dnl is present.
 changequote(,)dnl
       case "$host_os" in
-                    # Guess no on AIX and glibc systems.
-        aix* | *-gnu*)
-                    gl_cv_func_mbrtowc_empty_input="guessing no" ;;
-                    # Guess yes on native Windows.
-        mingw*)     gl_cv_func_mbrtowc_empty_input="guessing yes" ;;
-        *)          gl_cv_func_mbrtowc_empty_input="guessing yes" ;;
+                              # Guess no on AIX and glibc systems.
+        aix* | *-gnu* | gnu*) gl_cv_func_mbrtowc_empty_input="guessing no" ;;
+                              # Guess yes on native Windows.
+        mingw*)               gl_cv_func_mbrtowc_empty_input="guessing yes" ;;
+        *)                    gl_cv_func_mbrtowc_empty_input="guessing yes" ;;
       esac
 changequote([,])dnl
       AC_RUN_IFELSE(
@@ -9988,7 +10239,7 @@ AC_DEFUN([AC_FUNC_MBRTOWC],
 ])
 
 # mbsinit.m4 serial 8
-dnl Copyright (C) 2008, 2010-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008, 2010-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10040,7 +10291,7 @@ AC_DEFUN([gl_PREREQ_MBSINIT], [
 ])
 
 # mbsrtowcs.m4 serial 13
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10196,7 +10447,7 @@ AC_DEFUN([gl_PREREQ_MBSRTOWCS], [
 ])
 
 # mbstate_t.m4 serial 13
-dnl Copyright (C) 2000-2002, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2000-2002, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10238,7 +10489,7 @@ AC_DEFUN([AC_TYPE_MBSTATE_T],
 ])
 
 # mbtowc.m4 serial 2
-dnl Copyright (C) 2011-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2011-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10258,7 +10509,7 @@ AC_DEFUN([gl_PREREQ_MBTOWC], [
 ])
 
 # memchr.m4 serial 13
-dnl Copyright (C) 2002-2004, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002-2004, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10358,7 +10609,7 @@ AC_DEFUN([gl_PREREQ_MEMCHR], [
 ])
 
 # mkdtemp.m4 serial 8
-dnl Copyright (C) 2001-2003, 2006-2007, 2009-2017 Free Software Foundation,
+dnl Copyright (C) 2001-2003, 2006-2007, 2009-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -10378,10 +10629,10 @@ AC_DEFUN([gl_PREREQ_MKDTEMP],
 [:
 ])
 
-# serial 4
+# serial 5
 # See if we need to provide mkfifo replacement.
 
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10419,10 +10670,10 @@ AC_DEFUN([gl_FUNC_MKFIFO],
            ]])],
          [gl_cv_func_mkfifo_works=yes], [gl_cv_func_mkfifo_works=no],
          [case "$host_os" in
-                    # Guess yes on glibc systems.
-            *-gnu*) gl_cv_func_mkfifo_works="guessing yes" ;;
-                    # If we don't know, assume the worst.
-            *)      gl_cv_func_mkfifo_works="guessing no" ;;
+                           # Guess yes on glibc systems.
+            *-gnu* | gnu*) gl_cv_func_mkfifo_works="guessing yes" ;;
+                           # If we don't know, assume the worst.
+            *)             gl_cv_func_mkfifo_works="guessing no" ;;
           esac
          ])
        rm -f conftest.tmp conftest.lnk])
@@ -10437,10 +10688,10 @@ AC_DEFUN([gl_FUNC_MKFIFO],
   fi
 ])
 
-# serial 5
+# serial 6
 # See if we need to provide mknod replacement.
 
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10482,10 +10733,10 @@ AC_DEFUN([gl_FUNC_MKNOD],
           fi
           gl_cv_func_mknod_works=no],
          [case "$host_os" in
-                    # Guess yes on glibc systems.
-            *-gnu*) gl_cv_func_mknod_works="guessing yes" ;;
-                    # If we don't know, assume the worst.
-            *)      gl_cv_func_mknod_works="guessing no" ;;
+                           # Guess yes on glibc systems.
+            *-gnu* | gnu*) gl_cv_func_mknod_works="guessing yes" ;;
+                           # If we don't know, assume the worst.
+            *)             gl_cv_func_mknod_works="guessing no" ;;
           esac
          ])
        rm -f conftest.fifo])
@@ -10504,9 +10755,9 @@ AC_DEFUN([gl_FUNC_MKNOD],
   fi
 ])
 
-#serial 24
+#serial 25
 
-# Copyright (C) 2001, 2003-2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2001, 2003-2007, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -10563,12 +10814,12 @@ AC_DEFUN([gl_FUNC_MKSTEMP],
           [gl_cv_func_working_mkstemp=yes],
           [gl_cv_func_working_mkstemp=no],
           [case "$host_os" in
-                     # Guess yes on glibc systems.
-             *-gnu*) gl_cv_func_working_mkstemp="guessing yes" ;;
-                     # Guess no on native Windows.
-             mingw*) gl_cv_func_working_mkstemp="guessing no" ;;
-                     # If we don't know, assume the worst.
-             *)      gl_cv_func_working_mkstemp="guessing no" ;;
+                            # Guess yes on glibc systems.
+             *-gnu* | gnu*) gl_cv_func_working_mkstemp="guessing yes" ;;
+                            # Guess no on native Windows.
+             mingw*)        gl_cv_func_working_mkstemp="guessing no" ;;
+                            # If we don't know, assume the worst.
+             *)             gl_cv_func_working_mkstemp="guessing no" ;;
            esac
           ])
         rm -rf conftest.mkstemp
@@ -10590,7 +10841,7 @@ AC_DEFUN([gl_PREREQ_MKSTEMP],
 ])
 
 # serial 30
-dnl Copyright (C) 2002-2003, 2005-2007, 2009-2017 Free Software Foundation,
+dnl Copyright (C) 2002-2003, 2005-2007, 2009-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -10890,7 +11141,7 @@ AC_DEFUN([gl_FUNC_MKTIME_INTERNAL], [
 AC_DEFUN([gl_PREREQ_MKTIME], [:])
 
 # mmap-anon.m4 serial 10
-dnl Copyright (C) 2005, 2007, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2005, 2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10946,7 +11197,7 @@ AC_DEFUN([gl_FUNC_MMAP_ANON],
 ])
 
 # msvc-inval.m4 serial 1
-dnl Copyright (C) 2011-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2011-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10966,7 +11217,7 @@ AC_DEFUN([gl_MSVC_INVAL],
 ])
 
 # msvc-nothrow.m4 serial 1
-dnl Copyright (C) 2011-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2011-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -10977,7 +11228,7 @@ AC_DEFUN([gl_MSVC_NOTHROW],
 ])
 
 # multiarch.m4 serial 7
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -11040,7 +11291,7 @@ AC_DEFUN_ONCE([gl_MULTIARCH],
 ])
 
 # netinet_in_h.m4 serial 5
-dnl Copyright (C) 2006-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -11072,7 +11323,7 @@ AC_DEFUN([gl_HEADER_NETINET_IN],
 ])
 
 # nl_langinfo.m4 serial 5
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -11155,8 +11406,8 @@ AC_DEFUN([AM_NLS],
   AC_SUBST([USE_NLS])
 ])
 
-# no-c++.m4 serial 1
-dnl Copyright (C) 2006, 2009-2017 Free Software Foundation, Inc.
+# no-c++.m4 serial 2
+dnl Copyright (C) 2006, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -11164,14 +11415,14 @@ dnl with or without modifications, as long as this notice is preserved.
 # Support for C source files that cannot be compiled by a C++ compiler.
 # Set NO_CXX to the C++ compiler flags needed to request C mode instead of
 # C++ mode.
-# So far only g++ is supported.
+# So far only g++ is supported. This includes clang++, as it is g++ compatible.
 
 AC_DEFUN([gt_NO_CXX],
 [
   NO_CXX=
-  AC_EGREP_CPP([Is g++], [
+  AC_EGREP_CPP([Is_g_plus_plus], [
 #if defined __GNUC__ && defined __cplusplus
-  Is g++
+  Is_g_plus_plus
 #endif
     ],
     [NO_CXX="-x c"])
@@ -11179,7 +11430,7 @@ AC_DEFUN([gt_NO_CXX],
 ])
 
 # nocrash.m4 serial 4
-dnl Copyright (C) 2005, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2005, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -11312,7 +11563,7 @@ nocrash_init (void)
 
 # serial 34
 
-# Copyright (C) 1996-1997, 1999-2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 1996-1997, 1999-2007, 2009-2018 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -11334,7 +11585,7 @@ AC_DEFUN([gl_FUNC_GNU_STRFTIME],
 ])
 
 # off_t.m4 serial 1
-dnl Copyright (C) 2012-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2012-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -11353,7 +11604,7 @@ AC_DEFUN([gl_TYPE_OFF_T],
 ])
 
 # pathmax.m4 serial 10
-dnl Copyright (C) 2002-2003, 2005-2006, 2009-2017 Free Software Foundation,
+dnl Copyright (C) 2002-2003, 2005-2006, 2009-2018 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -11850,7 +12101,7 @@ AC_DEFUN([AM_XGETTEXT_OPTION],
 ])
 
 # progtest.m4 serial 7 (gettext-0.18.2)
-dnl Copyright (C) 1996-2003, 2005, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 1996-2003, 2005, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -11942,7 +12193,7 @@ AC_SUBST([$1])dnl
 ])
 
 # pthread_rwlock_rdlock.m4 serial 1
-dnl Copyright (C) 2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2017-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -12105,8 +12356,8 @@ main ()
   esac
 ])
 
-# readlink.m4 serial 12
-dnl Copyright (C) 2003, 2007, 2009-2017 Free Software Foundation, Inc.
+# readlink.m4 serial 13
+dnl Copyright (C) 2003, 2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -12141,10 +12392,10 @@ AC_DEFUN([gl_FUNC_READLINK],
       return readlink ("conftest.lnk2/", buf, sizeof buf) != -1;]])],
          [gl_cv_func_readlink_works=yes], [gl_cv_func_readlink_works=no],
          [case "$host_os" in
-                    # Guess yes on glibc systems.
-            *-gnu*) gl_cv_func_readlink_works="guessing yes" ;;
-                    # If we don't know, assume the worst.
-            *)      gl_cv_func_readlink_works="guessing no" ;;
+                           # Guess yes on glibc systems.
+            *-gnu* | gnu*) gl_cv_func_readlink_works="guessing yes" ;;
+                           # If we don't know, assume the worst.
+            *)             gl_cv_func_readlink_works="guessing no" ;;
           esac
          ])
       rm -f conftest.link conftest.lnk2])
@@ -12179,7 +12430,7 @@ AC_DEFUN([gl_PREREQ_READLINK],
 
 # serial 67
 
-# Copyright (C) 1996-2001, 2003-2017 Free Software Foundation, Inc.
+# Copyright (C) 1996-2001, 2003-2018 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -12377,7 +12628,7 @@ AC_DEFUN([gl_REGEX],
               result |= 16;
 
             /* Catch a bug reported by Vin Shelton in
-               https://lists.gnu.org/archive/html/bug-coreutils/2007-06/msg00089.html
+               https://lists.gnu.org/r/bug-coreutils/2007-06/msg00089.html
                */
             re_set_syntax (RE_SYNTAX_POSIX_BASIC
                            & ~RE_CONTEXT_INVALID_DUP
@@ -12478,8 +12729,8 @@ AC_DEFUN([gl_PREREQ_REGEX],
   AC_CHECK_DECLS([isblank], [], [], [[#include <ctype.h>]])
 ])
 
-# select.m4 serial 8
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+# select.m4 serial 9
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -12554,10 +12805,10 @@ changequote([,])dnl
       [gl_cv_func_select_detects_ebadf=no],
           [
            case "$host_os" in
-                    # Guess yes on glibc systems.
-            *-gnu*) gl_cv_func_select_detects_ebadf="guessing yes" ;;
-                    # If we don't know, assume the worst.
-            *)      gl_cv_func_select_detects_ebadf="guessing no" ;;
+                           # Guess yes on glibc systems.
+            *-gnu* | gnu*) gl_cv_func_select_detects_ebadf="guessing yes" ;;
+                           # If we don't know, assume the worst.
+            *)             gl_cv_func_select_detects_ebadf="guessing no" ;;
            esac
           ])
       ])
@@ -12593,8 +12844,8 @@ main ()
   AC_SUBST([LIB_SELECT])
 ])
 
-# setenv.m4 serial 26
-dnl Copyright (C) 2001-2004, 2006-2017 Free Software Foundation, Inc.
+# setenv.m4 serial 27
+dnl Copyright (C) 2001-2004, 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -12630,10 +12881,10 @@ AC_DEFUN([gl_FUNC_SETENV],
       ]])],
       [gl_cv_func_setenv_works=yes], [gl_cv_func_setenv_works=no],
       [case "$host_os" in
-                 # Guess yes on glibc systems.
-         *-gnu*) gl_cv_func_setenv_works="guessing yes" ;;
-                 # If we don't know, assume the worst.
-         *)      gl_cv_func_setenv_works="guessing no" ;;
+                        # Guess yes on glibc systems.
+         *-gnu* | gnu*) gl_cv_func_setenv_works="guessing yes" ;;
+                        # If we don't know, assume the worst.
+         *)             gl_cv_func_setenv_works="guessing no" ;;
        esac
       ])])
     case "$gl_cv_func_setenv_works" in
@@ -12755,7 +13006,7 @@ AC_DEFUN([gl_PREREQ_UNSETENV],
 ])
 
 # signal_h.m4 serial 18
-dnl Copyright (C) 2007-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2007-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -12839,7 +13090,7 @@ AC_DEFUN([gl_SIGNAL_H_DEFAULTS],
 ])
 
 # socketlib.m4 serial 1
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -12926,7 +13177,7 @@ char setsockopt();]], [[setsockopt();]])],
 ])
 
 # sockets.m4 serial 7
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -12944,7 +13195,7 @@ AC_DEFUN([gl_PREREQ_SOCKETS], [
 ])
 
 # socklen.m4 serial 10
-dnl Copyright (C) 2005-2007, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2005-2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -13022,7 +13273,7 @@ AC_DEFUN([gl_CHECK_SOCKET_HEADERS],
   ])
 
 # sockpfaf.m4 serial 8
-dnl Copyright (C) 2004, 2006, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2004, 2006, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -13110,7 +13361,7 @@ AC_DEFUN([gl_SOCKET_FAMILY_UNIX],
 ])
 
 # ssize_t.m4 serial 5 (gettext-0.18.2)
-dnl Copyright (C) 2001-2003, 2006, 2010-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2001-2003, 2006, 2010-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -13133,9 +13384,93 @@ AC_DEFUN([gt_TYPE_SSIZE_T],
   fi
 ])
 
-# serial 12
+# Checks for stat-related time functions.
 
-# Copyright (C) 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 1998-1999, 2001, 2003, 2005-2007, 2009-2018 Free Software
+# Foundation, Inc.
+
+# This file is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+dnl From Paul Eggert.
+
+# st_atim.tv_nsec - Linux, Solaris, Cygwin
+# st_atimespec.tv_nsec - FreeBSD, NetBSD, if ! defined _POSIX_SOURCE
+# st_atimensec - FreeBSD, NetBSD, if defined _POSIX_SOURCE
+# st_atim.st__tim.tv_nsec - UnixWare (at least 2.1.2 through 7.1)
+
+# st_birthtimespec - FreeBSD, NetBSD (hidden on OpenBSD 3.9, anyway)
+# st_birthtim - Cygwin 1.7.0+
+
+AC_DEFUN([gl_STAT_TIME],
+[
+  AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
+  AC_CHECK_HEADERS_ONCE([sys/time.h])
+
+  AC_CHECK_MEMBERS([struct stat.st_atim.tv_nsec],
+    [AC_CACHE_CHECK([whether struct stat.st_atim is of type struct timespec],
+       [ac_cv_typeof_struct_stat_st_atim_is_struct_timespec],
+       [AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+          [[
+            #include <sys/types.h>
+            #include <sys/stat.h>
+            #if HAVE_SYS_TIME_H
+            # include <sys/time.h>
+            #endif
+            #include <time.h>
+            struct timespec ts;
+            struct stat st;
+          ]],
+          [[
+            st.st_atim = ts;
+          ]])],
+          [ac_cv_typeof_struct_stat_st_atim_is_struct_timespec=yes],
+          [ac_cv_typeof_struct_stat_st_atim_is_struct_timespec=no])])
+     if test $ac_cv_typeof_struct_stat_st_atim_is_struct_timespec = yes; then
+       AC_DEFINE([TYPEOF_STRUCT_STAT_ST_ATIM_IS_STRUCT_TIMESPEC], [1],
+         [Define to 1 if the type of the st_atim member of a struct stat is
+          struct timespec.])
+     fi],
+    [AC_CHECK_MEMBERS([struct stat.st_atimespec.tv_nsec], [],
+       [AC_CHECK_MEMBERS([struct stat.st_atimensec], [],
+          [AC_CHECK_MEMBERS([struct stat.st_atim.st__tim.tv_nsec], [], [],
+             [#include <sys/types.h>
+              #include <sys/stat.h>])],
+          [#include <sys/types.h>
+           #include <sys/stat.h>])],
+       [#include <sys/types.h>
+        #include <sys/stat.h>])],
+    [#include <sys/types.h>
+     #include <sys/stat.h>])
+])
+
+# Check for st_birthtime, a feature from UFS2 (FreeBSD, NetBSD, OpenBSD, etc.)
+# and NTFS (Cygwin).
+# There was a time when this field was named st_createtime (21 June
+# 2002 to 16 July 2002) But that window is very small and applied only
+# to development code, so systems still using that configuration are
+# not supported.  See revisions 1.10 and 1.11 of FreeBSD's
+# src/sys/ufs/ufs/dinode.h.
+#
+AC_DEFUN([gl_STAT_BIRTHTIME],
+[
+  AC_REQUIRE([gl_USE_SYSTEM_EXTENSIONS])
+  AC_CHECK_HEADERS_ONCE([sys/time.h])
+  AC_CHECK_MEMBERS([struct stat.st_birthtimespec.tv_nsec], [],
+    [AC_CHECK_MEMBERS([struct stat.st_birthtimensec], [],
+      [AC_CHECK_MEMBERS([struct stat.st_birthtim.tv_nsec], [], [],
+         [#include <sys/types.h>
+          #include <sys/stat.h>])],
+       [#include <sys/types.h>
+        #include <sys/stat.h>])],
+    [#include <sys/types.h>
+     #include <sys/stat.h>])
+])
+
+# serial 14
+
+# Copyright (C) 2009-2018 Free Software Foundation, Inc.
 #
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
@@ -13178,10 +13513,10 @@ AC_DEFUN([gl_FUNC_STAT],
              ]])],
            [gl_cv_func_stat_file_slash=yes], [gl_cv_func_stat_file_slash=no],
            [case "$host_os" in
-                      # Guess yes on glibc systems.
-              *-gnu*) gl_cv_func_stat_file_slash="guessing yes" ;;
-                      # If we don't know, assume the worst.
-              *)      gl_cv_func_stat_file_slash="guessing no" ;;
+                             # Guess yes on glibc systems.
+              *-gnu* | gnu*) gl_cv_func_stat_file_slash="guessing yes" ;;
+                             # If we don't know, assume the worst.
+              *)             gl_cv_func_stat_file_slash="guessing no" ;;
             esac
            ])
          rm -f conftest.tmp conftest.lnk])
@@ -13190,6 +13525,11 @@ AC_DEFUN([gl_FUNC_STAT],
           REPLACE_STAT=1
           AC_DEFINE([REPLACE_FUNC_STAT_FILE], [1], [Define to 1 if stat needs
             help when passed a file name with a trailing slash]);;
+      esac
+      case $host_os in
+        dnl Solaris stat can return a negative tv_nsec.
+        solaris*)
+          REPLACE_FSTAT=1 ;;
       esac
       ;;
   esac
@@ -13203,7 +13543,7 @@ AC_DEFUN([gl_PREREQ_STAT], [
 
 # Check for stdalign.h that conforms to C11.
 
-dnl Copyright 2011-2017 Free Software Foundation, Inc.
+dnl Copyright 2011-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -13261,7 +13601,7 @@ AC_DEFUN([gl_STDALIGN_H],
 
 # Check for stdbool.h that conforms to C99.
 
-dnl Copyright (C) 2002-2006, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002-2006, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -13349,7 +13689,7 @@ AC_DEFUN([AC_CHECK_HEADER_STDBOOL],
              char p[-1 - (Bool) 0 < 0 && -1 - (bool) 0 < 0 ? 1 : -1];
              /* Catch a bug in an HP-UX C compiler.  See
                 https://gcc.gnu.org/ml/gcc-patches/2003-12/msg02303.html
-                https://lists.gnu.org/archive/html/bug-coreutils/2005-11/msg00161.html
+                https://lists.gnu.org/r/bug-coreutils/2005-11/msg00161.html
               */
              Bool q = true;
              Bool *pq = &q;
@@ -13370,7 +13710,7 @@ AC_DEFUN([AC_CHECK_HEADER_STDBOOL],
 
 dnl A placeholder for <stddef.h>, for platforms that have issues.
 # stddef_h.m4 serial 5
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -13421,7 +13761,7 @@ AC_DEFUN([gl_STDDEF_H_DEFAULTS],
 ])
 
 # stdint.m4 serial 51
-dnl Copyright (C) 2001-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2001-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -13971,7 +14311,7 @@ m4_ifdef([AC_COMPUTE_INT], [], [
 ])
 
 # stdlib_h.m4 serial 44
-dnl Copyright (C) 2007-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2007-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -14096,7 +14436,7 @@ AC_DEFUN([gl_STDLIB_H_DEFAULTS],
 ])
 
 # strcase.m4 serial 11
-dnl Copyright (C) 2002, 2005-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002, 2005-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -14143,7 +14483,7 @@ AC_DEFUN([gl_PREREQ_STRNCASECMP], [
 
 # strdup.m4 serial 13
 
-dnl Copyright (C) 2002-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002-2018 Free Software Foundation, Inc.
 
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
@@ -14178,8 +14518,8 @@ AC_DEFUN([gl_FUNC_STRDUP_POSIX],
 # Prerequisites of lib/strdup.c.
 AC_DEFUN([gl_PREREQ_STRDUP], [:])
 
-# strerror.m4 serial 18
-dnl Copyright (C) 2002, 2007-2017 Free Software Foundation, Inc.
+# strerror.m4 serial 19
+dnl Copyright (C) 2002, 2007-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -14204,10 +14544,10 @@ AC_DEFUN([gl_FUNC_STRERROR],
         [gl_cv_func_working_strerror=yes],
         [gl_cv_func_working_strerror=no],
         [case "$host_os" in
-                   # Guess yes on glibc systems.
-           *-gnu*) gl_cv_func_working_strerror="guessing yes" ;;
-                   # If we don't know, assume the worst.
-           *)      gl_cv_func_working_strerror="guessing no" ;;
+                          # Guess yes on glibc systems.
+           *-gnu* | gnu*) gl_cv_func_working_strerror="guessing yes" ;;
+                          # If we don't know, assume the worst.
+           *)             gl_cv_func_working_strerror="guessing no" ;;
          esac
         ])
     ])
@@ -14258,12 +14598,12 @@ AC_DEFUN([gl_FUNC_STRERROR_0],
       [gl_cv_func_strerror_0_works=yes],
       [gl_cv_func_strerror_0_works=no],
       [case "$host_os" in
-                 # Guess yes on glibc systems.
-         *-gnu*) gl_cv_func_strerror_0_works="guessing yes" ;;
-                 # Guess yes on native Windows.
-         mingw*) gl_cv_func_strerror_0_works="guessing yes" ;;
-                 # If we don't know, assume the worst.
-         *)      gl_cv_func_strerror_0_works="guessing no" ;;
+                        # Guess yes on glibc systems.
+         *-gnu* | gnu*) gl_cv_func_strerror_0_works="guessing yes" ;;
+                        # Guess yes on native Windows.
+         mingw*)        gl_cv_func_strerror_0_works="guessing yes" ;;
+                        # If we don't know, assume the worst.
+         *)             gl_cv_func_strerror_0_works="guessing no" ;;
        esac
       ])
   ])
@@ -14278,7 +14618,7 @@ AC_DEFUN([gl_FUNC_STRERROR_0],
 ])
 
 # strerror_r.m4 serial 19
-dnl Copyright (C) 2002, 2007-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002, 2007-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -14453,7 +14793,7 @@ changequote([,])dnl
 
 # Configure a GNU-like replacement for <string.h>.
 
-# Copyright (C) 2007-2017 Free Software Foundation, Inc.
+# Copyright (C) 2007-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -14577,7 +14917,7 @@ AC_DEFUN([gl_HEADER_STRING_H_DEFAULTS],
 # Configure a replacement for <strings.h>.
 # serial 6
 
-# Copyright (C) 2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2007, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -14628,7 +14968,7 @@ AC_DEFUN([gl_HEADER_STRINGS_H_DEFAULTS],
 ])
 
 # strptime.m4 serial 7
-dnl Copyright (C) 2007, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -14651,7 +14991,7 @@ AC_DEFUN([gl_PREREQ_STRPTIME],
 ])
 
 # strverscmp.m4 serial 8
-dnl Copyright (C) 2002, 2005-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002, 2005-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -14674,7 +15014,7 @@ AC_DEFUN([gl_PREREQ_STRVERSCMP], [
 ])
 
 # sys_ioctl_h.m4 serial 10
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -14739,7 +15079,7 @@ AC_DEFUN([gl_SYS_IOCTL_H_DEFAULTS],
 ])
 
 # sys_select_h.m4 serial 20
-dnl Copyright (C) 2006-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -14835,7 +15175,7 @@ AC_DEFUN([gl_SYS_SELECT_H_DEFAULTS],
 ])
 
 # sys_socket_h.m4 serial 23
-dnl Copyright (C) 2005-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2005-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -15012,7 +15352,7 @@ AC_DEFUN([gl_SYS_SOCKET_H_DEFAULTS],
 ])
 
 # sys_stat_h.m4 serial 31   -*- Autoconf -*-
-dnl Copyright (C) 2006-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -15115,7 +15455,7 @@ AC_DEFUN([gl_SYS_STAT_H_DEFAULTS],
 # Configure a replacement for <sys/time.h>.
 # serial 9
 
-# Copyright (C) 2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2007, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -15224,7 +15564,7 @@ AC_DEFUN([gl_HEADER_SYS_TIME_H_DEFAULTS],
 ])
 
 # sys_types_h.m4 serial 9
-dnl Copyright (C) 2011-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2011-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -15260,7 +15600,7 @@ AC_DEFUN([gl_SYS_TYPES_H_DEFAULTS],
 ])
 
 # This works around a buggy version in autoconf <= 2.69.
-# See <https://lists.gnu.org/archive/html/autoconf/2016-08/msg00014.html>
+# See <https://lists.gnu.org/r/autoconf/2016-08/msg00014.html>
 
 m4_version_prereq([2.70], [], [
 
@@ -15285,7 +15625,7 @@ fi
 ])
 
 # sys_uio_h.m4 serial 1
-dnl Copyright (C) 2011-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2011-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -15317,7 +15657,7 @@ AC_DEFUN([gl_SYS_UIO_H_DEFAULTS],
 ])
 
 # sys_utsname_h.m4 serial 8
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -15372,7 +15712,7 @@ AC_DEFUN([gl_SYS_UTSNAME_H_DEFAULTS],
 ])
 
 # sys_wait_h.m4 serial 6
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -15410,7 +15750,7 @@ AC_DEFUN([gl_SYS_WAIT_H_DEFAULTS],
 
 #serial 5
 
-# Copyright (C) 2006-2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2006-2007, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -15429,7 +15769,7 @@ AC_DEFUN([gl_PREREQ_TEMPNAME],
 ])
 
 # threadlib.m4 serial 13
-dnl Copyright (C) 2005-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2005-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -15599,7 +15939,7 @@ int main ()
         #
         # If -pthread works, prefer it to -lpthread, since Ubuntu 14.04
         # needs -pthread for some reason.  See:
-        # https://lists.gnu.org/archive/html/bug-gnulib/2014-09/msg00023.html
+        # https://lists.gnu.org/r/bug-gnulib/2014-09/msg00023.html
         save_LIBS=$LIBS
         for gl_pthread in '' '-pthread'; do
           LIBS="$LIBS $gl_pthread"
@@ -15826,7 +16166,7 @@ dnl   0.0 if the first test already loops endlessly.
 
 # Configure a more-standard replacement for <time.h>.
 
-# Copyright (C) 2000-2001, 2003-2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2000-2001, 2003-2007, 2009-2018 Free Software Foundation, Inc.
 
 # serial 11
 
@@ -15971,7 +16311,7 @@ AC_DEFUN([gl_HEADER_TIME_H_DEFAULTS],
 
 dnl Reentrant time functions: localtime_r, gmtime_r.
 
-dnl Copyright (C) 2003, 2006-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2003, 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16030,7 +16370,7 @@ AC_DEFUN([gl_PREREQ_TIME_R], [
 
 dnl Time zone functions: tzalloc, localtime_rz, etc.
 
-dnl Copyright (C) 2015-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2015-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16050,7 +16390,7 @@ AC_DEFUN([gl_TIME_RZ],
 ])
 
 # timegm.m4 serial 12
-dnl Copyright (C) 2003, 2007, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2003, 2007, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16077,7 +16417,7 @@ AC_DEFUN([gl_PREREQ_TIMEGM], [
 ])
 
 # tm_gmtoff.m4 serial 3
-dnl Copyright (C) 2002, 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002, 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16091,9 +16431,9 @@ AC_DEFUN([gl_TM_GMTOFF],
                  [#include <time.h>])
 ])
 
-# serial 10
+# serial 11
 
-# Copyright (C) 2003, 2007, 2009-2017 Free Software Foundation, Inc.
+# Copyright (C) 2003, 2007, 2009-2018 Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -16161,12 +16501,12 @@ main ()
        [gl_cv_func_tzset_clobber=no],
        [gl_cv_func_tzset_clobber=yes],
        [case "$host_os" in
-                  # Guess all is fine on glibc systems.
-          *-gnu*) gl_cv_func_tzset_clobber="guessing no" ;;
-                  # Guess no on native Windows.
-          mingw*) gl_cv_func_tzset_clobber="guessing no" ;;
-                  # If we don't know, assume the worst.
-          *)      gl_cv_func_tzset_clobber="guessing yes" ;;
+                         # Guess all is fine on glibc systems.
+          *-gnu* | gnu*) gl_cv_func_tzset_clobber="guessing no" ;;
+                         # Guess no on native Windows.
+          mingw*)        gl_cv_func_tzset_clobber="guessing no" ;;
+                         # If we don't know, assume the worst.
+          *)             gl_cv_func_tzset_clobber="guessing yes" ;;
         esac
        ])
     ])
@@ -16176,7 +16516,7 @@ main ()
 ])
 
 # uname.m4 serial 11
-dnl Copyright (C) 2009-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2009-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16195,8 +16535,8 @@ AC_DEFUN([gl_PREREQ_UNAME], [
   :
 ])
 
-# unistd_h.m4 serial 70
-dnl Copyright (C) 2006-2017 Free Software Foundation, Inc.
+# unistd_h.m4 serial 71
+dnl Copyright (C) 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16356,6 +16696,7 @@ AC_DEFUN([gl_UNISTD_H_DEFAULTS],
   REPLACE_CLOSE=0;        AC_SUBST([REPLACE_CLOSE])
   REPLACE_DUP=0;          AC_SUBST([REPLACE_DUP])
   REPLACE_DUP2=0;         AC_SUBST([REPLACE_DUP2])
+  REPLACE_FACCESSAT=0;    AC_SUBST([REPLACE_FACCESSAT])
   REPLACE_FCHOWNAT=0;     AC_SUBST([REPLACE_FCHOWNAT])
   REPLACE_FTRUNCATE=0;    AC_SUBST([REPLACE_FTRUNCATE])
   REPLACE_GETCWD=0;       AC_SUBST([REPLACE_GETCWD])
@@ -16390,7 +16731,7 @@ AC_DEFUN([gl_UNISTD_H_DEFAULTS],
 ])
 
 # warn-on-use.m4 serial 5
-dnl Copyright (C) 2010-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2010-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16439,7 +16780,7 @@ dnl autoconf 2.64 or newer.
 
 dnl A placeholder for ISO C99 <wchar.h>, for platforms that have issues.
 
-dnl Copyright (C) 2007-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2007-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16677,7 +17018,7 @@ AC_DEFUN([gl_WCHAR_H_DEFAULTS],
 ])
 
 # wchar_t.m4 serial 4 (gettext-0.18.2)
-dnl Copyright (C) 2002-2003, 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2002-2003, 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16702,7 +17043,7 @@ AC_DEFUN([gt_TYPE_WCHAR_T],
 ])
 
 # wcrtomb.m4 serial 12
-dnl Copyright (C) 2008-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -16820,7 +17161,7 @@ AC_DEFUN([gl_PREREQ_WCRTOMB], [
 
 dnl A placeholder for ISO C99 <wctype.h>, for platforms that lack it.
 
-dnl Copyright (C) 2006-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2006-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -17030,7 +17371,7 @@ AC_DEFUN([gl_WCTYPE_H_DEFAULTS],
 ])
 
 # wint_t.m4 serial 7
-dnl Copyright (C) 2003, 2007-2017 Free Software Foundation, Inc.
+dnl Copyright (C) 2003, 2007-2018 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.

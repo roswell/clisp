@@ -3965,7 +3965,7 @@ else
   if test "$cross_compiling" = yes; then :
   case "$host_os" in
           # Guess yes on platforms where we know the result.
-          *-gnu* | freebsd* | netbsd* | openbsd* \
+          *-gnu* | gnu* | freebsd* | netbsd* | openbsd* \
           | hpux* | solaris* | cygwin* | mingw*)
             ac_cv_func_malloc_0_nonnull=yes ;;
           # If we don't know, assume the worst.
