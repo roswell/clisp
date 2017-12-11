@@ -559,5 +559,11 @@ yz")
 (re-test "(a*)+" "aaaa") ("aaaa" #-:regex-left "aaaa" #+:regex-left "")
 (re-test "(a+)*" "aaaa") ("aaaa" "aaaa")
 
+(regexp:regexp-split " *, *" "a, b,c ,d,f" :start 3 :end 6)
+("b" "c")
+
+(regexp:regexp-split " *, *" "a, b,c ,d,f" :start 3 :end 3)
+("")
+
 ;; https://sourceforge.net/p/clisp/bugs/287/
 (regexp:regexp-split "|" "a|b" :extended t) error
