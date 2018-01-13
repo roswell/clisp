@@ -473,7 +473,7 @@ T
 #+:gettext
 (handler-case
     (letf ((*current-language* 'french))
-      (list (string= "À bientôt!" (sys::text "Bye."))
+      (list (string= "À bientôt !" (sys::text "Bye."))
             (eq *current-language* 'FRANÇAIS)))
   (error (e) (princ-error e) '(T T)))
 #+:gettext (T T)
