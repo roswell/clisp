@@ -3633,9 +3633,9 @@ global uintL iconv_mblen (object encoding, const uintB* src,
         var size_t outsize = tmpbufsize*sizeof(chart);
         var size_t res = iconv(cd,&inptr,&insize,&outptr,&outsize);
         if (res == (size_t)(-1) && errno != E2BIG) {
-          if (errno == EINVAL) # incomplete input?
-            break;
-          else if (errno == EILSEQ) {
+          # At the end of a delimited string, we treat
+          # EINVAL (incomplete input) like EILEQ (conversion error)
+          if (errno == EILSEQ || errno == EINVAL) {
             ASSERT(insize > 0);
             var object action = TheEncoding(encoding)->enc_towcs_error;
             if (eq(action,S(Kignore))) {
@@ -3679,9 +3679,9 @@ global void iconv_mbstowcs (object encoding, object stream,
       while (insize > 0 && outsize > 0) {
         var size_t res = iconv(cd,&inptr,&insize,&outptr,&outsize);
         if (res == (size_t)(-1)) {
-          if (errno == EINVAL) { # incomplete input?
-            inptr += insize; break;
-          } else if (errno == EILSEQ) {
+          # At the end of a delimited string, we treat
+          # EINVAL (incomplete input) like EILEQ (conversion error)
+          if (errno == EILSEQ || errno == EINVAL) {
             ASSERT(insize > 0);
             var object action = TheEncoding(encoding)->enc_towcs_error;
             if (eq(action,S(Kignore))) {
@@ -10041,8 +10041,13 @@ local object make_terminal_stream_ (void) {
      #else # ttyname() is rather slow, fstat() is faster.
       struct stat stdin_stat;
       struct stat stdout_stat;
-      if ((fstat(stdin_handle,&stdin_stat) >= 0) && (fstat(stdout_handle,&stdout_stat) >= 0))
-        if ((stdin_stat.st_dev == stdout_stat.st_dev) && (stdin_stat.st_ino == stdout_stat.st_ino))
+      if ((fstat(stdin_handle,&stdin_stat) >= 0)
+          && (fstat(stdout_handle,&stdout_stat) >= 0))
+        if ((stdin_stat.st_dev == stdout_stat.st_dev)
+           #ifndef UNIX_CYGWIN32
+            && (stdin_stat.st_ino == stdout_stat.st_ino)
+           #endif
+            )
           same_tty = true;
      #endif
     #endif
