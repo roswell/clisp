@@ -2525,9 +2525,10 @@ for-value   NIL or T
 
 ;; Note that a block is used by an inner fnode.
 (defun note-far-used-block (block)
-  (if (eq (block-fnode block) *func*)
-    (setf (block-used-far block) t)
-    (pushnew block (fnode-Blocks *func*))))
+  (do ((fnode *func* (fnode-enclosing fnode)))
+      ((eq fnode (block-fnode block)))
+    (pushnew block (fnode-blocks fnode)))
+  (setf (block-used-far block) t))
 
 ;; Note that a tag of a tagbody is used by an inner fnode.
 (defun note-far-used-tagbody (tagbody+tag)
@@ -3131,8 +3132,11 @@ for-value   NIL or T
             (multiple-value-bind (a m f1 f2 f3 f4) (fenv-search fun)
               (declare (ignore f2 f4))
               (if (null a)
-                ;; no local definition
-                (let ((handler (gethash fun c-form-table)))
+                ;; no local definition --> expand-compiler-macro
+                (let ((handler
+                       (gethash (setq *form* (expand-compiler-macro *form*)
+                                      fun (car *form*))
+                                c-form-table)))
                   (if handler ; found handler function?
                     ;; ==> (symbolp fun) = T
                     (if (or (and (special-operator-p fun)
@@ -3145,7 +3149,7 @@ for-value   NIL or T
                         (c-GLOBAL-FUNCTION-CALL fun)))
                     ;; no -> not a special-form anyway
                     ;; (all those are in the `c-form-table')
-                    (if (atom (setq *form* (expand-compiler-macro *form*)))
+                    (if (atom *form*)
                       (c-form *form*)
                       (if (and (symbolp (setq fun (first *form*)))
                                (macro-function fun))
@@ -6784,12 +6788,14 @@ for-value   NIL or T
 (defun c-EVAL-WHEN (&optional (c #'c-form))
   (test-list *form* 2)
   (test-list (second *form*) 0)
-  (let ((load-flag nil)
+  (let ((load-flag nil) (top-level-p (eq c #'compile-toplevel-form))
         (compile-flag nil))
     (dolist (situation (second *form*))
       (case situation
-        ((LOAD :LOAD-TOPLEVEL) (setq load-flag t))
-        ((COMPILE :COMPILE-TOPLEVEL) (setq compile-flag t))
+        ((LOAD) (setq load-flag t))
+        ((:LOAD-TOPLEVEL) (when top-level-p (setq load-flag t)))
+        ((COMPILE) (setq compile-flag t))
+        ((:COMPILE-TOPLEVEL) (when top-level-p (setq compile-flag t)))
         ((EVAL :EXECUTE))       ; see control.d
         (T (cond ((or (equal situation '(NOT EVAL))
                       (equal situation '(NOT :EXECUTE)))
@@ -10019,8 +10025,10 @@ This step determines, how many SP-Entries the function needs at most.
                   (JMP ; (JMP label)
                     (note-label (second item))
                     (note-jmp))
-                  ((JMPIF JMPIF1 JMPIFNOT JMPIFNOT1 JMPIFBOUNDP) ; (JMP... label)
+                  ((JMPIF JMPIF1 JMPIFNOT JMPIFNOT1) ; (JMP... label)
                     (note-label (second item)))
+                  (JMPIFBOUNDP ; (JMPIFBOUNDP n label)
+                    (note-label (third item)))
                   ((JMPHASH JMPHASHV JMPTAIL) ; (JMPHASH.. n ht label . labels), (JMPTAIL m n label)
                     (dolist (label (cdddr item)) (note-label label))
                     (note-jmp))
@@ -10078,6 +10086,7 @@ This step determines, how many SP-Entries the function needs at most.
             (return-from SP-depth (spd max-depth-1 max-depth-2)))
           (let* ((unseen (pop unseen-label-alist))
                  (label (car unseen))) ; next label to track
+            (unless (symbolp label) (compiler-error 'SP-depth "BAD LABEL"))
             (setq depth (cdr unseen))
             (let ((h (assoc label seen-label-alist)))
               (unless (and h (spd<= depth (cdr h)))
@@ -11237,6 +11246,7 @@ The function make-closure is required.
 
 (defmacro with-compilation-unit ((&key override) &body forms)
   `(let ((*c-top-call* (or ,override (not (boundp '*c-top-call*))))
+         (*c-listing-output* nil)
          (*c-error-output* *error-output*))
      ;; clean up from the outer `with-compilation-unit':
      ;; <http://www.lisp.org/HyperSpec/Body/mac_with-compilation-unit.html>
