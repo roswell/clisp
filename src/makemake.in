@@ -3020,6 +3020,11 @@ for f in $CPARTS genclisph modules $EXTRA_CPARTS ; do
           # gcc-4.9.2 on Linux/s390x miscompiles lisparit.d when -O2 is used.
           flags2=$flags2' -O1'
         fi
+        if [ \( $f = hashtabl -o $f = package \) -a "$cpu" = powerpc64-elfv2 ] ; then
+          # gcc-7.3.0 on Linux/powerpc64le miscompiles hashtabl.d and package.d
+          # when -O2 is used.
+          flags2=$flags2' -O1'
+        fi
         ;;
     esac
   else
