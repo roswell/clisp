@@ -1,0 +1,23 @@
+stages:
+  - build
+
+default:
+  image: ubuntu:latest
+
+build:
+  stage: build
+  before_script:
+    - apt update
+    - apt install build-essential -y
+    - apt install libsigsegv-dev -y
+    - apt install libffcall-dev -y
+    - apt install libc6 -y
+    - apt install libreadline-dev -y
+    - apt install gettext -y
+    - apt install language-pack-en -y
+    - ./configure FORCE_UNSAFE_CONFIGURE=1
+  script:
+    - make
+    - make check
+  after_script:
+    - cat /builds/$CI_PROJECT_NAMESPACE/clisp/src/tests/*.erg
