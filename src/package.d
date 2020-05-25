@@ -3238,47 +3238,7 @@ local maygc void cerror_already_local_nickname (object nickname, object pack, ob
   funcall(L(cerror_of_type),9);
 }
 
-/* (EXT:ADD-PACKAGE-LOCAL-NICKNAME new-nickname target-package &optional package) */
-LISPFUN(add_package_local_nickname,seclass_default,2,1,norest,nokey,0,NIL) {
-  test_optional_package_arg();
-  var object pack = popSTACK();
-  var object target_pack = test_package_arg(popSTACK());
-  var object nickname = test_stringsymchar_arg(popSTACK(),false);
-  WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
-    if (string_eq(nickname,ThePackage(pack)->pack_name)) {
-      cerror_invalid_nickname(nickname, pack, target_pack);
-    }
-    var object nicknamelistr = ThePackage(pack)->pack_nicknames;
-    while (consp(nicknamelistr)) {
-      if (string_eq(nickname,Car(nicknamelistr))) {
-        cerror_invalid_nickname(nickname, pack, target_pack);
-      }
-      nicknamelistr = Cdr(nicknamelistr);
-    }
-    var object local_nicknamelistr = ThePackage(pack)->pack_local_nicknames;
-    while (consp(local_nicknamelistr)) {
-      var object existing_mapping = Car(local_nicknamelistr);
-      if (!eq(Cdr(existing_mapping),target_pack) && string_eq(Car(existing_mapping),nickname)) {
-        cerror_already_local_nickname(nickname, pack, target_pack, Cdr(existing_mapping));
-      }
-      local_nicknamelistr = Cdr(local_nicknamelistr);
-    }
-    var object new_mapping = allocate_cons();
-    Car(new_mapping) = nickname;
-    Cdr(new_mapping) = target_pack;
-    var object acons = allocate_cons();
-    Car(acons) = new_mapping;
-    Cdr(acons) = ThePackage(pack)->pack_local_nicknames;
-    ThePackage(pack)->pack_local_nicknames = acons;
-  });
-  VALUES1(pack);
-}
-
-/* (EXT:REMOVE-PACKAGE-LOCAL-NICKNAME old-nickname &optional package) */
-LISPFUN(remove_package_local_nickname,seclass_default,1,1,norest,nokey,0,NIL) {
-  test_optional_package_arg();
-  var object pack = popSTACK();
-  var object nickname = test_stringsymchar_arg(popSTACK(),false);
+local object remove_package_local_nickname (object nickname, object pack) {
   var object removedp = NIL;
   WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
     var object local_nicknamelistr = ThePackage(pack)->pack_local_nicknames;
@@ -3296,7 +3256,59 @@ LISPFUN(remove_package_local_nickname,seclass_default,1,1,norest,nokey,0,NIL) {
       local_nicknamelistr = Cdr(local_nicknamelistr);
     }
   });
-  VALUES1(removedp);
+  return removedp;
+}
+
+/* (EXT:ADD-PACKAGE-LOCAL-NICKNAME new-nickname target-package &optional package) */
+LISPFUN(add_package_local_nickname,seclass_default,2,1,norest,nokey,0,NIL) {
+  test_optional_package_arg();
+  var object pack = popSTACK();
+  var object target_pack = test_package_arg(popSTACK());
+  var object nickname = test_stringsymchar_arg(popSTACK(),false);
+  WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
+    if (string_eq(nickname,ThePackage(pack)->pack_name)) {
+      cerror_invalid_nickname(nickname, pack, target_pack);
+    }
+    var object nicknamelistr = ThePackage(pack)->pack_nicknames;
+    while (consp(nicknamelistr)) {
+      if (string_eq(nickname,Car(nicknamelistr))) {
+        cerror_invalid_nickname(nickname, pack, target_pack);
+      }
+      nicknamelistr = Cdr(nicknamelistr);
+    }
+    bool already_exists = false;
+    var object local_nicknamelistr = ThePackage(pack)->pack_local_nicknames;
+    while (consp(local_nicknamelistr)) {
+      var object existing_mapping = Car(local_nicknamelistr);
+      if (string_eq(Car(existing_mapping),nickname)) {
+        if (eq(Cdr(existing_mapping),target_pack)) {
+          already_exists = true;
+        } else {
+          cerror_already_local_nickname(nickname, pack, target_pack, Cdr(existing_mapping));
+          remove_package_local_nickname(nickname, pack);
+        }
+      }
+      local_nicknamelistr = Cdr(local_nicknamelistr);
+    }
+    if (!already_exists) {
+      var object new_mapping = allocate_cons();
+      Car(new_mapping) = nickname;
+      Cdr(new_mapping) = target_pack;
+      var object acons = allocate_cons();
+      Car(acons) = new_mapping;
+      Cdr(acons) = ThePackage(pack)->pack_local_nicknames;
+      ThePackage(pack)->pack_local_nicknames = acons;
+    }
+  });
+  VALUES1(pack);
+}
+
+/* (EXT:REMOVE-PACKAGE-LOCAL-NICKNAME old-nickname &optional package) */
+LISPFUN(remove_package_local_nickname,seclass_default,1,1,norest,nokey,0,NIL) {
+  test_optional_package_arg();
+  var object pack = popSTACK();
+  var object nickname = test_stringsymchar_arg(popSTACK(),false);
+  VALUES1(remove_package_local_nickname(nickname, pack));
 }
 
 maygc object package_local_nickname_for (object pack, object in_pack) {
