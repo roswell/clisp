@@ -797,6 +797,10 @@ LISPFUNN(map_external_symbols,2)
 LISPFUNN(map_all_symbols,1)
 LISPFUNN(package_iterator,2)
 LISPFUNN(package_iterate,1)
+LISPFUNN(package_local_nicknames,1)
+LISPFUNN(package_locally_nicknamed_by_list,1)
+LISPFUN(add_package_local_nickname,seclass_default,2,1,norest,nokey,0,NIL)
+LISPFUN(remove_package_local_nickname,seclass_default,1,1,norest,nokey,0,NIL)
 /* ---------- PATHNAME ---------- */
 LISPFUN(parse_namestring,seclass_rd_sig,1,2,norest,key,3,
         (kw(start),kw(end),kw(junk_allowed)) )

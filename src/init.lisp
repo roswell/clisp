@@ -390,7 +390,10 @@
    make-buffered-input-stream make-buffered-output-stream stream-handles
    get-setf-method preliminary local module-info
    source-program-error source-program-error-form source-program-error-detail
-   compiler-let load-time-eval compile-time-value)
+   compiler-let load-time-eval compile-time-value
+   ;; package-local nicknames
+   package-local-nicknames package-locally-nicknamed-by-list
+   add-package-local-nickname remove-package-local-nickname)
  "EXT")
 
 (common-lisp:in-package "CUSTOM")
