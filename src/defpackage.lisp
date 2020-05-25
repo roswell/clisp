@@ -205,6 +205,8 @@
                `((SETF (SYS::PACKAGE-DOCUMENTATION (FIND-PACKAGE ,packname))
                        ,documentation)))
            ;; Package-local nicknames
+           (dolist (mapping (ext:package-local-nicknames ,packname))
+             (ext:remove-package-local-nickname (car mapping) ,packname))
            ,@(mapcar #'(lambda (pair)
                          `(ext:add-package-local-nickname ,(car pair)
                                                           ,(cadr pair)
