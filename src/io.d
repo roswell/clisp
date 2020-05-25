@@ -6950,12 +6950,17 @@ local maygc void pr_symbol (const gcv_object_t* stream_, object sym) {
         } else {
           { /* print symbol with package-name and 1 or 2 package-markers */
             pushSTACK(home);        /* save home-package */
-            pr_symbol_part(stream_, /* print package-name */
-                           ((nullpSv(print_symbol_package_prefix_shortest)
-                             || !nullpSv(print_readably))
-                            ? ThePackage(home)->pack_name
-                            : ThePackage(home)->pack_shortest_name),
-                           false,false);
+            /* print package-name. If there is a package-local nickname, use that instead. */
+            var object pack_name_part;
+            var object local_nickname = package_local_nickname_for(home, curr_pack);
+            if (!nullp(local_nickname)) {
+                pack_name_part = local_nickname;
+            } else if ((nullpSv(print_symbol_package_prefix_shortest) || !nullpSv(print_readably))) {
+                pack_name_part = ThePackage(home)->pack_name;
+            } else {
+                pack_name_part = ThePackage(home)->pack_shortest_name;
+            }
+            pr_symbol_part(stream_, pack_name_part, false,false);
             home = popSTACK();    /* move home-package back */
             case_sensitive = pack_casesensitivep(home);
             case_inverted = pack_caseinvertedp(home);

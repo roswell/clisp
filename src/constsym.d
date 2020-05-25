@@ -628,6 +628,10 @@ LISPSYM(map_external_symbols,"MAP-EXTERNAL-SYMBOLS",system) /* ABI */
 LISPSYM(map_all_symbols,"MAP-ALL-SYMBOLS",system) /* ABI */
 LISPSYM(package_iterator,"PACKAGE-ITERATOR",system) /* ABI */
 LISPSYM(package_iterate,"PACKAGE-ITERATE",system) /* ABI */
+LISPSYM(package_local_nicknames,"PACKAGE-LOCAL-NICKNAMES",ext)
+LISPSYM(package_locally_nicknamed_by_list,"PACKAGE-LOCALLY-NICKNAMED-BY-LIST",ext)
+LISPSYM(add_package_local_nickname,"ADD-PACKAGE-LOCAL-NICKNAME",ext)
+LISPSYM(remove_package_local_nickname,"REMOVE-PACKAGE-LOCAL-NICKNAME",ext)
 /* ---------- PATHNAME ---------- */
 LISPSYM(parse_namestring,"PARSE-NAMESTRING",lisp)
 LISPSYM(pathname,"PATHNAME",lisp)
