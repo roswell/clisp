@@ -225,6 +225,8 @@ Bug fixes
   + Fixed a compiler bug that could lead to a "Compiler bug!!" error.
     <https://gitlab.com/gnu-clisp/clisp/issues/14>
   + Fixed an error during the build on macOS (bug#740).
+  + Made the result of SOCKET-CONNECT with :TIMEOUT 0 the same across platforms.
+    <https://gitlab.com/gnu-clisp/clisp/-/issues/25>
 
 
 2.49 (2010-07-07)
