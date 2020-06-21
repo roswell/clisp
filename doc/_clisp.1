@@ -2,12 +2,12 @@
 .\"     Title: clisp
 .\"    Author: Bruno Haible <\m[blue]\fB\%http://www.haible.de/bruno/\fR\m[]>
 .\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
-.\"      Date: Last modified: 2018-04-23
+.\"      Date: Last modified: 2020-06-20
 .\"    Manual: Platform: @PLATFORM@
-.\"    Source: CLISP 2.49.50+
+.\"    Source: CLISP 2.49.92
 .\"  Language: English
 .\"
-.TH "CLISP" "1" "Last modified: 2018\-04\-23" "CLISP 2.49.50+" "Platform: @PLATFORM@"
+.TH "CLISP" "1" "Last modified: 2020\-06\-20" "CLISP 2.49.92" "Platform: @PLATFORM@"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -90,6 +90,10 @@ Invoked with
 .PP
 Invoked with
 \fB\fIlisp\-file\fR\fR, runs the specified lisp file\&.
+.PP
+Batch mode activates the
+\fB\-q\fR
+option\&.
 .SH "OPTIONS"
 .PP
 \fB\-h\fR
@@ -1290,7 +1294,7 @@ Where did you get the sources or binaries? When? (Absolute dates, e\&.g\&.,
 \(lq2006\-01\-17\(rq, are preferred over the relative ones, e\&.g\&.,
 \(lq2 days ago\(rq\&. If you are using
 \m[blue]\fBGit\fR\m[]\&\s-2\u[63]\d\s+2, please supply the output of
-\fBgit rev-list --max-count=1 HEAD\fR)\&.
+\fBgit rev\-list \-\-max\-count=1 HEAD\fR)\&.
 .RE
 .sp
 .RS 4
@@ -1439,7 +1443,7 @@ SYMBOL-MACRO
 .IP "12." 4
 environment variable
 .RS 4
-\%[set $man.base.url.for.relative.links]/basedefs/xbd_chap08.html
+\%[set $man.base.url.for.relative.links]/basedefs/V1_chap08.html
 .RE
 .IP "13." 4
 \fI*LOAD-VERBOSE*\fR
@@ -1667,7 +1671,7 @@ SourceForge
 .IP "58." 4
 OpenID
 .RS 4
-\%https://openid.net/
+\%http://openid.net/
 .RE
 .IP "59." 4
 English
@@ -1690,9 +1694,9 @@ libc
 \%https://www.kernel.org/
 .RE
 .IP "63." 4
-Mercurial
+Git
 .RS 4
-\%https://www.mercurial-scm.org/
+\%https://git-scm.com/
 .RE
 .IP "64." 4
 VIM
