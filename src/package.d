@@ -99,6 +99,11 @@ local uint32 string_hashcode (object string, bool invert) {
  can trigger GC */
 local maygc object rehash_symtab (object symtab);
 
+/* finds all packages that have a package-local nickname for the specified package.
+ package_locally_nicknamed_by_list(pack)
+ < result: list. */
+local maygc object package_locally_nicknamed_by_list (object pack);
+
 /* auxiliary functions: */
 
 /* takes a Cons from free-conses or returns a fresh one.
@@ -443,6 +448,7 @@ local bool inherited_find (object symbol, object pack) {
  pack_used_by_list       used-by-list, a list of packages
  pack_name               the name, an immutable simple-string
  pack_nicknames          the nicknames, a list of immutable simple-strings
+ pack_local_nicknames    the package-local nicknames, an alist of immutable simple-strings to packages
  pack_docstring          the documentation string or NIL
 
  consistency rules:
@@ -509,6 +515,7 @@ local maygc object make_package (object name, object nicknames,
   ThePackage(pack)->pack_used_by_list = NIL;
   ThePackage(pack)->pack_name = popSTACK();
   ThePackage(pack)->pack_nicknames = popSTACK();
+  ThePackage(pack)->pack_local_nicknames = NIL;
   ThePackage(pack)->pack_docstring = NIL;
   ensure_pack_shortest_name(pack);
   pushSTACK(pack);
@@ -668,6 +675,15 @@ modexp maygc object find_package (object string) {
   var gcv_object_t *string_ = &STACK_0;
   var gcv_object_t *pack_ = &STACK_1;
   WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
+    var object local_nicknamelistr = ThePackage(get_current_package())->pack_local_nicknames;
+    while (consp(local_nicknamelistr)) {
+      var object nickname_mapping = Car(local_nicknamelistr);
+      if (string_eq(*string_,Car(nickname_mapping))) {
+        *pack_ = Cdr(nickname_mapping);
+        break; /* exit */
+      }
+      local_nicknamelistr = Cdr(local_nicknamelistr);
+    }
     var object packlistr = O(all_packages); /* traverse package-list */
     var object pack;
     while (nullp(*pack_) && consp(packlistr)) {
@@ -2750,6 +2766,26 @@ LISPFUNN(delete_package,1) {
         }
         skipSTACK(1);
         clr_break_sem_3();
+        /* remove all package-local nicknames referring to this package */
+        var object nicknamedlist = package_locally_nicknamed_by_list(*pack_);
+        while (consp(nicknamedlist)) {
+          var object nicknaming_pack = Car(nicknamedlist);
+          var object local_nicknamelistr = ThePackage(nicknaming_pack)->pack_local_nicknames;
+          var object prev = NIL;
+          while (consp(local_nicknamelistr)) {
+            var object nickname_mapping = Car(local_nicknamelistr);
+            if (eq(Cdr(nickname_mapping),*pack_)) {
+              if (nullp(prev)) {
+                ThePackage(nicknaming_pack)->pack_local_nicknames = Cdr(ThePackage(nicknaming_pack)->pack_local_nicknames);
+              } else {
+                Cdr(prev) = Cdr(local_nicknamelistr);
+              }
+            }
+            prev = local_nicknamelistr;
+            local_nicknamelistr = Cdr(local_nicknamelistr);
+          }
+          nicknamedlist = Cdr(nicknamedlist);
+        }
         /* execute (UNUSE-PACKAGE (package-use-list pack) pack) : */
         unuse_package(ThePackage(*pack_)->pack_use_list,*pack_);
         /* apply delete_package_aux to the symbols present in pack:  */
@@ -3127,4 +3163,166 @@ global maygc void init_packages (void) {
   #include "constpack.c"
  #undef LISPPACK
   nreverse(O(all_packages));
+}
+
+/* Package-local nicknames */
+
+/* (EXT:PACKAGE-LOCAL-NICKNAMES package) */
+LISPFUNN(package_local_nicknames,1) {
+  var object pack = test_package_arg(popSTACK()); /* argument as package */
+  WITH_LISP_MUTEX_LOCK(0,false,&ThePackage(pack)->pack_mutex, {
+    /* copy pack_local_nicknames for safety reasons */
+    VALUES1(copy_list(ThePackage(pack)->pack_local_nicknames));
+  });
+}
+
+local maygc object package_locally_nicknamed_by_list (object pack) {
+  var object packlist = NIL;
+  WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
+    var object packlistr = O(all_packages); /* traverse package-list */
+    var object referencing_pack;
+    while (consp(packlistr)) {
+      referencing_pack = Car(packlistr);
+      var object local_nicknamelistr = ThePackage(referencing_pack)->pack_local_nicknames;
+      while (consp(local_nicknamelistr)) {
+        var object referenced_pack = Cdr(Car(local_nicknamelistr));
+        if (ThePackage(referenced_pack) == ThePackage(pack)) {
+          var object new_cons = allocate_cons();
+          Car(new_cons) = referencing_pack;
+          Cdr(new_cons) = packlist;
+          packlist = new_cons;
+        }
+        local_nicknamelistr = Cdr(local_nicknamelistr);
+      }
+      packlistr = Cdr(packlistr); /* next package */
+    }
+  });
+  return packlist;
+}
+
+/* (EXT:PACKAGE-LOCALLY-NICKNAMED-BY-LIST package) */
+LISPFUNN(package_locally_nicknamed_by_list,1) {
+  var object pack = test_package_arg(popSTACK()); /* argument as package */
+  VALUES1(package_locally_nicknamed_by_list(pack));
+}
+
+local maygc void cerror_invalid_nickname (object nickname, object pack, object new_pack) {
+  pushSTACK(NIL);               /* 6 continue-format-string */
+  pushSTACK(S(package_error));  /* 5 error type */
+  pushSTACK(S(Kpackage));       /* 4 :PACKAGE */
+  pushSTACK(pack);              /* 3 PACKAGE-ERROR slot PACKAGE */
+  pushSTACK(NIL);               /* 2 error-format-string */
+  pushSTACK(nickname);          /* 1 */
+  pushSTACK(ThePackage(new_pack)->pack_name); /* 0 */
+  /* CLSTEXT "can trigger GC", so it cannot be called until
+     all the arguments have been already pushed on the STACK */
+  STACK_2 = CLSTEXT("Use it as a local nickname anyways."); /* continue-format-string */
+  STACK_6 = CLSTEXT("Attempt to use ~A as a package local nickname (for ~A)"); /* error-format-string */
+  funcall(L(cerror_of_type),7);
+}
+
+local maygc void cerror_already_local_nickname (object nickname, object pack, object new_pack, object existing_pack) {
+  pushSTACK(NIL);               /* 8 continue-format-string */
+  pushSTACK(S(package_error));  /* 7 error type */
+  pushSTACK(S(Kpackage));       /* 6 :PACKAGE */
+  pushSTACK(pack);              /* 5 PACKAGE-ERROR slot PACKAGE */
+  pushSTACK(NIL);               /* 4 error-format-string */
+  pushSTACK(nickname);          /* 3 */
+  pushSTACK(ThePackage(new_pack)->pack_name);      /* 2 */
+  pushSTACK(ThePackage(pack)->pack_name);          /* 1 */
+  pushSTACK(ThePackage(existing_pack)->pack_name); /* 0 */
+  /* CLSTEXT "can trigger GC", so it cannot be called until
+     all the arguments have been already pushed on the STACK */
+  STACK_8 = CLSTEXT("Change local nickname ~A to ~S"); /* continue-format-string */
+  STACK_4 = CLSTEXT("Cannot add ~A as local nickname for ~A in ~A: already nickname for ~A"); /* error-format-string */
+  funcall(L(cerror_of_type),9);
+}
+
+local object remove_package_local_nickname (object nickname, object pack) {
+  var object removedp = NIL;
+  WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
+    var object local_nicknamelistr = ThePackage(pack)->pack_local_nicknames;
+    var object prev = NIL;
+    while (consp(local_nicknamelistr)) {
+      var object nickname_mapping = Car(local_nicknamelistr);
+      if (string_eq(Car(nickname_mapping),nickname)) {
+        removedp = T;
+        if (nullp(prev))
+          ThePackage(pack)->pack_local_nicknames = Cdr(ThePackage(pack)->pack_local_nicknames);
+        else
+          Cdr(prev) = Cdr(local_nicknamelistr);
+      }
+      prev = local_nicknamelistr;
+      local_nicknamelistr = Cdr(local_nicknamelistr);
+    }
+  });
+  return removedp;
+}
+
+/* (EXT:ADD-PACKAGE-LOCAL-NICKNAME new-nickname target-package &optional package) */
+LISPFUN(add_package_local_nickname,seclass_default,2,1,norest,nokey,0,NIL) {
+  test_optional_package_arg();
+  var object pack = popSTACK();
+  var object target_pack = test_package_arg(popSTACK());
+  var object nickname = test_stringsymchar_arg(popSTACK(),false);
+  WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
+    if (string_eq(nickname,ThePackage(pack)->pack_name)) {
+      cerror_invalid_nickname(nickname, pack, target_pack);
+    }
+    var object nicknamelistr = ThePackage(pack)->pack_nicknames;
+    while (consp(nicknamelistr)) {
+      if (string_eq(nickname,Car(nicknamelistr))) {
+        cerror_invalid_nickname(nickname, pack, target_pack);
+      }
+      nicknamelistr = Cdr(nicknamelistr);
+    }
+    bool already_exists = false;
+    var object local_nicknamelistr = ThePackage(pack)->pack_local_nicknames;
+    while (consp(local_nicknamelistr)) {
+      var object existing_mapping = Car(local_nicknamelistr);
+      if (string_eq(Car(existing_mapping),nickname)) {
+        if (eq(Cdr(existing_mapping),target_pack)) {
+          already_exists = true;
+        } else {
+          cerror_already_local_nickname(nickname, pack, target_pack, Cdr(existing_mapping));
+          remove_package_local_nickname(nickname, pack);
+        }
+      }
+      local_nicknamelistr = Cdr(local_nicknamelistr);
+    }
+    if (!already_exists) {
+      var object new_mapping = allocate_cons();
+      Car(new_mapping) = nickname;
+      Cdr(new_mapping) = target_pack;
+      var object acons = allocate_cons();
+      Car(acons) = new_mapping;
+      Cdr(acons) = ThePackage(pack)->pack_local_nicknames;
+      ThePackage(pack)->pack_local_nicknames = acons;
+    }
+  });
+  VALUES1(pack);
+}
+
+/* (EXT:REMOVE-PACKAGE-LOCAL-NICKNAME old-nickname &optional package) */
+LISPFUN(remove_package_local_nickname,seclass_default,1,1,norest,nokey,0,NIL) {
+  test_optional_package_arg();
+  var object pack = popSTACK();
+  var object nickname = test_stringsymchar_arg(popSTACK(),false);
+  VALUES1(remove_package_local_nickname(nickname, pack));
+}
+
+maygc object package_local_nickname_for (object pack, object in_pack) {
+  var object nickname = NIL;
+  WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
+    var object local_nicknamelistr = ThePackage(in_pack)->pack_local_nicknames;
+    while (consp(local_nicknamelistr)) {
+      var object mapping = Car(local_nicknamelistr);
+      if (eq(pack,Cdr(mapping))) {
+        nickname = Car(mapping);
+        break;
+      }
+      local_nicknamelistr = Cdr(local_nicknamelistr);
+    }
+  });
+  return nickname;
 }

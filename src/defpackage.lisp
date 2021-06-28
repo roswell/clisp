@@ -39,6 +39,7 @@
       (let ((size nil) ; :SIZE has been supplied
             (documentation nil) ; :DOCUMENTATION string
             (nickname-list '()) ; list of nicknames
+            (local-nickname-list '()) ; list of package-local nicknames
             (shadow-list '()) ; list of symbol names to shadow
             (shadowing-list '()) ; list of pairs (symbol-name . package-name) for shadowing-import
             (use-list '()) ; list of package-names for use-package
@@ -89,6 +90,9 @@
                   (:NICKNAMES
                    (dolist (name (rest option))
                      (push (string name) nickname-list)))
+                  (:LOCAL-NICKNAMES
+                   (dolist (nickname-mapping (rest option))
+                     (push nickname-mapping local-nickname-list)))
                   (:SHADOW
                    (dolist (name (rest option))
                      (setq name (funcall to-string name))
@@ -149,6 +153,7 @@
           (mapc #'record-symname export-list))
         ;; Reverse lists and apply default values:
         (setq nickname-list (nreverse nickname-list))
+        (setq local-nickname-list (nreverse local-nickname-list))
         (setq shadow-list (nreverse shadow-list))
         (setq shadowing-list (nreverse shadowing-list))
         (setq use-list (if use-default (list use-default) (nreverse use-list)))
@@ -199,6 +204,14 @@
            ,@(if documentation
                `((SETF (SYS::PACKAGE-DOCUMENTATION (FIND-PACKAGE ,packname))
                        ,documentation)))
+           ;; Package-local nicknames
+           (dolist (mapping (ext:package-local-nicknames ,packname))
+             (ext:remove-package-local-nickname (car mapping) ,packname))
+           ,@(mapcar #'(lambda (pair)
+                         `(ext:add-package-local-nickname ,(car pair)
+                                                          ,(cadr pair)
+                                                          ,packname))
+                     local-nickname-list)
            (FIND-PACKAGE ,packname))))))
 
 ; Hilfsfunktionen:

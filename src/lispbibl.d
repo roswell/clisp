@@ -8605,6 +8605,8 @@ typedef struct {
   gcv_object_t pack_used_by_list      _attribute_aligned_object_;
   gcv_object_t pack_name              _attribute_aligned_object_;
   gcv_object_t pack_nicknames         _attribute_aligned_object_;
+  /* Nicknames are stored as an alist of (String . Package) */
+  gcv_object_t pack_local_nicknames   _attribute_aligned_object_;
   gcv_object_t pack_docstring         _attribute_aligned_object_;
   gcv_object_t pack_shortest_name     _attribute_aligned_object_;
 #ifdef MULTITHREAD
@@ -18220,6 +18222,13 @@ extern maygc void symbol_value_check_lock (object caller, object symbol);
  can trigger GC */
 extern void init_packages (void);
 /* is used by SPVW */
+
+/* UP: gets a package-local nickname for a package in another package
+ package_local_nickname_for(pack,in_pack)
+ > pack: Package
+ > in_pack: Package
+ < result: nickname or NIL */
+extern maygc object package_local_nickname_for (object pack, object in_pack);
 
 /* ##################### PATHBIBL for PATHNAME.D ########################### */
 
