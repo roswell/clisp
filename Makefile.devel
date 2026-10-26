@@ -467,10 +467,13 @@ ANSITESTS_REPO = https://gitlab.common-lisp.net/ansi-test/ansi-test.git
 
 update-ansi-tests:
 	if test -d ansi-tests; then \
-	  cd ansi-tests && \
-	  git pull; \
+	  cd ansi-tests \
+	  && git pull; \
 	else \
-	  git clone $(ANSITESTS_REPO) ansi-tests; \
+	  git clone $(ANSITESTS_REPO) ansi-tests \
+	  && (cd ansi-tests \
+	      && git am -3 < ../ansi-tests-0001.patch \
+	      && git am -3 < ../ansi-tests-0002.patch); \
 	fi
 
 # ------------------------------------------------------------------------------

@@ -1,0 +1,25 @@
+From f7110508035556a524a2f44d25f5bb0949682e2b Mon Sep 17 00:00:00 2001
+From: Bruno Haible <bruno@clisp.org>
+Date: Mon, 26 Oct 2026 17:38:11 +0100
+Subject: [PATCH 1/2] Update .gitignore for CLISP.
+
+* .gitignore: Ignore *.lib files.
+---
+ .gitignore | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.gitignore b/.gitignore
+index 37bab60..1ae88db 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -9,6 +9,7 @@
+ *.bc
+ *.tem
+ sandbox/
++/auxiliary/*.lib
+ ansi-aux-macros.fas
+ ansi-aux.fas
+ array-aux.fas
+-- 
+2.53.0
+

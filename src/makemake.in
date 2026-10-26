@@ -3157,10 +3157,12 @@ if test -d "${SRCTOPDIR}ansi-tests"; then
 # 2. 'svn' does not work on machines that are not connected to the internet.
 # 3. Makefile.devel does not work if 'make' is not GNU make.
 # echotab "cd ${SRCTOPDIR} && \$(MAKE) -f Makefile.devel update-ansi-tests"
-  echotab "-mkdir ${ANSITESTSDIR}"
-  for f in Makefile '*.lsp'; do
-    echotab "cd ${ANSITESTSDIR} && \$(LN_S) ${PARENT_SRCTOPDIR}ansi-tests/${f} ."
-  done
+  echotab "for d in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type d\`; do mkdir -p \$\$d; done"
+  case "$SRCTOPDIR" in
+    /*) echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type f -name '*.lsp'\`; do \$(LN_S) ${SRCTOPDIR}\$\$f \$\$f; done" ;;
+    *)  echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type f -name '*.lsp'\`; do d=\`echo \"\$\$f\" | sed -e 's,/[^/]*\$\$,,'\`; u=\`echo \"\$\$d\" | sed -e 's,[^/][^/]*,..,g'\`; \$(LN_S) \$\$u/${SRCTOPDIR}\$\$f \$\$f; done" ;;
+  esac
+  echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR}/sandbox -type f -name '*.txt'\`; do cp -p ${SRCTOPDIR}\$\$f \$\$f; done"
   echotab "cd ${ANSITESTSDIR} && \$(LN_S) ${PARENT_SRCTOPDIR}utils/clispload.lisp ."
   echol
 fi

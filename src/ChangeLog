@@ -1,3 +1,16 @@
+2026-10-26  Bruno Haible  <bruno@clisp.org>
+
+	Update the support for running the ansi-tests.
+	Reported by David Cooper <david.cooper@genworks.com>.
+	* ansi-tests-0001.patch: New file.
+	* ansi-tests-0002.patch: New file.
+	* Makefile.devel (update-ansi-tests): Apply these patches after
+	'git clone'.
+	* makemake.in (ansi-tests): Update for changed structure of the
+	ansi-tests repository.
+	* utils/clispload.lisp: Use DELETE-DIRECTORY instead of the removed
+	function DELETE-DIR.
+
 2026-10-09  Bruno Haible  <bruno@clisp.org>
 
 	Mark Windows/i386 with MSVC as a supported platform.
