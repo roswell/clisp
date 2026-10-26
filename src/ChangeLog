@@ -1,5 +1,12 @@
 2026-10-26  Bruno Haible  <bruno@clisp.org>
 
+	Fix crash of FILE-LENGTH on BROADCAST-STREAMs (regression 2008-10-29).
+	Reported by David Cooper <david.cooper@genworks.com>.
+	* stream.d (check_open_file_stream): Fix description. Simplify.
+	(FILE-LENGTH): Store the result of check_open_file_stream in STACK_0.
+
+2026-10-26  Bruno Haible  <bruno@clisp.org>
+
 	Update the support for running the ansi-tests.
 	Reported by David Cooper <david.cooper@genworks.com>.
 	* ansi-tests-0001.patch: New file.

@@ -17288,19 +17288,21 @@ LISPFUN(write_float,seclass_default,3,1,norest,nokey,0,NIL) {
 }
 
 /* UP: Checks, if an Argument is an open File-Stream.
- check_open_file_stream(obj);
+ check_open_file_stream(obj,permissive_p);
  > obj: Argument
  > permissive_p: return nullobj instead of signaling an error
- < result: open File-Stream (or maybe nullobj if permissive_p was true) */
+ < result: open File-Stream (possibly a corrected stream in case obj was invalid),
+           or nullobj for an empty broadcast-stream,
+           or nullobj if permissive_p was true and the stream was invalid */
 local object check_open_file_stream (object obj, bool permissive_p) {
  check_open_file_stream_restart:
   obj = resolve_synonym_stream(obj);
   if (streamp(obj) && TheStream(obj)->strmtype == strmtype_broad) {
     var object last_stream = broadcast_stream_last(obj);
     if (eq(last_stream,nullobj)) {
-      if (permissive_p) return nullobj;
-      else return last_stream;
-    } else obj = last_stream;
+      return nullobj;
+    }
+    obj = last_stream;
     goto check_open_file_stream_restart;
   }
   if (!builtin_stream_p(obj)) /* Stream ? */
@@ -17558,16 +17560,17 @@ LISPFUN(file_position,seclass_default,1,1,norest,nokey,0,NIL)
 
 LISPFUNNR(file_length,1)
 { /* (FILE-LENGTH file-stream), CLTL p. 425 */
-  var object stream = STACK_0;
-  stream = check_open_file_stream(stream,false); /* check stream */
-  if (eq(stream,nullobj)) { /* empty BROADCAST-STREAM */
+  var object stream = check_open_file_stream(STACK_0,false); /* check stream */
+  if (eq(stream,nullobj)) {
+    /* empty BROADCAST-STREAM */
     /* http://www.ai.mit.edu/projects/iiip/doc/CommonLISP/HyperSpec/Body/syscla_broadcast-stream.html */
     skipSTACK(1);
     VALUES1(Fixnum_0); return;
   }
+  STACK_0 = stream;
   if (!ChannelStream_buffered(stream)) {
-    off_t len;
-    Handle fd=ChannelStream_ihandle(stream);
+    var off_t len;
+    Handle fd = ChannelStream_ihandle(stream);
     begin_blocking_system_call();
     len = handle_length(&STACK_0,fd);
     end_blocking_system_call();
@@ -17590,7 +17593,8 @@ LISPFUNN(file_string_length,2)
   var object stream = check_open_file_stream(STACK_1,false); /* check stream */
   var object obj = STACK_0;
   skipSTACK(2);
-  if (eq(stream,nullobj)) { /* empty BROADCAST-STREAM */
+  if (eq(stream,nullobj)) {
+    /* empty BROADCAST-STREAM */
     /* http://www.ai.mit.edu/projects/iiip/doc/CommonLISP/HyperSpec/Body/syscla_broadcast-stream.html */
     VALUES1(Fixnum_1); return;
   }
