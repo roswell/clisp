@@ -1,5 +1,13 @@
 2026-10-26  Bruno Haible  <bruno@clisp.org>
 
+	syscalls: Fix issues with BROADCAST-STREAMs.
+	* stream.d (open_file_stream_handle): Fix description.
+	* lispbibl.d (open_file_stream_handle): Likewise.
+	* modules/syscalls/calls.c (POSIX:FILE-STAT, POSIX:STAT-VFS): Use the
+	result of check_open_file_stream instead of the original argument.
+
+2026-10-26  Bruno Haible  <bruno@clisp.org>
+
 	Fix crash of FILE-LENGTH on BROADCAST-STREAMs (regression 2008-10-29).
 	Reported by David Cooper <david.cooper@genworks.com>.
 	* stream.d (check_open_file_stream): Fix description. Simplify.

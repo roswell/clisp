@@ -18137,7 +18137,7 @@ extern void init_packages (void);
  > s: file stream (open or closed) - no type check is done!
  < truename of the file associated with the stream
  can trigger GC
- for syscall module */
+ for syscalls module */
 extern maygc object file_stream_truename (object s);
 %% exportF(object,file_stream_truename,(object s));
 
@@ -18733,9 +18733,10 @@ extern maygc Handle stream_lend_handle (gcv_object_t *stream_, bool inputp, int 
  > stream: open Lisp file stream
  < fd: OS file handle
  > permissive_p: return nullobj instead of signaling an error
- < result: either stream, or a corrected stream in case stream was invalid
+ < result: open File-Stream (possibly a corrected stream in case stream was invalid),
+           or nullobj for an empty broadcast-stream,
            or nullobj if permissive_p was true and the stream was invalid
- for syscall module
+ for syscalls module
  can trigger GC */
 extern maygc object open_file_stream_handle (object stream, Handle *fd, bool permissive_p);
 %% exportF(object,open_file_stream_handle,(object stream, Handle *fd, bool permissive_p));

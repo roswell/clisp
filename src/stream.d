@@ -17327,12 +17327,12 @@ local object check_open_file_stream (object obj, bool permissive_p) {
  > stream: open Lisp file stream
  < fd: OS file handle
  > permissive_p: return nullobj instead of signaling an error
- < result: either stream, or a corrected stream in case stream was invalid
+ < result: open File-Stream (possibly a corrected stream in case stream was invalid),
+           or nullobj for an empty broadcast-stream,
            or nullobj if permissive_p was true and the stream was invalid
- for syscall module
+ for syscalls module
  can trigger GC */
-modexp maygc object open_file_stream_handle
-(object stream, Handle *fd, bool permissive_p) {
+modexp maygc object open_file_stream_handle (object stream, Handle *fd, bool permissive_p) {
   stream = check_open_file_stream(stream,permissive_p);
   if (!eq(stream,nullobj))
     *fd = ChannelStream_ihandle(stream);

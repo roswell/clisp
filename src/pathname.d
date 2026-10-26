@@ -914,7 +914,7 @@ local _Noreturn void error_file_stream_unnamed (object stream) {
 /* Ensure that IF the file stream has a name, THEN it also has truename
  > file-stream (open or closed) - no type check is done!
  < truename of the file associated with the stream
- for syscall module */
+ for syscalls module */
 modexp maygc object file_stream_truename (object stream) {
   test_file_stream_named(stream);
   if (nullp(TheStream(stream)->strm_file_truename)) {

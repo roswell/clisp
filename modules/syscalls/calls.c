@@ -1946,6 +1946,7 @@ DEFUN(POSIX::FILE-STAT, file &optional linkp)
         OS_file_error(value1);
       file = value1;
     } else {                    /* file is a stream, fd is valid */
+      STACK_1 = file;
 #    if defined(WIN32_NATIVE)
       /* woe32 does have fstat(), but it does not accept a file handle,
          only an integer of an unknown nature.
@@ -1977,8 +1978,8 @@ DEFUN(POSIX::FILE-STAT, file &optional linkp)
       begin_blocking_system_call();
       error_p = (fstat(fd,&buf) < 0);
       end_blocking_system_call();
-      if (error_p) error_OS_stream(STACK_1);
-      file = eq(nullobj,STACK_1) ? fixnum(fd) : (object)STACK_1; /* restore */
+      file = STACK_1;
+      if (error_p) error_OS_stream(file);
 #    endif
     }
   }
@@ -2381,13 +2382,12 @@ DEFUN(POSIX::STAT-VFS, file)
     Handle fd;
     file = open_file_stream_handle(file,&fd,true);
     if (!eq(nullobj,file)) { /* an open stream */
-      pushSTACK(file);
+      STACK_0 = file;
       begin_blocking_system_call();
       error_p = (fstatvfs(fd,&buf) < 0);
       end_blocking_system_call();
-      file = popSTACK();
-      if (error_p) error_OS_stream(STACK_0);
-      STACK_0 = file;
+      file = STACK_0;
+      if (error_p) error_OS_stream(file);
     } else
 #endif
       if (ON_PNAMESTRING(STACK_0,statvfs,&buf))
