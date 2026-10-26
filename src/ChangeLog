@@ -1,5 +1,12 @@
 2026-10-26  Bruno Haible  <bruno@clisp.org>
 
+	MSVC port: Use 'rc' instead of 'windres'.
+	* INSTALL.windows (MSVC): Remove requirement to install mingw tools.
+	Instead, show how to set the PATH.
+	* makemake.in (clispres.${OBJEXT}): On MSVC, use 'rc' and 'cvtres'.
+
+2026-10-26  Bruno Haible  <bruno@clisp.org>
+
 	syscalls: Fix issues with BROADCAST-STREAMs.
 	* stream.d (open_file_stream_handle): Fix description.
 	* lispbibl.d (open_file_stream_handle): Likewise.
