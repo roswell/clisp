@@ -3774,7 +3774,7 @@ Long-Float, Ratio and Complex (only if SPVW_MIXED).
     && !(defined(UNIX_LINUX) && defined(M68K) && (defined(HEAPCODES) || defined(ONE_FREE_BIT_HEAPCODES))) \
     && !(defined(UNIX_HAIKU) && defined(I80386))                               \
     && !defined(UNIX_CYGWIN)                                                   \
-    && !(defined(WIN32_NATIVE) && defined(I80386))                             \
+    && !(defined(WIN32_NATIVE) && defined(I80386) && (defined(HEAPCODES) || !defined(MICROSOFT))) \
     && !defined(NO_TRIVIALMAP)
   /* mmap() allows for a more flexible way of memory management than malloc().
      It's not really memory-mapping, but a more comfortable way to manage two
@@ -3792,7 +3792,9 @@ Long-Float, Ratio and Complex (only if SPVW_MIXED).
      Also, it does not work well on Cygwin, where it sometimes produces messages
      "Cannot map memory to address ...".
      Also, it does not work well on 32-bit native Windows, where it sometimes
-     produces messages "Cannot reserve address range ...".*/
+     produces messages "Cannot reserve address range ...". But on 32-bit
+     native Windows with MSVC, we need to force TYPECODES and therefore also
+     need to force TRIVIALMAP_MEMORY. */
   #ifndef TRIVIALMAP_MEMORY
     #define TRIVIALMAP_MEMORY
   #endif
@@ -3815,9 +3817,13 @@ Long-Float, Ratio and Complex (only if SPVW_MIXED).
          - Except that on ARM in -mthumb mode HEAPCODES produces the error
            "PSEUDOCODE_ALIGNMENT is not fulfilled". (-falign-functions has no
            effect on ARM.)
+         - Similarly, on WIN32_NATIVE with the MSVC compiler, C_CODE_ALIGNMENT
+           is 1 and thus HEAPCODES produces the error "PSEUDOCODE_ALIGNMENT is
+           not fulfilled".
          - On Linux/m68k (with gcc-5.4), nearly all HEAPCODES variants crash.
          Choose HEAPCODES whenever it will work. */
       #if (defined(ARM) && defined(__thumb__)) \
+          || (defined(WIN32_NATIVE) && defined(MICROSOFT)) \
           || (defined(UNIX_LINUX) && defined(M68K))
         /* On these platforms, HEAPCODES does not work. */
         #define TYPECODES
@@ -5336,6 +5342,8 @@ typedef signed_int_with_n_bits(intVsize)  sintV;
     && /* On Haiku, it causes a 20% slowdown in the benchmarks, instead of    \
           a speedup. */                                                       \
        !defined(UNIX_HAIKU)                                                   \
+    && /* It does not work in 32-bit native Windows with MSVC. */             \
+       !(defined(WIN32_NATIVE) && defined(I80386) && defined(MICROSOFT))      \
     && /* Generational GC is tricky stuff. Turn it off at safety 3. */        \
        (SAFETY < 3)                                                           \
     && /* The user can also turn off generational GC explicitly. */           \
@@ -12564,7 +12572,7 @@ extern maygc object allocate_bit_vector (uintB atype, uintL len);
  < object obj: simple-8bit-vector with dynamic extent
    (may or may not be heap-allocated, therefore not GC-invariant)
  can trigger GC */
-#if defined(SPVW_PURE) || defined(NO_ADDRESS_SPACE_ASSUMPTIONS) || ((((STACK_ADDRESS_RANGE << addr_shift) >> garcol_bit_o) & 1) != 0)
+#if defined(SPVW_PURE) || defined(NO_ADDRESS_SPACE_ASSUMPTIONS) || ((((STACK_ADDRESS_RANGE << addr_shift) >> garcol_bit_o) & 1) != 0) || (defined(WIN32_NATIVE) && defined(I80386) && defined(MICROSOFT))
   /* No way to allocate a Lisp object on the stack. */
   #define DYNAMIC_8BIT_VECTOR(objvar,len)  \
     var uintL objvar##_len = (len);               \
@@ -12704,7 +12712,7 @@ extern maygc object allocate_imm_s32string (uintL len);
  < object obj: normal-simple-string with dynamic extent
    (may or may not be heap-allocated, therefore not GC-invariant)
  can trigger GC */
-#if defined(SPVW_PURE) || defined(NO_ADDRESS_SPACE_ASSUMPTIONS) || ((((STACK_ADDRESS_RANGE << addr_shift) >> garcol_bit_o) & 1) != 0)
+#if defined(SPVW_PURE) || defined(NO_ADDRESS_SPACE_ASSUMPTIONS) || ((((STACK_ADDRESS_RANGE << addr_shift) >> garcol_bit_o) & 1) != 0) || (defined(WIN32_NATIVE) && defined(I80386) && defined(MICROSOFT))
   /* No way to allocate a Lisp object on the stack. */
   #define DYNAMIC_STRING(objvar,len)  \
     var uintL objvar##_len = (len);           \
