@@ -1732,6 +1732,7 @@ local maygc object make_random_state (object r)
     begin_system_call();
     var unsigned int pid = (unsigned int)(getpid());
     seed_hi = (
+      (unsigned int)
      #if defined(HAVE_RAND_R)
       rand_r(&pid)
      #else

@@ -19141,7 +19141,7 @@ extern maygc object L_to_I (sint32 val);
  can trigger GC */
 #if (intVsize>32)
   #define L2_to_I(val_hi,val_lo)  \
-    Q_to_I(((sint64)(sint32)(val_hi)<<32)|(sint64)(uint32)(val_lo))
+    Q_to_I(((uint64)(sint64)(sint32)(val_hi)<<32)|(sint64)(uint32)(val_lo))
 #else
   extern maygc object L2_to_I (sint32 val_hi, uint32 val_lo);
 #endif

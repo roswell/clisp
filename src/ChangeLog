@@ -1,5 +1,12 @@
 2026-10-27  Bruno Haible  <bruno@clisp.org>
 
+	Fix build with clang's undefined-behaviour sanitizer, part 3.
+	* lispbibl.d (L2_to_I): Cast from sint64 to uint64 before shifting left.
+	* lisparit.d (make_random_state): Cast the value of rand() to
+	'unsigned int' before shifting it left.
+
+2026-10-27  Bruno Haible  <bruno@clisp.org>
+
 	MSVC port: Avoid PSEUDOCODE_ALIGNMENT error in 32-bit mode.
 	* lispbibl.d (TRIVIALMAP_MEMORY): Define on 32-bit native Windows with
 	MSVC.
