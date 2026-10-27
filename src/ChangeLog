@@ -1,3 +1,9 @@
+2026-10-27  Bruno Haible  <bruno@clisp.org>
+
+	Fix a #if condition.
+	* constobj_tl.d: Test CAN_ALLOCATE_8BIT_VECTORS_ON_C_STACK,
+	CAN_ALLOCATE_STRINGS_ON_C_STACK separately.
+
 2026-10-26  Bruno Haible  <bruno@clisp.org>
 
 	MSVC port: Use 'rc' instead of 'windres'.
