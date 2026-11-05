@@ -1,3 +1,9 @@
+2026-11-05  Bruno Haible  <bruno@clisp.org>
+
+	Fix time conversion on native Windows.
+	See <https://lists.gnu.org/archive/html/bug-gnulib/2026-11/msg00036.html>.
+	* time.d (convert_time): Use a different sequence of Windows API calls.
+
 2026-10-27  Bruno Haible  <bruno@clisp.org>
 
 	Fix build with clang's undefined-behaviour sanitizer, part 3.

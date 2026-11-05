@@ -1,6 +1,6 @@
 /*
  * Time measuring functions for CLISP
- * Bruno Haible 1990-2005, 2024
+ * Bruno Haible 1990-2005, 2024-2026
  * Sam Steingold 1998-2011
  * German comments and names translated into English: Reini Urban 2007-12
  */
@@ -360,16 +360,19 @@ global void convert_time (const time_t* time, decoded_time_t* timepoint)
    timepoint.day, timepoint.month, timepoint.year. All as fixnums */
 global void convert_time (const FILETIME* time, decoded_time_t* timepoint)
 {
-  var FILETIME ltime;
-  var SYSTEMTIME ltm;
-  if (!FileTimeToLocalFileTime(time,&ltime)) { OS_error(); }
-  if (!FileTimeToSystemTime(&ltime,&ltm)) { OS_error(); }
-  timepoint->seconds = fixnum(ltm.wSecond);
-  timepoint->minutes = fixnum(ltm.wMinute);
-  timepoint->hours   = fixnum(ltm.wHour);
-  timepoint->day     = fixnum(ltm.wDay);
-  timepoint->month   = fixnum(ltm.wMonth);
-  timepoint->year    = fixnum(ltm.wYear);
+  /* Convert like
+     <https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-filetimetolocalfiletime>
+     suggests. */
+  var SYSTEMTIME systime;
+  var SYSTEMTIME lsystime;
+  if (!FileTimeToSystemTime(time,&systime)) { OS_error(); }
+  if (!SystemTimeToTzSpecificLocalTime(NULL,&systime,&lsystime)) { OS_error(); }
+  timepoint->seconds = fixnum(lsystime.wSecond);
+  timepoint->minutes = fixnum(lsystime.wMinute);
+  timepoint->hours   = fixnum(lsystime.wHour);
+  timepoint->day     = fixnum(lsystime.wDay);
+  timepoint->month   = fixnum(lsystime.wMonth);
+  timepoint->year    = fixnum(lsystime.wYear);
 }
 #endif
 

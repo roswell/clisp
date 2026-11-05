@@ -310,6 +310,7 @@ extern int handle_isatty (HANDLE handle); /* see win32aux.d */
    extern struct tm * gmtime (time_t*);
    extern BOOL FileTimeToLocalFileTime (const FILETIME* FileTime, FILETIME* LocalFileTime);
    extern BOOL FileTimeToSystemTime (const FILETIME* LocalFileTime, SYSTEMTIME* LocalSystemTime);
+   extern BOOL SystemTimeToTzSpecificLocalTime (const TIME_ZONE_INFORMATION* tz, const SYSTEMTIME* UTCSystemTime, SYSTEMTIME* LocalSystemTime);
  used by time.d */
 #include "tzsanitize.h"
 
