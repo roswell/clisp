@@ -1,3 +1,12 @@
+2026-11-13  Bruno Haible  <bruno@clisp.org>
+
+	Support catching stack overflows on Windows/x86_64 and Windows/arm64.
+	* configure (libsigsegv_url): Set to libsigsegv-2.16.
+	* lispbibl.d: Include <sigsegv.h> before defining longjmpl.
+	(longjmpl): When libsigsegv-2.16 is in use, use stackoverflow_longjmp
+	instead of longjmp.
+	* INSTALL.windows: Remove the restriction regarding libsigsegv.
+
 2026-11-05  Bruno Haible  <bruno@clisp.org>
 
 	Fix time conversion on native Windows.

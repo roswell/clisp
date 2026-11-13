@@ -6,17 +6,11 @@ There are three ways to create binaries of this package for Microsoft Windows:
 3) Binaries for the Cygwin environment.
 
 Note: For the moment, the status of the target platforms is as follows:
-  - mingw, 32-bit: supported.
-  - mingw, 64-bit: supported.
-  - MSVC, 32-bit: supported, with restrictions:
+  - mingw, 32-bit or 64-bit: supported.
+  - MSVC, 32-bit or 64-bit: supported, with restrictions:
       - libffcall must have been built with --disable-shared.
       - libintl (GNU gettext) must have been built with --disable-shared (?).
-  - MSVC, 64-bit: supported, with restrictions:
-      - libffcall must have been built with --disable-shared.
-      - libintl (GNU gettext) must have been built with --disable-shared (?).
-      - libsigsegv is not supported.
-  - Cygwin, 32-bit: supported.
-  - Cygwin, 64-bit: supported.
+  - Cygwin, 32-bit or 64-bit: supported.
 
 ===============================================================================
 1) Native binaries, built using the mingw tool chain.

@@ -1358,6 +1358,15 @@ typedef signed int  signean;
   (ceiling(a_from_round,b_from_round)*(b_from_round))
 %% export_def(round_up(a_from_round,b_from_round));
 
+#if (defined(UNIX) || defined(WIN32_NATIVE)) && defined(HAVE_LIBSIGSEGV)
+  /* Support for fault handling. */
+  #include <sigsegv.h>
+  #if defined(UNIX_CYGWIN)
+    /* <sigsegv.h> includes <windows.h> */
+    #undef WIN32
+  #endif
+#endif
+
 /* non-local exits */
 #include <setjmp.h>
 %% #ifdef export_unwind_protect_macros
@@ -1378,17 +1387,26 @@ typedef signed int  signean;
 #endif
 /* A longjmp() can only be called using an `int'.
  But if we want to use a `sintP' and if sizeof(int) < sizeof(sintP),
- we'll need a global variable: */
+ we'll need a global variable.
+ Additionally, we want to use it in SP_ueber, after a stack overflow. */
 #if (int_bitsize == pointer_bitsize)
   #define setjmpl(x)  setjmp(x)
-  #define longjmpl(x,y)  longjmp(x,y)
+  #if defined(HAVE_LIBSIGSEGV) && LIBSIGSEGV_VERSION >= 0x0210
+    #define longjmpl(x,y)  stackoverflow_longjmp(x,y)
+  #else
+    #define longjmpl(x,y)  longjmp(x,y)
+  #endif
 #else /* (int_bitsize < pointer_bitsize) */
   #ifndef MULTITHREAD
     /* MT: following is per thread in MT builds */
     extern intptr_t jmpl_value;
   #endif
   #define setjmpl(x)  (setjmp(x) ? jmpl_value : 0)
-  #define longjmpl(x,y)  (jmpl_value = (y), longjmp(x,1))
+  #if defined(HAVE_LIBSIGSEGV) && LIBSIGSEGV_VERSION >= 0x0210
+    #define longjmpl(x,y)  (jmpl_value = (y), stackoverflow_longjmp(x,1))
+  #else
+    #define longjmpl(x,y)  (jmpl_value = (y), longjmp(x,1))
+  #endif
 #endif
 %% #ifdef export_unwind_protect_macros
 %%   #if (int_bitsize < pointer_bitsize) && !defined(MULTITHREAD)
@@ -1913,15 +1931,6 @@ typedef enum {
 /* used by EVAL, IO, SPVW, STREAM */
 
 #endif /* UNIX || WIN32 */
-
-#if (defined(UNIX) || defined(WIN32_NATIVE)) && defined(HAVE_LIBSIGSEGV)
-  /* Support for fault handling. */
-  #include <sigsegv.h>
-  #if defined(UNIX_CYGWIN)
-    /* <sigsegv.h> includes <windows.h> */
-    #undef WIN32
-  #endif
-#endif
 
 /* Ignoring of a value (instead of assigning it to a variable)
  unused ...
