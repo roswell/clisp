@@ -5346,6 +5346,8 @@ typedef signed_int_with_n_bits(intVsize)  sintV;
        !(defined(UNIX_LINUX) && (defined(MIPS) || defined(MIPS64)))           \
     && /* It does not work on Linux/riscv64 so far (Linux bug with PROT_NONE). */\
        !(defined(UNIX_LINUX) && defined(RISCV64))                             \
+    && /* It does not work on FreeBSD 13.2/arm64. */                          \
+       !(defined(UNIX_FREEBSD) && defined(ARM64))                             \
     && /* It does not work on NetBSD 7 (both NetBSD/i386 and NetBSD/sparc). */\
        !defined(UNIX_NETBSD)                                                  \
     && /* It does not work in QEMU user-mode. */                              \

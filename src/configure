@@ -67324,22 +67324,20 @@ else case e in #(
             #include <sys/types.h>
             /* declare malloc() */
             #include <stdlib.h>
-            #ifdef HAVE_UNISTD_H
-             #include <unistd.h>
-            #endif
-            /* declare getpagesize() and mprotect() */
-            #include <sys/mman.h>
-            #ifndef HAVE_GETPAGESIZE
-             #include <sys/param.h>
-             #define getpagesize() PAGESIZE
-            #else
+            /* declare getpagesize() */
+            #include <unistd.h>
+            #ifdef HAVE_GETPAGESIZE
            extern
 #ifdef __cplusplus
 "C"
 #endif
 
             int getpagesize (void);
+            #else
+            #define getpagesize() sysconf(_SC_PAGESIZE)
             #endif
+            /* mprotect() */
+            #include <sys/mman.h>
             char foo;
             int main ()
             {

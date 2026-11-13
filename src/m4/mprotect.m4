@@ -1,5 +1,5 @@
 dnl -*- Autoconf -*-
-dnl Copyright (C) 1993-2009, 2017, 2021 Free Software Foundation, Inc.
+dnl Copyright (C) 1993-2009, 2017-2026 Free Software Foundation, Inc.
 dnl This file is free software, distributed under the terms of the GNU
 dnl General Public License.  As a special exception to the GNU General
 dnl Public License, this file may be distributed as part of a program
@@ -21,18 +21,16 @@ AC_DEFUN([CL_MPROTECT],
             #include <sys/types.h>
             /* declare malloc() */
             #include <stdlib.h>
-            #ifdef HAVE_UNISTD_H
-             #include <unistd.h>
-            #endif
-            /* declare getpagesize() and mprotect() */
-            #include <sys/mman.h>
-            #ifndef HAVE_GETPAGESIZE
-             #include <sys/param.h>
-             #define getpagesize() PAGESIZE
-            #else
+            /* declare getpagesize() */
+            #include <unistd.h>
+            #ifdef HAVE_GETPAGESIZE
            ]AC_LANG_EXTERN[
             int getpagesize (void);
+            #else
+            #define getpagesize() sysconf(_SC_PAGESIZE)
             #endif
+            /* mprotect() */
+            #include <sys/mman.h>
             char foo;
             int main ()
             {
