@@ -1,5 +1,11 @@
 2026-11-13  Bruno Haible  <bruno@clisp.org>
 
+	Update memory mapping on FreeBSD/arm64.
+	* lispbibl.d [UNIX_FREEBSD && ARM64]: Increase
+	MAPPABLE_ADDRESS_RANGE_START. Choose new values for SINGLEMAP_*.
+
+2026-11-13  Bruno Haible  <bruno@clisp.org>
+
 	build: Enable generational GC on modern BSD systems.
 	* m4/mprotect.m4 (CL_MPROTECT): If getpagesize() does not exist, use
 	sysconf(_SC_PAGESIZE) as fallback, not PAGESIZE.
