@@ -4015,7 +4015,7 @@ _ACEOF
   rm -f -r a.out a.exe b.out conftest.$ac_ext conftest.$ac_objext \
     conftest.dSYM conftest1.$ac_ext conftest1.$ac_objext conftest1.dSYM \
     conftest2.$ac_ext conftest2.$ac_objext conftest2.dSYM
-  unset am_i ;;
+  { am_i=; unset am_i;} ;;
 esac
 fi
 { printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: $am_cv_prog_cc_c_o" >&5

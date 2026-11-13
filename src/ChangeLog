@@ -1,5 +1,12 @@
 2026-11-13  Bruno Haible  <bruno@clisp.org>
 
+	build: Switch to automake 1.20.
+	* aclocal.m4, src/configure: Regenerated.
+	* modules/*/configure: Regenerated.
+	* gllib/Makefile.in: Regenerated.
+
+2026-11-13  Bruno Haible  <bruno@clisp.org>
+
 	MSVC port: Avoid PSEUDOCODE_ALIGNMENT error on Windows/arm64.
 	* lispbibl.d [WIN32_NATIVE && ARM64 && MICROSOFT]: Prefer
 	GENERIC64B_HEAPCODES over GENERIC64C_HEAPCODES.
