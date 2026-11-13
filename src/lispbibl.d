@@ -4581,8 +4581,10 @@ Long-Float, Ratio and Complex (only if SPVW_MIXED).
        GENERIC64C_HEAPCODES drops the necessity of an address range hole. */
     #if !(defined(GENERIC64A_HEAPCODES) || defined(GENERIC64B_HEAPCODES) || defined(GENERIC64C_HEAPCODES))
       #if (defined(UNIX_FREEBSD) && defined(ARM64) && defined(__clang__)) \
-          || (defined(UNIX_SUNOS5) && defined(SPARC64) && !defined(GNU))
-        /* On FreeBSD/arm64 with clang and on Solaris/sparc64 with Sun C,
+          || (defined(UNIX_SUNOS5) && defined(SPARC64) && !defined(GNU)) \
+          || (defined(WIN32_NATIVE) && defined(ARM64) && defined(MICROSOFT))
+        /* On FreeBSD/arm64 with clang and on Solaris/sparc64 with Sun C
+           and on Windows/arm64 with MSVC or MSVC-compatible clang,
            GENERIC64C_HEAPCODES leads to "PSEUDOCODE_ALIGNMENT is not fulfilled.",
            but GENERIC64B_HEAPCODES works. So choose that, even if
            NO_ADDRESS_SPACE_ASSUMPTIONS is defined; we wouldn't be able
