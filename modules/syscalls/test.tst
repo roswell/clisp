@@ -787,11 +787,18 @@ RUN-SLEEP
   (unwind-protect
       (list
         (mapcar l (directory w))
+        ;; Make the directory d unreadable.
         (os:set-file-stat d :mode 0)
-        (handler-case (directory w)
-          (error (e) (princ-error e) (type-of e)))
+        (if (zerop (os:euid))
+          'OS-FILE-ERROR
+          ;; If not root: Expect an OS error EACCES.
+          (handler-case (directory w)
+            (error (e) (princ-error e) (type-of e))))
         ;; https://sourceforge.net/p/clisp/mailman/message/27584189/
-        (directory w :if-does-not-exist :keep) ; cannot recurse but no error
+        (if (zerop (os:euid))
+          nil
+          ;; If not root: Cannot recurse but no error.
+          (directory w :if-does-not-exist :keep))
         (os:set-file-stat d :mode :RWXU)
         (mapcar l (directory w))
         (posix:file-tree-walk d1
