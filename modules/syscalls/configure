@@ -7752,12 +7752,6 @@ then :
   printf '%s\n' "#define HAVE_SETHOSTID 1" >>confdefs.h
 
 fi
-ac_fn_c_check_func "$LINENO" "setdomainname" "ac_cv_func_setdomainname"
-if test "x$ac_cv_func_setdomainname" = xyes
-then :
-  printf '%s\n' "#define HAVE_SETDOMAINNAME 1" >>confdefs.h
-
-fi
 ac_fn_c_check_func "$LINENO" "nftw" "ac_cv_func_nftw"
 if test "x$ac_cv_func_nftw" = xyes
 then :
@@ -8038,6 +8032,17 @@ else case e in #(
 esac
 fi
 printf '%s\n' "#define HAVE_DECL_GETDATE_ERR $ac_have_decl" >>confdefs.h
+
+ac_fn_check_decl "$LINENO" "setdomainname" "ac_cv_have_decl_setdomainname" "#include <unistd.h>
+" "$ac_c_undeclared_builtin_options$ac_c_future_darwin_options" "CFLAGS"
+if test "x$ac_cv_have_decl_setdomainname" = xyes
+then :
+  ac_have_decl=1
+else case e in #(
+  e) ac_have_decl=0 ;;
+esac
+fi
+printf '%s\n' "#define HAVE_DECL_SETDOMAINNAME $ac_have_decl" >>confdefs.h
 
 if test "$ac_cv_header_sys_statvfs_h" = "yes"; then
  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether f_fsid is scalar" >&5

@@ -59,7 +59,7 @@ fchmod fchown fstat link stat symlink utime mknod chmod umask fsync sync dnl
 ftruncate truncate getusershell endusershell dnl
 erf erfc lgamma tgamma fstatvfs statvfs getpriority setpriority dnl
 GlobalMemoryStatusEx dnl
-gethostid sethostid setdomainname nftw getdate)
+gethostid sethostid nftw getdate)
 if test $ac_cv_func_setrlimit = yes; then
   AC_CHECK_SIZEOF([rlim_t],,[
     #include <stdio.h>
@@ -69,6 +69,7 @@ fi
 AC_FUNC_CHOWN
 AC_CHECK_DECLS([signgam],,,[#include <math.h>])
 AC_CHECK_DECLS([getdate_err],,,[#include <time.h>])
+AC_CHECK_DECLS([setdomainname],,,[#include <unistd.h>])
 if test "$ac_cv_header_sys_statvfs_h" = "yes"; then
  AC_MSG_CHECKING([whether f_fsid is scalar])
  AC_COMPILE_IFELSE(

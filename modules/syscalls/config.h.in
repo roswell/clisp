@@ -22,6 +22,10 @@
    don't. */
 #undef HAVE_DECL_GETDATE_ERR
 
+/* Define to 1 if you have the declaration of 'setdomainname', and to 0 if you
+   don't. */
+#undef HAVE_DECL_SETDOMAINNAME
+
 /* Define to 1 if you have the declaration of 'signgam', and to 0 if you
    don't. */
 #undef HAVE_DECL_SIGNGAM
@@ -228,9 +232,6 @@
 /* Define to 1 if the f_fsid member of 'struct statvfs' has a integral type.
    */
 #undef HAVE_SCALAR_FSID
-
-/* Define to 1 if you have the 'setdomainname' function. */
-#undef HAVE_SETDOMAINNAME
 
 /* Define to 1 if you have the 'setegid' function. */
 #undef HAVE_SETEGID

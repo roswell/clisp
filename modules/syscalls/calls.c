@@ -1865,7 +1865,7 @@ DEFUN(POSIX:DOMAINNAME,) {
   if (e) ANSIC_error();
   VALUES1(asciz_to_string(domain,GLO(misc_encoding)));
 }
-#if defined(HAVE_SETDOMAINNAME)
+#if HAVE_DECL_SETDOMAINNAME
 DEFUN(POSIX::%SETDOMAINNAME, domain) {
   int e;
   with_string_0(STACK_0 = check_string(STACK_0),GLO(misc_encoding),domain, {

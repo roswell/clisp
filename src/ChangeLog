@@ -1,3 +1,12 @@
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
+	syscalls: Fix compilation error on Solaris 11.4.
+	* modules/syscalls/configure.in: Test whether setdomainname is declared,
+	not whether it exists as a function.
+	* modules/syscalls/config*: Regenerated.
+	* modules/syscalls/calls.c: Test HAVE_DECL_SETDOMAINNAME, not
+	HAVE_SETDOMAINNAME.
+
 2026-11-13  Bruno Haible  <bruno@clisp.org>
 
 	Update memory mapping on FreeBSD/arm64.
