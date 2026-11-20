@@ -1566,7 +1566,9 @@ DEFUN(POSIX:SERVICE, &optional service-name protocol) {
   serv = popSTACK();
   if (missingp(serv)) {
     uintL count = 0;
-#  if defined(HAVE_SETSERVENT) && defined(HAVE_GETSERVENT) && defined(HAVE_ENDSERVENT)
+#  if defined(HAVE_SETSERVENT) && defined(HAVE_GETSERVENT) && defined(HAVE_ENDSERVENT) \
+      /* In musl libcs, these functions are merely dummies. */ \
+      && !defined(MUSL_LIBC)
     begin_system_call();
     setservent(1);
     while ((se = getservent()))
