@@ -1,5 +1,10 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	syscalls tests: Avoid a test failure on Cygwin.
+	* modules/syscalls/test.tst: Skip part of the DIRECTORY test on Cygwin.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Avoid a few test failures on Solaris 11 and mingw.
 	* modules/syscalls/test.tst: Use FLOAT~ instead of FLOAT= for a few more
 	POSIX:ERFC values.
