@@ -150,34 +150,34 @@ FLOAT~
 (float= (os:erfc -6)    2.0d0)  T
 (float= (os:erfc -5)    1.9999999999984626d0)  T
 (float= (os:erfc -4)    1.999999984582742d0)  T
-(float= (os:erfc -3)    1.9999779095030015d0)  T
+(float~ (os:erfc -3)    1.9999779095030015d0)  T ; mingw
 (float= (os:erfc -2)    1.9953222650189528d0)  T
 (float= (os:erfc -1)    1.842700792949715d0)  T
 (float= (os:erfc 0)     1.0d0)  T
 (float~ (os:erfc 1)     0.15729920705028513d0)  T ; MacOSX 10.4.11
 (float= (os:erfc 2)     0.004677734981047265d0)  T
-(float= (os:erfc 3)     2.209049699858544d-5)  T
+(float~ (os:erfc 3)     2.209049699858544d-5)  T ; mingw
 (float= (os:erfc 4)     1.541725790028002d-8)  T
-(float= (os:erfc 5)     1.5374597944280351d-12)  T
+(float~ (os:erfc 5)     1.5374597944280351d-12)  T ; Solaris 11.4
 (float~ (os:erfc 6)     2.1519736712498916d-17)  T ; MacOSX 10.4.11
 (float~ (os:erfc 7)     4.183825607779414d-23)  T  ; MacOSX 10.4.11
 (float= (os:erfc 8)     1.1224297172982928d-29)  T
 (float= (os:erfc 9)     4.13703174651381d-37)  T
 (float= (os:erfc 10)    2.088487583762545d-45)  T
 (float~ (os:erfc 11)    1.4408661379436945d-54)  T ; Cygwin 2.9.0
-(float= (os:erfc 12)    1.3562611692059042d-64)  T
+(float~ (os:erfc 12)    1.3562611692059042d-64)  T ; mingw
 (float= (os:erfc 13)    1.7395573154667246d-75)  T
-(float= (os:erfc 14)    3.037229847750312d-87)  T
+(float~ (os:erfc 14)    3.037229847750312d-87)  T ; mingw
 (float~ (os:erfc 15)    7.212994172451206d-100)  T ; MacOSX 10.4.11
 (float= (os:erfc 16)    2.3284857515715308d-113)  T
 (float= (os:erfc 17)    1.0212280150942608d-127)  T
 (float~ (os:erfc 18)    6.082369231816399d-143)  T ; MacOSX 10.4.11
 (float= (os:erfc 19)    4.917722839256475d-159)  T
 (float= (os:erfc 20)    5.3958656116079005d-176)  T
-(float= (os:erfc 21)    8.032453871022456d-194)  T
+(float~ (os:erfc 21)    8.032453871022456d-194)  T ; mingw
 (float= (os:erfc 22)    1.6219058609334726d-212)  T
 (float= (os:erfc 23)    4.441265948088057d-232)  T
-(float= (os:erfc 24)    1.6489825831519335d-252)  T
+(float~ (os:erfc 24)    1.6489825831519335d-252)  T ; mingw
 ;; NetBSD https://sourceforge.net/p/clisp/mailman/message/21248044/
 (float~ (os:erfc 25)    8.300172571196522d-274)  T
 (float~ (os:erfc 26)    5.663192408856143d-296)  T
