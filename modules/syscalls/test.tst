@@ -639,6 +639,8 @@ T
 (and (fboundp 'os:hostid) (not (integerp (show (os:hostid))))) NIL
 #+unix (and (fboundp 'os::%sethostid)
             (zerop (os:euid))
+            ;; On OpenBSD, this would fail with error EINVAL.
+            (not (equal (ext:operating-system-type) "OpenBSD"))
             (not (= (setf (os:hostid) (os:hostid)) (os:hostid))))
 #+unix NIL
 (and (fboundp 'os:domainname) (not (stringp (show (os:domainname))))) NIL
