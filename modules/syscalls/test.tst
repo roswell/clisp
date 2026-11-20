@@ -317,6 +317,8 @@ T
 #+:unix
 (or (null (ext:probe-directory "/proc/"))
     (null (probe-file "/proc/kcore"))
+    ;; On Linux, in a Docker container, /proc/kcore may have size 0.
+    (zerop (os:euid))
     (plusp (posix:file-stat-size (show (posix:file-stat "/proc/kcore")))))
 #+:unix T
 

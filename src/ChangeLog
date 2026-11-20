@@ -1,6 +1,11 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
 	syscalls tests: Avoid a test failure on Linux.
+	* modules/syscalls/test.tst: Skip /proc/kcore test in containers.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
+	syscalls tests: Avoid a test failure on Linux.
 	* modules/syscalls/test.tst: Skip (SETF OS:DOMAINNAME) test on Linux.
 
 2026-11-20  Bruno Haible  <bruno@clisp.org>
