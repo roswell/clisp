@@ -1,5 +1,10 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	syscalls tests: Avoid a test failure on macOS 15 and 26, part 2.
+	* modules/syscalls/test.tst: In the POSIX:WAIT test, fix last commit.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	Try to fix floatparam.h generation failure on Cygwin 3.3.6/i386.
 	* floatparam.c (mainfn): Use 'volatile' in a few more places.
 
