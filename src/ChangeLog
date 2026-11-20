@@ -1,5 +1,10 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	tests: Avoid socket.tst failures on Solaris 11 OmniOS, part 2.
+	* tests/tests.lisp (*all-tests*): Fix last commit.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Avoid a test failure on macOS 26.
 	* modules/syscalls/test.tst: In the POSIX:WAIT test, map :SIGTRAP to
 	:SIGTERM.
