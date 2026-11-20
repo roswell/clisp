@@ -698,8 +698,9 @@ RUN-SLEEP
   (posix:kill pid :SIGTERM)
   (multiple-value-bind (pid1 kind status rusage) (posix:wait :pid pid :usage t)
     (assert (= pid pid1) () "pid: ~S<>~S" pid pid1)
-    ;; Workaround for macOS 26, which returns :SIGTRAP.
-    #+macos (when (eq status ':SIGTRAP) (setq status 'SIGTERM))
+    ;; Workaround for macOS >= 15, which returns :SIGKILL or :SIGTRAP.
+    #+macos (when (or (eq status ':SIGKILL) (eq status ':SIGTRAP))
+              (setq status 'SIGTERM))
     (list kind status (posix:usage-p (show rusage)))))
 #+(and :unix (not :cygwin)) (:SIGNALED :SIGTERM T)
 
