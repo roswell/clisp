@@ -157,7 +157,7 @@ FLOAT~
 (float~ (os:erfc 1)     0.15729920705028513d0)  T ; MacOSX 10.4.11
 (float= (os:erfc 2)     0.004677734981047265d0)  T
 (float~ (os:erfc 3)     2.209049699858544d-5)  T ; mingw
-(float= (os:erfc 4)     1.541725790028002d-8)  T
+(float~ (os:erfc 4)     1.541725790028002d-8)  T ; mingw
 (float~ (os:erfc 5)     1.5374597944280351d-12)  T ; Solaris 11.4
 (float~ (os:erfc 6)     2.1519736712498916d-17)  T ; MacOSX 10.4.11
 (float~ (os:erfc 7)     4.183825607779414d-23)  T  ; MacOSX 10.4.11
