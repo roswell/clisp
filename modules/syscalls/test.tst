@@ -630,6 +630,8 @@ T
 (and (fboundp 'os:domainname) (not (stringp (show (os:domainname))))) NIL
 #+unix (and (fboundp 'os::%setdomainname)
             (zerop (os:euid))
+            ;; On Linux, this would fail with error EPERM.
+            (not (equal (ext:operating-system-type) "Linux"))
             (not (string= (setf (os:domainname) (os:domainname))
                           (os:domainname))))
 #+unix NIL
