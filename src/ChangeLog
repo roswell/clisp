@@ -1,5 +1,11 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	syscalls tests: Fix a test failure on musl libc.
+	* modules/syscalls/test.tst: Don't use EQUALP to compare POSIX:SERVICE
+	objects.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	syscalls: Make (POSIX:SERVICE NIL) work on musl libc.
 	* modules/syscalls/calls.c (POSIX:SERVICE): On musl libc, don't use
 	setservent(), getservent(), endservent().
