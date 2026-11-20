@@ -1,5 +1,10 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	tests: Avoid socket.tst failures on Solaris 11 OmniOS, part 3.
+	* tests/tests.lisp (*all-tests*): Fix last commit.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Avoid a test failure on Cygwin.
 	* modules/syscalls/test.tst: Skip part of the DIRECTORY test on Cygwin.
 
