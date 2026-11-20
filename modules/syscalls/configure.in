@@ -104,6 +104,7 @@ AC_DEFINE(HAVE_SETPGRP_POSIX,1,
 fi
 fi
 gl_GETLOADAVG
+gl_MUSL_LIBC
 
 BOLD_MSG([System Calls (output)])
 AC_CONFIG_FILES([Makefile link.sh])

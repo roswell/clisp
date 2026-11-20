@@ -1,5 +1,14 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	syscalls: Don't define the POSIX:GETDATE function on musl libc.
+	musl's getdate() is broken: it returns invalid dates.
+	Reported at <https://www.openwall.com/lists/musl/2011/11/21/>.
+	* modules/syscalls/configure.in: Invoke gl_MUSL_LIBC.
+	* modules/syscalls/config*: Regenerated.
+	* modules/syscalls/calls.c (POSIX:GETDATE): Don't define on musl libc.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	syscalls: Fix a bug in the POSIX:SERVICE function.
 	* modules/syscalls/calls.c (POSIX:SERVICE): Call servent_to_lisp before
 	the stack-allocated servz goes out-of-scope.

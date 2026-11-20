@@ -400,6 +400,9 @@
    unknown. */
 #undef LINK_FOLLOWS_SYMLINKS
 
+/* Define to 1 on musl libc. */
+#undef MUSL_LIBC
+
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
 

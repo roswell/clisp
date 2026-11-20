@@ -9084,6 +9084,16 @@ fi
 
 
 
+  case "$host_os" in
+    *-musl* | midipix*)
+
+printf '%s\n' "#define MUSL_LIBC 1" >>confdefs.h
+
+      ;;
+  esac
+
+
+
   { printf '%s\n' "$as_me:${as_lineno-$LINENO}: ${term_bold}** System Calls (output)${term_norm}" >&5
 printf '%s\n' "$as_me: ${term_bold}** System Calls (output)${term_norm}" >&6;}
 
