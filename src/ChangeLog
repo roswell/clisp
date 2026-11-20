@@ -1,5 +1,11 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	syscalls: Fix a bug in the POSIX:SERVICE function.
+	* modules/syscalls/calls.c (POSIX:SERVICE): Call servent_to_lisp before
+	the stack-allocated servz goes out-of-scope.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Avoid a test failure on various platforms.
 	* modules/syscalls/test.tst: Skip part of the DIRECTORY test in
 	containers.

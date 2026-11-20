@@ -1589,25 +1589,32 @@ DEFUN(POSIX:SERVICE, &optional service-name protocol) {
     end_system_call();
 #  endif
     VALUES1(listof(count));
-    return;
   } else if (symbolp(serv)) {
     serv = Symbol_name(serv);
     goto servent_string;
-  } else if (stringp(serv)) { servent_string:
-    with_string_0(serv,GLO(misc_encoding),servz, {
-        begin_system_call();
-        se = getservbyname(servz,proto);
-        end_system_call();
-      });
+  } else if (stringp(serv)) {
+   servent_string:
+    {
+      object result = nullobj;
+      with_string_0(serv,GLO(misc_encoding),servz, {
+          begin_system_call();
+          se = getservbyname(servz,proto);
+          if (se == NULL) ANSIC_error();
+          servent_to_lisp(se);
+          result = value1;
+          end_system_call();
+        });
+      VALUES1(result);
+    }
   } else if (integerp(serv)) {
     uintL port = I_to_UL(serv);
     begin_system_call();
     se = getservbyport(htons(port),proto);
     end_system_call();
+    if (se == NULL) ANSIC_error();
+    servent_to_lisp(se);
   } else
     error_string_integer(serv);
-  if (se == NULL) ANSIC_error();
-  servent_to_lisp(se);
 }
 
 #endif /* getservbyname getservbyport */
