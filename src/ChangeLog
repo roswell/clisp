@@ -1,5 +1,11 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	readline tests: Avoid two test failures on OpenBSD.
+	* modules/readline/test.tst: Skip the readline:prefer-env-winsize,
+	readline:reset-screen-size tests when these are not defined.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Avoid a test failure on OpenBSD.
 	* modules/syscalls/test.tst: Skip (SETF POSIX:HOSTID) test on OpenBSD.
 
