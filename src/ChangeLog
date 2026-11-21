@@ -1,5 +1,11 @@
 2026-11-21  Bruno Haible  <bruno@clisp.org>
 
+	syscalls: Fix a crash in OS:FILE-VERSION.
+	* modules/syscalls/calls.c (file_version): Don't access lpBuffer if
+	VerQueryValue failed.
+
+2026-11-21  Bruno Haible  <bruno@clisp.org>
+
 	rawsock: Fix a bug in the RAWSOCK:NETWORK function.
 	* modules/rawsock/rawsock.c (RAWSOCK:NETWORK): Call netent_to_network
 	before the stack-allocated netz goes out-of-scope.

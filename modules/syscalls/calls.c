@@ -4620,8 +4620,11 @@ static Values /*maygc*/ file_version (char *pathz) {
     BOOL status = VerQueryValue(lpData,SUBBLOCK info,(LPVOID*)&lpBuffer, \
                                 (PUINT)&BufLen);                         \
     end_system_call();                                                   \
-    while(lpBuffer[BufLen-1]==0) BufLen--;                               \
-    pushSTACK(status?n_char_to_string(lpBuffer,BufLen,GLO(misc_encoding)):NIL); \
+    if (status && BufLen > 0) {                                          \
+      while(lpBuffer[BufLen-1]==0) BufLen--;                             \
+      pushSTACK(n_char_to_string(lpBuffer,BufLen,GLO(misc_encoding)));   \
+    } else                                                               \
+      pushSTACK(NIL);                                                    \
   } while (0)
   TO_STACK("Comments");
   TO_STACK("CompanyName");
