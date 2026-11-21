@@ -91,7 +91,7 @@ DEFUN(REGEXP::REGEXP-EXEC,pattern string &key           \
   regmatch_t *ret;
   size_t ret_buffer_size;
   skipSTACK(3);                 /* drop all options */
-  for (;;) {
+  while (true) {
     STACK_1 = check_fpointer(STACK_1,true);
     re = (regex_t*)TheFpointer(STACK_1)->fp_pointer;
     if (re != NULL) break;

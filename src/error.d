@@ -929,7 +929,7 @@ modexp maygc object check_classname (object obj, object type) {
  < result: a valid foreign pointer, either the same as obj or a replacement
  can trigger GC */
 modexp maygc object check_fpointer_replacement (object obj, bool restart_p) {
-  for (;;) {
+  while (true) {
     if (!fpointerp(obj)) {
       pushSTACK(NIL);                /* no PLACE */
       pushSTACK(obj);                /* TYPE-ERROR slot DATUM */
@@ -1046,7 +1046,7 @@ global maygc object check_symbol_replacement (object obj) {
  can trigger GC */
 global maygc object check_symbol_non_constant_replacement
 (object obj, object caller) {
-  for (;;) {
+  while (true) {
     obj = check_symbol(obj);
     if (!constant_var_p(TheSymbol(obj))) break;
     pushSTACK(NIL); /* no PLACE */

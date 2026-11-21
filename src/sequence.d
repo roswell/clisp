@@ -2136,7 +2136,7 @@ local maygc object remove_help (gcv_object_t* stackptr, uintV bvl, uintV dl) {
     {
       /* Find the highest bit set in the bit vector: */
       var uintV bvi = bvl;
-      for (;;) {
+      while (true) {
         bvi--;
         if (sbvector_btst(STACK_0,bvi))
           break;

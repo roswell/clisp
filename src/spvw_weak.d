@@ -50,7 +50,7 @@ local markwatch_t* markwatchset_lookup (uintP addr) {
     return NULL;
   var uintL i1 = 0;
   var uintL i2 = markwatchset_count;
-  for (;;) {
+  while (true) {
     var uintL i = (i1+i2)/2;
     if (markwatchset[i].address == addr)
       return &markwatchset[i];

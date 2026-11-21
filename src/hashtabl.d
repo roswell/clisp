@@ -2538,7 +2538,7 @@ LISPFUNN(set_hash_table_weak_p,2)
   if (!eq(val,hash_table_weak_type(ht))) {
     var uintL maxcount = posfixnum_to_V(TheHashtable(ht)->ht_maxcount);
     var object new_kvt;
-    for (;;) {
+    while (true) {
       new_kvt = allocate_kvt(val,maxcount);
       /* Check whether the hash-table has not been resized during
          allocate_kvt(). */

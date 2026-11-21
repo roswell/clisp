@@ -6521,7 +6521,7 @@ local maygc void sync_file_buffered (object stream) {
 local maygc uintB* read_byte_array_buffered
 (object stream, uintB* byteptr, uintL len, perseverance_t persev) {
   pushSTACK(stream);
-  for (;;) {
+  while (true) {
     var uintB* ptr = buffered_nextbyte(stream, persev == persev_full ? persev_partial : persev);
     if (ptr == (uintB*)NULL || ptr == (uintB*)-1)
       break;
@@ -6572,7 +6572,7 @@ local maygc const uintB* write_byte_array_buffered
   var uintL remaining = len;
   var uintB* ptr;
   pushSTACK(stream);
-  for (;;) { /* still remaining>0 Bytes to be filled. */
+  while (true) { /* still remaining>0 Bytes to be filled. */
     ptr = buffered_nextbyte(stream, persev == persev_full ? persev_partial : persev);
     stream = STACK_0;
     if (ptr == (uintB*)NULL)

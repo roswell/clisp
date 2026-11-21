@@ -2168,7 +2168,7 @@ local maygc void elt_copy_T_Char (object dv1, uintL index1,
   check_sstring_mutable(dv2);
  restart_it:
   SstringCase(dv2,{
-    for (;;) {
+    while (true) {
       var object value = TheSvector(dv1)->data[index1++];
       if (!charp(value)) error_store(dv2,value);
       if (as_cint(char_code(value)) < cint8_limit) {
@@ -2186,7 +2186,7 @@ local maygc void elt_copy_T_Char (object dv1, uintL index1,
       }
     }
   },{
-    for (;;) {
+    while (true) {
       var object value = TheSvector(dv1)->data[index1++];
       if (!charp(value)) error_store(dv2,value);
       if (as_cint(char_code(value)) < cint16_limit) {
@@ -2248,7 +2248,7 @@ local /*maygc*/ void elt_copy_Char_Char (object dv1, uintL index1,
    restart16:
     SstringCase(dv2,{
       pushSTACK(dv1);
-      for (;;) {
+      while (true) {
         var chart ch = as_chart(TheS16string(dv1)->data[index1++]);
         if (as_cint(ch) < cint8_limit) {
           TheS8string(dv2)->data[index2++] = as_cint(ch);
@@ -2287,7 +2287,7 @@ local /*maygc*/ void elt_copy_Char_Char (object dv1, uintL index1,
    restart32:
     SstringCase(dv2,{
       pushSTACK(dv1);
-      for (;;) {
+      while (true) {
         var chart ch = as_chart(TheS32string(dv1)->data[index1++]);
         if (as_cint(ch) < cint8_limit) {
           TheS8string(dv2)->data[index2++] = as_cint(ch);
@@ -2307,7 +2307,7 @@ local /*maygc*/ void elt_copy_Char_Char (object dv1, uintL index1,
       skipSTACK(1);
     },{
       pushSTACK(dv1);
-      for (;;) {
+      while (true) {
         var chart ch = as_chart(TheS32string(dv1)->data[index1++]);
         if (as_cint(ch) < cint16_limit) {
           TheS16string(dv2)->data[index2++] = as_cint(ch);
@@ -3533,7 +3533,7 @@ global maygc void elt_reverse (object dv1, uintL index1,
        restart16:
         SstringCase(dv2,{
           pushSTACK(dv1);
-          for (;;) {
+          while (true) {
             var chart ch = as_chart(TheS16string(dv1)->data[index1++]);
             dv2 = sstring_store(dv2,index2--,ch);
             if (--count == 0)
@@ -3560,7 +3560,7 @@ global maygc void elt_reverse (object dv1, uintL index1,
        restart32:
         SstringCase(dv2,{
           pushSTACK(dv1);
-          for (;;) {
+          while (true) {
             var chart ch = as_chart(TheS32string(dv1)->data[index1++]);
             dv2 = sstring_store(dv2,index2--,ch);
             if (--count == 0)
@@ -3574,7 +3574,7 @@ global maygc void elt_reverse (object dv1, uintL index1,
           skipSTACK(1);
         },{
           pushSTACK(dv1);
-          for (;;) {
+          while (true) {
             var chart ch = as_chart(TheS32string(dv1)->data[index1++]);
             dv2 = sstring_store(dv2,index2--,ch);
             if (--count == 0)

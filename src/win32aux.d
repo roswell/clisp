@@ -221,8 +221,8 @@ local DWORD WINAPI do_sigintwait (LPVOID arg)
   var HANDLE waitfor[2];
   waitfor[0] = sigint_event;
   waitfor[1] = sigbreak_event;
-  for (;;) switch
-    (WaitForMultipleObjects(2,&waitfor[0],false,wait_duration[waitstate])) {
+  while (true) {
+    switch (WaitForMultipleObjects(2,&waitfor[0],false,wait_duration[waitstate])) {
       case WAIT_OBJECT_0+0:
         /* Got a sigint_event! */
         if (!interrupt_pending) { /* already being handled? */
@@ -268,6 +268,7 @@ local DWORD WINAPI do_sigintwait (LPVOID arg)
         break;
       default: NOTREACHED;
     }
+  }
 }
 
 global void install_sigint_handler (void)

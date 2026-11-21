@@ -868,7 +868,7 @@ local maygc inline gcv_object_t* symbol_env_search (object sym, object venv)
     goto next_env;
   }
   var bool from_inside_macrolet = false;
-  for (;;) {
+  while (true) {
     if (simple_vector_p(venv)) {
       /* environment is a simple-vector */
       var uintL count = floor(Svector_length(venv),2); /* number of bindings */
@@ -1053,7 +1053,7 @@ global object sym_function (object sym, object env)
       goto next_env;
     }
     var bool from_inside_macrolet = false;
-    for (;;) {
+    while (true) {
       if (simple_vector_p(env)) {
         /* Environment is a Simple-Vector */
         var uintL count = floor(Svector_length(env),2); /* number of bindings */

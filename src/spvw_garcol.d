@@ -881,7 +881,7 @@ local void gc_sweep1_sstring_forward (aint p2) {
   if (sstring_flags(TheSstring(forward)) & sstringflags_relocated_B) {
     var gcv_object_t target = TheSstring(forward)->GCself;
     var aint backchain = p2;
-    for (;;) {
+    while (true) {
       var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
       ((Varobject)backchain)->GCself = target;
       sstring_flags_set((Sstring)backchain,sstringflags_relocated_B);
@@ -911,7 +911,7 @@ local void gc_sweep1_sstring_target (aint p2, aint p1) {
     /*NOTREACHED*/ abort();
   var gcv_object_t target; target = with_mark_bit(make_GCself(sstring_type,p1));
   var aint backchain = p2;
-  for (;;) {
+  while (true) {
     var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
     ((Varobject)backchain)->GCself = target;
     sstring_flags_set((Sstring)backchain,sstringflags_relocated_B);
@@ -929,7 +929,7 @@ local void gc_sweep1_instance_forward (aint p2) {
   if (record_flags(TheInstance(forward)) & instflags_relocated_B) {
     var gcv_object_t target = TheInstance(forward)->GCself;
     var aint backchain = p2;
-    for (;;) {
+    while (true) {
       var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
       ((Varobject)backchain)->GCself = target;
       record_flags_set((Record)backchain,instflags_relocated_B);
@@ -967,7 +967,7 @@ local void gc_sweep1_instance_target (aint p2, aint p1) {
   #endif
   var gcv_object_t target; target = with_mark_bit(make_GCself(type,p1));
   var aint backchain = p2;
-  for (;;) {
+  while (true) {
     var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
     ((Varobject)backchain)->GCself = target;
     record_flags_set((Record)backchain,instflags_relocated_B);

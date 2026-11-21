@@ -358,7 +358,7 @@ local maygc object check_number_replacement (object obj) {
  < result: a real number, a replacement
  can trigger GC */
 global maygc object check_real_replacement (object obj) {
-  for (;;) {
+  while (true) {
     pushSTACK(NIL); /* no PLACE */
     pushSTACK(obj);     /* TYPE-ERROR slot DATUM */
     pushSTACK(S(real)); /* TYPE-ERROR slot EXPECTED-TYPE */
@@ -411,7 +411,7 @@ static inline maygc object check_rational (object obj) {
  < result: a rational number, a replacement
  can trigger GC */
 local maygc object check_rational_replacement (object obj) {
-  for (;;) {
+  while (true) {
     pushSTACK(NIL); /* no PLACE */
     pushSTACK(obj);     /* TYPE-ERROR slot DATUM */
     pushSTACK(S(rational)); /* TYPE-ERROR slot EXPECTED-TYPE */
