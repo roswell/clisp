@@ -379,6 +379,7 @@ NIL: sacla-style: forms should evaluate to non-NIL.")
         (warn "no ~S files in directories ~S" *run-test-type* dirlist))))
 
 (defparameter *all-tests*
+ (remove '()
   '(#-(or AKCL ECL)   ("alltest")
                       ("array")
     #-OpenMCL         ("backquot")
@@ -445,7 +446,7 @@ NIL: sacla-style: forms should evaluate to non-NIL.")
     #+(or CLISP ALLEGRO CMU LISPWORKS) ("conditions" :ignore-errors nil)
     #+CLISP           ("restarts" :ignore-errors nil)
                       ("excepsit" :tester do-errcheck)
-    ))
+    )))
 
 (defun test-weakptr ()
   (let ((tmp (list "weakptr" 0 0)))

@@ -1,5 +1,10 @@
 2026-11-20  Bruno Haible  <bruno@clisp.org>
 
+	tests: Avoid socket.tst failures on Solaris 11 OmniOS, part 4.
+	* tests/tests.lisp (*all-tests*): Fix last commits.
+
+2026-11-20  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Avoid a test failure on mingw/arm64.
 	* modules/syscalls/test.tst: Use FLOAT~ instead of FLOAT= for another
 	POSIX:ERFC value.
