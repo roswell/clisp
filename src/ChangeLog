@@ -1,5 +1,9 @@
 2026-11-21  Bruno Haible  <bruno@clisp.org>
 
+	Code style: Fix indentation of with_string_0 blocks.
+
+2026-11-21  Bruno Haible  <bruno@clisp.org>
+
 	Code style: Put 'else' branches on separate lines.
 
 2026-11-20  Bruno Haible  <bruno@clisp.org>

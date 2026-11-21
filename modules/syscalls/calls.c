@@ -362,10 +362,10 @@ static /*maygc*/ void* on_pnamestring
   void* ret;
   pushSTACK(physical_namestring(path)); /* save for blocking */
   with_string_0(STACK_0,GLO(pathname_encoding),pathz, {
-      begin_blocking_system_call();
-      ret = (*f)(pathz,data);
-      end_blocking_system_call();
-    });
+    begin_blocking_system_call();
+    ret = (*f)(pathz,data);
+    end_blocking_system_call();
+  });
   value1 = popSTACK();
   return ret;
 }
@@ -496,12 +496,12 @@ DEFUN(POSIX:OPENLOG,ident &key PID CONS NDELAY ODELAY NOWAIT FACILITY) {
   int facility = check_syslog_facility(popSTACK());
   int logopt = syslog_opt_flags();
   with_string_0(check_string(popSTACK()),GLO(misc_encoding),ident, {
-      log_ident = (char*)clisp_realloc(log_ident,strlen(ident)+1);
-      begin_blocking_system_call();
-      strcpy(log_ident,ident);
-      openlog(log_ident,logopt,facility);
-      end_blocking_system_call();
-    });
+    log_ident = (char*)clisp_realloc(log_ident,strlen(ident)+1);
+    begin_blocking_system_call();
+    strcpy(log_ident,ident);
+    openlog(log_ident,logopt,facility);
+    end_blocking_system_call();
+  });
   VALUES0;
 }
 #endif
@@ -520,12 +520,12 @@ DEFUN(POSIX::%SYSLOG, severity facility message) {
   int priority =
     check_syslog_severity(STACK_2) | check_syslog_facility(STACK_1);
   with_string_0(STACK_0 = check_string(STACK_0),GLO(misc_encoding),mesg, {
-      begin_blocking_system_call();
-      /* disable %m but avoid surprises with % special handling
-         https://pubs.opengroup.org/onlinepubs/9799919799/functions/syslog.html */
-      syslog(priority,"%s",mesg);
-      end_blocking_system_call();
-    });
+    begin_blocking_system_call();
+    /* disable %m but avoid surprises with % special handling
+       https://pubs.opengroup.org/onlinepubs/9799919799/functions/syslog.html */
+    syslog(priority,"%s",mesg);
+    end_blocking_system_call();
+  });
   VALUES0; skipSTACK(3);
 }
 #if defined(HAVE_CLOSELOG)
@@ -573,16 +573,16 @@ DEFUN(POSIX:STRING-TIME, format &optional datum timezone)
     tm.tm_wday = 0; /* Day of week [0,6] (C: Sunday=0 <== CL: Monday=0 */
     tm.tm_isdst = false; /* Daylight Savings flag. */
     with_string_0(STACK_1,GLO(misc_encoding),buf, {
-        with_string_0(STACK_2,GLO(misc_encoding),format, {
-            char *ret;
-            begin_system_call();
-            if ((ret = strptime(buf,format,&tm)))
-              offset = ret - buf;
-            else
-              offset = 0;
-            end_system_call();
-          });
+      with_string_0(STACK_2,GLO(misc_encoding),format, {
+        char *ret;
+        begin_system_call();
+        if ((ret = strptime(buf,format,&tm)))
+          offset = ret - buf;
+        else
+          offset = 0;
+        end_system_call();
       });
+    });
     if (offset == 0) {
       pushSTACK(STACK_1);/*datum*/ pushSTACK(STACK_(2+1));/*format*/
       pushSTACK(TheSubr(subr_self)->name);
@@ -611,15 +611,15 @@ DEFUN(POSIX:STRING-TIME, format &optional datum timezone)
       if (ret == (time_t)-1) ANSIC_error();
     }
     with_string_0(STACK_0,GLO(misc_encoding),format, {
-        /* at least 4 characters per each format char + safety */
-        size_t bufsize = 4 * format_bytelen + 64;
-        char* buf = (char*)alloca(bufsize);
-        size_t retval;
-        begin_system_call();
-        retval = strftime(buf,bufsize,format,&tm);
-        end_system_call();
-        VALUES1(n_char_to_string(buf,retval,GLO(misc_encoding)));
-      });
+      /* at least 4 characters per each format char + safety */
+      size_t bufsize = 4 * format_bytelen + 64;
+      char* buf = (char*)alloca(bufsize);
+      size_t retval;
+      begin_system_call();
+      retval = strftime(buf,bufsize,format,&tm);
+      end_system_call();
+      VALUES1(n_char_to_string(buf,retval,GLO(misc_encoding)));
+    });
     skipSTACK(1);
   } else
     error_string_integer(STACK_1);
@@ -634,10 +634,10 @@ DEFUN(POSIX:GETDATE, timespec &optional timezone)
  getdate_restart:
   STACK_1 = check_string(STACK_1);
   with_string_0(STACK_1,GLO(misc_encoding),timespec, {
-      begin_system_call();
-      tm = getdate(timespec);
-      end_system_call();
-    });
+    begin_system_call();
+    tm = getdate(timespec);
+    end_system_call();
+  });
   if (tm == NULL) {
     pushSTACK(NIL);             /* no PLACE */
     pushSTACK(fixnum(getdate_err));
@@ -659,10 +659,10 @@ static /*maygc*/ int string_version_compare (void) {
   STACK_0 = check_string(STACK_0);
   STACK_1 = check_string(STACK_1);
   with_string_0(STACK_0,GLO(misc_encoding),s1, {
-      with_string_0(STACK_1,GLO(misc_encoding),s2, {
-          begin_system_call(); ret = strverscmp(s2,s1); end_system_call();
-        });
+    with_string_0(STACK_1,GLO(misc_encoding),s2, {
+      begin_system_call(); ret = strverscmp(s2,s1); end_system_call();
     });
+  });
   skipSTACK(2);
   return ret;
 }
@@ -703,14 +703,14 @@ DEFUN(POSIX:MKSTEMP, template &key :DIRECTION :BUFFERED :EXTERNAL-FORMAT \
   direction_t dir = (boundp(STACK_3) ? check_direction(STACK_3)
                      : DIRECTION_OUTPUT);
   int fd;
-  with_string_0(fname,GLO(pathname_encoding),namez,{
-      char *c_template;
-      begin_blocking_system_call();
-      ENSURE_6X(namez,c_template);
-      fd = mkstemp(c_template);
-      end_blocking_system_call();
-      fname = asciz_to_string(c_template,GLO(pathname_encoding));
-    });
+  with_string_0(fname,GLO(pathname_encoding),namez, {
+    char *c_template;
+    begin_blocking_system_call();
+    ENSURE_6X(namez,c_template);
+    fd = mkstemp(c_template);
+    end_blocking_system_call();
+    fname = asciz_to_string(c_template,GLO(pathname_encoding));
+  });
   if (fd == -1) ANSIC_error();
   pushSTACK(fname);  funcall(L(pathname),1); STACK_4=value1; /* filename */
   pushSTACK(value1); funcall(L(truename),1); STACK_3=value1; /* truename */
@@ -1235,8 +1235,9 @@ DEFUN(POSIX::PATHCONF, pathspec &optional what)
     object file = open_file_stream_handle(STACK_1,&fd,true);
     if (eq(nullobj,file)) {    /* not an open stream ==> use truename */
       with_string_0(STACK_1 = physical_namestring(STACK_1),
-                    GLO(pathname_encoding), namez,
-          { DO_PATHCONF(pathconf,namez,STACK_0); });
+                    GLO(pathname_encoding), namez, {
+        DO_PATHCONF(pathconf,namez,STACK_0);
+      });
     } else
       goto pathconf_fd;       /* open stream ==> use fd */
   }
@@ -1250,10 +1251,10 @@ DEFUN(POSIX::CHROOT, path)
   int status;
   STACK_0 = physical_namestring(STACK_0);
   with_string_0(STACK_0, GLO(pathname_encoding), namez, {
-      begin_blocking_system_call();
-      status = chroot(namez);
-      end_blocking_system_call();
-    });
+    begin_blocking_system_call();
+    status = chroot(namez);
+    end_blocking_system_call();
+  });
   if (status) OS_file_error(STACK_0);
   skipSTACK(1); VALUES0;
 }
@@ -1576,10 +1577,10 @@ DEFUN(POSIX:SERVICE, &optional service-name protocol) {
   if (!missingp(protocol)) {    /* check protocol */
     protocol = check_string(protocol);
     with_string_0(protocol,GLO(misc_encoding), protocolz, {
-        begin_system_call();
-        strncpy(proto_buf,protocolz,15);
-        end_system_call();
-      });
+      begin_system_call();
+      strncpy(proto_buf,protocolz,15);
+      end_system_call();
+    });
     proto = proto_buf;
     proto_buf[15] = 0;
   }
@@ -1621,13 +1622,13 @@ DEFUN(POSIX:SERVICE, &optional service-name protocol) {
     {
       object result = nullobj;
       with_string_0(serv,GLO(misc_encoding),servz, {
-          begin_system_call();
-          se = getservbyname(servz,proto);
-          if (se == NULL) ANSIC_error();
-          servent_to_lisp(se);
-          result = value1;
-          end_system_call();
-        });
+        begin_system_call();
+        se = getservbyname(servz,proto);
+        if (se == NULL) ANSIC_error();
+        servent_to_lisp(se);
+        result = value1;
+        end_system_call();
+      });
       VALUES1(result);
     }
   } else if (integerp(serv)) {
@@ -1903,10 +1904,10 @@ DEFUN(POSIX:DOMAINNAME,) {
 DEFUN(POSIX::%SETDOMAINNAME, domain) {
   int e;
   with_string_0(STACK_0 = check_string(STACK_0),GLO(misc_encoding),domain, {
-      begin_system_call();
-      e = setdomainname(domain,domain_len);
-      end_system_call();
-    });
+    begin_system_call();
+    e = setdomainname(domain,domain_len);
+    end_system_call();
+  });
   if (e) ANSIC_error();
   VALUES1(popSTACK());    /* return the argument for the sake of SETF */
 }
@@ -2199,15 +2200,15 @@ DEFUN(POSIX::SET-FILE-STAT, file &key ATIME MTIME MODE UID GID)
   skipSTACK(2);                 /* drop atime & mtime */
   STACK_0 = physical_namestring(STACK_0);
   with_string_0(STACK_0,GLO(pathname_encoding),path, {
-      begin_blocking_system_call();
-      if (status == 0 && (mode != (mode_t)-1))
-        status = my_chmod(path,mode);
-      if (status == 0 && ((uid != (uid_t)-1) || (gid != (gid_t)-1)))
-        status = my_chown(path,uid,gid);
-      if (status == 0 && (utb_a || utb_m))
-        status = my_utime(path,utb_a,utb_m,&utb);
-      end_blocking_system_call();
-    });
+    begin_blocking_system_call();
+    if (status == 0 && (mode != (mode_t)-1))
+      status = my_chmod(path,mode);
+    if (status == 0 && ((uid != (uid_t)-1) || (gid != (gid_t)-1)))
+      status = my_chown(path,uid,gid);
+    if (status == 0 && (utb_a || utb_m))
+      status = my_utime(path,utb_a,utb_m,&utb);
+    end_blocking_system_call();
+  });
   if (status < 0) OS_file_error(STACK_0);
   VALUES0; skipSTACK(1);
 }
@@ -2244,10 +2245,10 @@ DEFUN(POSIX:FILE-TREE-WALK, path func &key FD-LIMIT CHDIR DEPTH MOUNT PHYS)
   int fd_limit = check_uint_defaulted(popSTACK(),5);
   STACK_1 = physical_namestring(STACK_1);
   with_string_0(STACK_1,GLO(pathname_encoding),path, {
-      begin_blocking_system_call();
-      ret = nftw(path,nftw_fn,fd_limit,flags);
-      end_blocking_system_call();
-    });
+    begin_blocking_system_call();
+    ret = nftw(path,nftw_fn,fd_limit,flags);
+    end_blocking_system_call();
+  });
   VALUES1(ret ? (object)STACK_1 : NIL); skipSTACK(2);
 }
 #endif  /* HAVE_NFTW */
@@ -2287,10 +2288,10 @@ DEFUN(POSIX::MKNOD, path type mode)
   int ret;
   STACK_0 = physical_namestring(STACK_0);
   with_string_0(STACK_0,GLO(pathname_encoding),path, {
-      begin_blocking_system_call();
-      ret = mknod(path,mode,0);
-      end_blocking_system_call();
-    });
+    begin_blocking_system_call();
+    ret = mknod(path,mode,0);
+    end_blocking_system_call();
+  });
   if (ret) OS_file_error(STACK_0);
   skipSTACK(1);
   VALUES0;
@@ -2298,17 +2299,17 @@ DEFUN(POSIX::MKNOD, path type mode)
 
 DEFUN(POSIX:MKDTEMP, template) {
   object fname = physical_namestring(popSTACK());
-  with_string_0(fname,GLO(pathname_encoding),namez,{
-      char *c_template;
-      if (namez[namez_bytelen-1] == '/') /* mkdtemp(".../") --> ENOENT */
-        namez[--namez_bytelen] = 0;
-      begin_blocking_system_call();
-      ENSURE_6X(namez,c_template);
-      c_template = mkdtemp(c_template);
-      end_blocking_system_call();
-      if (NULL == c_template) ANSIC_error();
-      fname = asciz_to_string(c_template,GLO(pathname_encoding));
-    });
+  with_string_0(fname,GLO(pathname_encoding),namez, {
+    char *c_template;
+    if (namez[namez_bytelen-1] == '/') /* mkdtemp(".../") --> ENOENT */
+      namez[--namez_bytelen] = 0;
+    begin_blocking_system_call();
+    ENSURE_6X(namez,c_template);
+    c_template = mkdtemp(c_template);
+    end_blocking_system_call();
+    if (NULL == c_template) ANSIC_error();
+    fname = asciz_to_string(c_template,GLO(pathname_encoding));
+  });
   pushSTACK(fname);
   /* stack layout: the name of the new directory - without the trailing slash */
 #if defined(WIN32_NATIVE)
@@ -2969,11 +2970,11 @@ static void copy_attributes_and_close () {
   end_blocking_system_call();
 # elif defined(HAVE_CHOWN)
   { int ret;
-    with_string_0(physical_namestring(STACK_0),GLO(pathname_encoding),destz,{
-        begin_blocking_system_call();
-        ret = chown(destz, source_sb.st_uid, source_sb.st_gid);
-        end_blocking_system_call();
-      });
+    with_string_0(physical_namestring(STACK_0),GLO(pathname_encoding),destz, {
+      begin_blocking_system_call();
+      ret = chown(destz, source_sb.st_uid, source_sb.st_gid);
+      end_blocking_system_call();
+    });
     if (ret == -1) {
       pushSTACK(file_stream_truename(STACK_0));
       goto close_and_err;
@@ -4203,14 +4204,14 @@ DEFUN(POSIX::FILE-PROPERTIES, file set &rest pairs)
   }
   STACK_(ifile) = physical_namestring(STACK_(ifile));
   with_string_0w(STACK_(ifile), filename, {
-      begin_blocking_system_call();
-      hres = StgOpenStorageExFunc(filename,
-                                  ((npropwr||use_wpn)?STGM_READWRITE:STGM_READ)
-                                  | STGM_SHARE_EXCLUSIVE,
-                                  4 /* STGFMT_ANY */, 0, NULL /*&stgOp*/, 0,
-                                  &IID_IPropertySetStorage,
-                                  (void **)&ppropsetstg);
-      end_blocking_system_call();
+    begin_blocking_system_call();
+    hres = StgOpenStorageExFunc(filename,
+                                ((npropwr||use_wpn)?STGM_READWRITE:STGM_READ)
+                                | STGM_SHARE_EXCLUSIVE,
+                                4 /* STGFMT_ANY */, 0, NULL /*&stgOp*/, 0,
+                                &IID_IPropertySetStorage,
+                                (void **)&ppropsetstg);
+    end_blocking_system_call();
   });
   if (FAILED(hres)) {
     pushSTACK(STACK_(ifile));
@@ -4456,28 +4457,28 @@ DEFUN(OS::%SET-CLIPBOARD, str) {
       v.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
       if (GetVersionEx(&v)) {
         if (v.dwPlatformId == VER_PLATFORM_WIN32_NT) { /* Windows NT */
-            with_string_0w(value1, wstr, {
-              HGLOBAL sglobal =
-                GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE,
-                            (wstr_bytelen + nlines_w(wstr) + 2)
-                              * sizeof(WCHAR));
-              if (sglobal != NULL) {
-                void * slocal = GlobalLock(sglobal);
-                if (slocal != NULL) {
-                  end_system_call();
-                  strzcpy12_w(slocal, wstr);
-                  begin_system_call();
-                  if ( SetClipboardData( CF_UNICODETEXT,  sglobal ) != NULL ) {
-                    GlobalUnlock(sglobal);
-                    textset = 1;
-                  } else {
-                    DWORD last = GetLastError();
-                    GlobalFree(sglobal);
-                    SetLastError(last);
-                  }
+          with_string_0w(value1, wstr, {
+            HGLOBAL sglobal =
+              GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE,
+                          (wstr_bytelen + nlines_w(wstr) + 2)
+                          * sizeof(WCHAR));
+            if (sglobal != NULL) {
+              void * slocal = GlobalLock(sglobal);
+              if (slocal != NULL) {
+                end_system_call();
+                strzcpy12_w(slocal, wstr);
+                begin_system_call();
+                if ( SetClipboardData( CF_UNICODETEXT,  sglobal ) != NULL ) {
+                  GlobalUnlock(sglobal);
+                  textset = 1;
+                } else {
+                  DWORD last = GetLastError();
+                  GlobalFree(sglobal);
+                  SetLastError(last);
                 }
               }
-            });
+            }
+          });
         } else {  /* Win95/98/Me - try ASCII */
 #else
       { {
@@ -4640,32 +4641,32 @@ DEFUN(POSIX::FOPEN, path mode) {
   STACK_0 = check_string(STACK_0);
   STACK_1 = check_string(STACK_1);
   with_string_0(STACK_1, GLO(pathname_encoding), pathz, {
-      with_string_0(STACK_0, GLO(misc_encoding), modez, {
-          FILE *fp;
-          begin_blocking_system_call();
-          fp = fopen(pathz,modez);
-          end_blocking_system_call();
-          if (fp)
-            STACK_0 = allocate_fpointer((FOREIGN)fp);
-          else
-            ANSIC_error();
-        });
-    });
-  VALUES1(STACK_0); skipSTACK(2);
-}
-DEFUN(POSIX::FDOPEN, fd mode) {
-  STACK_0 = check_string(STACK_0);
-  STACK_1 = check_sint(STACK_1);
-  with_string_0(STACK_0, GLO(misc_encoding), modez, {
+    with_string_0(STACK_0, GLO(misc_encoding), modez, {
       FILE *fp;
       begin_blocking_system_call();
-      fp = fdopen(I_to_sint(STACK_1),modez);
+      fp = fopen(pathz,modez);
       end_blocking_system_call();
       if (fp)
         STACK_0 = allocate_fpointer((FOREIGN)fp);
       else
         ANSIC_error();
     });
+  });
+  VALUES1(STACK_0); skipSTACK(2);
+}
+DEFUN(POSIX::FDOPEN, fd mode) {
+  STACK_0 = check_string(STACK_0);
+  STACK_1 = check_sint(STACK_1);
+  with_string_0(STACK_0, GLO(misc_encoding), modez, {
+    FILE *fp;
+    begin_blocking_system_call();
+    fp = fdopen(I_to_sint(STACK_1),modez);
+    end_blocking_system_call();
+    if (fp)
+      STACK_0 = allocate_fpointer((FOREIGN)fp);
+    else
+      ANSIC_error();
+  });
   VALUES1(STACK_0); skipSTACK(2);
 }
 DEFUN(POSIX::FREOPEN, path mode file) {
@@ -4673,17 +4674,17 @@ DEFUN(POSIX::FREOPEN, path mode file) {
   STACK_1 = check_string(STACK_1); /* mode */
   STACK_0 = check_fpointer(STACK_0,1); /* file */
   with_string_0(STACK_2, GLO(pathname_encoding), pathz, {
-      with_string_0(STACK_1, GLO(misc_encoding), modez, {
-          FILE *fp;
-          begin_blocking_system_call();
-          fp = freopen(pathz,modez,(FILE*)TheFpointer(STACK_0)->fp_pointer);
-          end_blocking_system_call();
-          if (fp)
-            TheFpointer(STACK_0)->fp_pointer = fp;
-          else
-            ANSIC_error();
-        });
+    with_string_0(STACK_1, GLO(misc_encoding), modez, {
+      FILE *fp;
+      begin_blocking_system_call();
+      fp = freopen(pathz,modez,(FILE*)TheFpointer(STACK_0)->fp_pointer);
+      end_blocking_system_call();
+      if (fp)
+        TheFpointer(STACK_0)->fp_pointer = fp;
+      else
+        ANSIC_error();
     });
+  });
   VALUES0; skipSTACK(3);
 }
 #define FILE_FUNCTION(fun,finish)                                \
@@ -5836,12 +5837,12 @@ DEFUN(POSIX:FNMATCH, pattern string &key \
   STACK_0 = check_string(STACK_0);
   STACK_1 = check_string(STACK_1);
   with_string_0(STACK_0,GLO(misc_encoding),stringz, {
-      with_string_0(STACK_1,GLO(misc_encoding),patternz, {
-          begin_system_call();
-          flags = fnmatch(patternz,stringz,flags);
-          end_system_call();
-        });
+    with_string_0(STACK_1,GLO(misc_encoding),patternz, {
+      begin_system_call();
+      flags = fnmatch(patternz,stringz,flags);
+      end_system_call();
     });
+  });
   switch (flags) {
     case 0: VALUES1(T); break;
     case FNM_NOMATCH: VALUES1(NIL); break;

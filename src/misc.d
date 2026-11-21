@@ -29,7 +29,7 @@ LISPFUN(lisp_implementation_version,seclass_no_se,0,0,norest,nokey,0,NIL)
            so I rely on __DATE__ and __TIME__ CPP macros. */
         var uintL se,mi,ho,da,mo,ye;
         with_string_0(O(lisp_implementation_version_built_string),
-                      O(misc_encoding),ztime,{
+                      O(misc_encoding),ztime, {
           begin_system_call();
           /* Mmm dd yyyyhh:mm:ss
              0   4  7   11 14 17 */

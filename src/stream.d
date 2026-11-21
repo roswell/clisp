@@ -8106,9 +8106,10 @@ modexp maygc object make_file_stream
   if ((buffered == BUFFERED_DEFAULT) && !nullp(STACK_4)) { /* truename */
     var object dir = ThePathname(STACK_4)->pathname_directory;
     if (consp(dir) && consp(Cdr(dir)))
-      with_sstring_0(Car(Cdr(dir)),O(pathname_encoding),top_dir,
-                     { if (asciz_equal(top_dir,"proc"))
-                         buffered = BUFFERED_NIL; });
+      with_sstring_0(Car(Cdr(dir)),O(pathname_encoding),top_dir, {
+        if (asciz_equal(top_dir,"proc"))
+          buffered = BUFFERED_NIL;
+      });
   }
  #endif
   if (buffered == BUFFERED_DEFAULT)

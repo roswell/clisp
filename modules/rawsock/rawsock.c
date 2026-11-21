@@ -455,10 +455,10 @@ DEFUN(RAWSOCK:PROTOCOL, &optional protocol)
   } else if (stringp(proto)) {
 #  if defined(HAVE_GETPROTOBYNAME) || defined(WIN32_NATIVE)
     with_string_0(proto,GLO(misc_encoding),protoz, {
-        begin_system_call();
-        pe = getprotobyname(protoz);
-        end_system_call();
-      });
+      begin_system_call();
+      pe = getprotobyname(protoz);
+      end_system_call();
+    });
 #  endif
   } else
     error_string_integer(proto);
@@ -508,10 +508,10 @@ DEFUN(RAWSOCK:NETWORK, &optional network type)
   } else if (stringp(net)) {
 #  if defined(HAVE_GETNETBYNAME)
     with_string_0(net,GLO(misc_encoding),netz, {
-        begin_system_call();
-        ne = getnetbyname(netz);
-        end_system_call();
-      });
+      begin_system_call();
+      ne = getnetbyname(netz);
+      end_system_call();
+    });
 #  endif
   } else
     error_string_integer(net);
@@ -555,10 +555,10 @@ DEFUN(RAWSOCK:IF-NAME-INDEX, &optional what) {
 #  if defined(HAVE_IF_INDEXTONAME)
     unsigned int idx;
     with_string_0(STACK_0,GLO(misc_encoding),namez, {
-        begin_system_call();
-        if (0 == (idx = if_nametoindex(namez))) ANSIC_error();
-        end_system_call();
-      });
+      begin_system_call();
+      if (0 == (idx = if_nametoindex(namez))) ANSIC_error();
+      end_system_call();
+    });
     VALUES1(uint_to_I(idx));
 #  else
     pushSTACK(TheSubr(subr_self)->name);
@@ -653,8 +653,8 @@ static int get_socket_protocol (object proto) {
   if (stringp(proto)) {
     struct protoent *pe;
     with_string_0(proto,GLO(misc_encoding),protoz, {
-        begin_system_call(); pe = getprotobyname(protoz); end_system_call();
-      });
+      begin_system_call(); pe = getprotobyname(protoz); end_system_call();
+    });
     if (pe) return pe->p_proto;
     pushSTACK(NIL);             /* no PLACE */
     pushSTACK(proto); pushSTACK(TheSubr(subr_self)->name);
@@ -917,17 +917,17 @@ DEFUN(RAWSOCK:GETADDRINFO, &key NODE SERVICE PROTOCOL SOCKTYPE FAMILY \
       call_getaddrinfo(NULL,NULL,&hints,&ret);
     else
       with_string_0(check_string(STACK_1),GLO(misc_encoding),node, {
-          call_getaddrinfo(node,NULL,&hints,&ret);
-        });
+        call_getaddrinfo(node,NULL,&hints,&ret);
+      });
   } else {
     with_string_0(check_string(STACK_0),GLO(misc_encoding),service, {
-        if (missingp(STACK_1))
-          call_getaddrinfo(NULL,service,&hints,&ret);
-        else
-          with_string_0(check_string(STACK_1),GLO(misc_encoding),node, {
-              call_getaddrinfo(node,service,&hints,&ret);
-            });
-      });
+      if (missingp(STACK_1))
+        call_getaddrinfo(NULL,service,&hints,&ret);
+      else
+        with_string_0(check_string(STACK_1),GLO(misc_encoding),node, {
+          call_getaddrinfo(node,service,&hints,&ret);
+        });
+    });
   }
   for (tmp = ret; tmp; tmp = tmp->ai_next, valcount++) {
     pushSTACK(check_addrinfo_flags_to_list(tmp->ai_flags));
@@ -1189,10 +1189,10 @@ DEFUN(RAWSOCK:CONFIGDEV, socket ifname ipaddress &key PROMISC NOARP) {
   uint32 ipaddress = I_to_UL(check_uint32(STACK_0));
   rawsock_t sock = I_to_uint(check_uint(STACK_2));
   with_string_0(check_string(STACK_1),Symbol_value(S(utf_8)),ifname, {
-      begin_blocking_system_call();
-      configdev(sock, ifname, ipaddress, flags);
-      end_blocking_system_call();
-    });
+    begin_blocking_system_call();
+    configdev(sock, ifname, ipaddress, flags);
+    end_blocking_system_call();
+  });
   VALUES0; skipSTACK(3);
 }
 #endif  /* HAVE_NET_IF_H */

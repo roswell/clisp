@@ -125,8 +125,8 @@ static GDBM_FILE check_gdbm (gcv_object_t *gdbm, gdbm_data_t *key,
 static object open_gdbm (object path, int bsize, int rw, int mode) {
   GDBM_FILE gdbm;
   with_string_0(path, GLO(pathname_encoding), name, {
-      SYSCALL(gdbm = gdbm_open(name, bsize, rw, mode, error_gdbm));
-    });
+    SYSCALL(gdbm = gdbm_open(name, bsize, rw, mode, error_gdbm));
+  });
   if (gdbm == NULL) error_gdbm(NULL);
   return allocate_fpointer(gdbm);
 }

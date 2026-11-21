@@ -182,10 +182,10 @@ DEFUN(I18N:SET-TEXTDOMAINDIR, domain directory)
        to protect against later chdir() calls. */
     object directory = pathname_to_OSdir(STACK_0,true);
     with_string_0(STACK_1/*domain*/,Symbol_value(S(ascii)),domain_asciz, {
-        begin_system_call();
-        bindtextdomain(domain_asciz,TheAsciz(directory));
-        end_system_call();
-      });
+      begin_system_call();
+      bindtextdomain(domain_asciz,TheAsciz(directory));
+      end_system_call();
+    });
   }
  #endif
   VALUES1(STACK_0);
@@ -211,15 +211,15 @@ DEFUN(I18N:SET-LOCALE, &optional category locale)
       }
     } else {
       *locale = check_string(*locale);
-      with_string_0(*locale,GLO(misc_encoding),loc_z,{
-          for (; pos < check_locale_category_map.size; pos++) {
-            begin_system_call();
-            res = setlocale(check_locale_category_map.table[pos].c_const,loc_z);
-            end_system_call();
-            pushSTACK(*check_locale_category_map.table[pos].l_const);
-            pushSTACK(safe_to_string(res));
-          }
-        });
+      with_string_0(*locale,GLO(misc_encoding),loc_z, {
+        for (; pos < check_locale_category_map.size; pos++) {
+          begin_system_call();
+          res = setlocale(check_locale_category_map.table[pos].c_const,loc_z);
+          end_system_call();
+          pushSTACK(*check_locale_category_map.table[pos].l_const);
+          pushSTACK(safe_to_string(res));
+        }
+      });
     }
     VALUES1(listof(2*check_locale_category_map.size));
   } else {
@@ -230,11 +230,11 @@ DEFUN(I18N:SET-LOCALE, &optional category locale)
       end_system_call();
     } else {
       *locale = check_string(*locale);
-      with_string_0(*locale,GLO(misc_encoding),loc_z,{
-          begin_system_call();
-          res = setlocale(cat_value,loc_z);
-          end_system_call();
-        });
+      with_string_0(*locale,GLO(misc_encoding),loc_z, {
+        begin_system_call();
+        res = setlocale(cat_value,loc_z);
+        end_system_call();
+      });
     }
     VALUES1(safe_to_string(res));
   }

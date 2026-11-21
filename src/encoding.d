@@ -2052,7 +2052,7 @@ LISPFUN(make_encoding,seclass_read,0,0,norest,key,5,
     #ifdef HAVE_GOOD_ICONV
     else {
       var bool valid_encoding_p = true;
-      with_string_0(arg,Symbol_value(S(ascii)),charset_ascii,{
+      with_string_0(arg,Symbol_value(S(ascii)),charset_ascii, {
         valid_encoding_p =
           check_charset(charset_ascii,ignore_not_exist ? nullobj : arg);
       });

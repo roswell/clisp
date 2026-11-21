@@ -667,7 +667,7 @@ global maygc off_t savemem (object stream, uintL executable)
   var char hostname[DUMPHOST_LEN+1];
   memset(hostname,'\0',DUMPHOST_LEN+1);
   if (!nullp(value1)) {
-    with_string_0(value1,Symbol_value(S(utf_8)),host,{
+    with_string_0(value1,Symbol_value(S(utf_8)),host, {
       strncpy(hostname,host,DUMPHOST_LEN);
     });
   }

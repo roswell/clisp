@@ -628,7 +628,7 @@ static void init_iteration_node (object state, object subkey,
  {object dk = test_dir_key(ITST_DKEY(STACK_4/*state*/),true);
   gcv_object_t *slots = dir_key_slots(dk);
   FOREIGN fp;
-  with_string_0(*new_path,GLO(misc_encoding),pathz,{
+  with_string_0(*new_path,GLO(misc_encoding),pathz, {
     open_reg_key((HKEY)SLOT_HANDLE(slots),pathz,check_direction(slots[DK_DIR]),
                  IF_DOES_NOT_EXIST_UNBOUND/*ignore*/,(HKEY*)&fp);
   });
@@ -784,7 +784,7 @@ DEFUN(LDAP::DIR-KEY-VALUE, key name &optional default) {
  {object dkey = test_dir_key(STACK_2,true);
   object name = STACK_1;
   object default_value = STACK_0;
-  with_string_0(name,GLO(misc_encoding),namez,{
+  with_string_0(name,GLO(misc_encoding),namez, {
     DWORD status;
     DWORD type;
     DWORD size;
@@ -852,7 +852,8 @@ DEFUN(LDAP::SET-DKEY-VALUE, key name value)
   object name = STACK_0; skipSTACK(2);                                  \
   with_string_0(name,GLO(misc_encoding),namez,{                         \
     SYSCALL_WIN32(call((HKEY)SLOT_HANDLE(dir_key_slots(dkey)),namez));  \
-    });}                                                                \
+  });                                                                   \
+ }                                                                      \
   VALUES1(NIL)
 
 DEFUN(LDAP::DIR-KEY-SUBKEY-DELETE, key name)
