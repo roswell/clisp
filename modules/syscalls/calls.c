@@ -193,10 +193,9 @@ typedef BOOL (WINAPI * LockFileExFuncType)
    DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh,
    LPOVERLAPPED lpOverlapped);
 static LockFileExFuncType LockFileExFunc = NULL;
-static BOOL my_LockFileEx
-(HANDLE hFile, DWORD dwFlags, DWORD dwReserved,
- DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh,
- LPOVERLAPPED lpOverlapped) {
+static BOOL my_LockFileEx (HANDLE hFile, DWORD dwFlags, DWORD dwReserved,
+                           DWORD nNumberOfBytesToLockLow, DWORD nNumberOfBytesToLockHigh,
+                           LPOVERLAPPED lpOverlapped) {
   (void)dwFlags; (void)dwReserved;
   return LockFile(hFile,lpOverlapped->Offset,lpOverlapped->OffsetHigh,
                   nNumberOfBytesToLockLow,nNumberOfBytesToLockHigh);
@@ -206,10 +205,9 @@ typedef BOOL (WINAPI * UnlockFileExFuncType)
    DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh,
    LPOVERLAPPED lpOverlapped);
 static UnlockFileExFuncType UnlockFileExFunc = NULL;
-static BOOL my_UnlockFileEx
-(HANDLE hFile, DWORD dwReserved,
- DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh,
- LPOVERLAPPED lpOverlapped) {
+static BOOL my_UnlockFileEx (HANDLE hFile, DWORD dwReserved,
+                             DWORD nNumberOfBytesToUnlockLow, DWORD nNumberOfBytesToUnlockHigh,
+                             LPOVERLAPPED lpOverlapped) {
   (void)dwReserved;
   return UnlockFile(hFile,lpOverlapped->Offset,lpOverlapped->OffsetHigh,
                     nNumberOfBytesToUnlockLow,nNumberOfBytesToUnlockHigh);
@@ -357,8 +355,7 @@ DEFUN(POSIX::STREAM-OPTIONS, stream cmd &optional value)
  < returns whatever f returns
  NB: on success, unix functions return 0, while woe32 functions return 1 !
  can trigger GC */
-static /*maygc*/ void* on_pnamestring
-(object path, void* (*f) (const char*,void*), void* data) {
+static /*maygc*/ void* on_pnamestring (object path, void* (*f) (const char*,void*), void* data) {
   void* ret;
   pushSTACK(physical_namestring(path)); /* save for blocking */
   with_string_0(STACK_0,GLO(pathname_encoding),pathz, {

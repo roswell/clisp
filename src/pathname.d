@@ -5787,8 +5787,10 @@ local void find_first_file (const char *namestring_asciz,
  < fsize: file size (if return is success and address is supplied)
  < returns: the file kind
  triggers GC if fwd or fsize are supplied */
-global /*maygc*/ file_kind_t classify_namestring
-(const char* namestring, char *resolved, gcv_object_t *fwd, gcv_object_t* fsize) {
+global /*maygc*/ file_kind_t classify_namestring (const char* namestring,
+                                                  char *resolved,
+                                                  gcv_object_t *fwd,
+                                                  gcv_object_t* fsize) {
   if (fwd || fsize) GCTRIGGER();
 #if defined(UNIX)
   var struct stat status;
@@ -6397,8 +6399,8 @@ local inline maygc void create_backup_file (char* pathstring,
   });
   skipSTACK(1);
 }
-local inline maygc void create_backup_file_obj
-(object namestring, bool delete_backup_file) {
+local inline maygc void create_backup_file_obj (object namestring,
+                                                bool delete_backup_file) {
   with_sstring_0(namestring,O(pathname_encoding),namestring_asciz,
                  { create_backup_file(namestring_asciz,delete_backup_file); });
 }
@@ -7055,8 +7057,9 @@ local maygc bool split_nametype_match(gcv_object_t *pattern,
 /* should be per thread - moved to clisp_thread_t in MT */
 local bool running_handle_directory_encoding_error = false;
 #endif
-local void handle_directory_encoding_error /* cf. enter_frame_at_STACK */
-(void *sp, gcv_object_t* frame, object label, object condition) {
+local void handle_directory_encoding_error (void *sp, gcv_object_t* frame,
+                                            object label, object condition) {
+  /* cf. enter_frame_at_STACK */
   unused(sp); unused(label);
   /* avoid nested handle_directory_encoding_error calls */
   if (running_handle_directory_encoding_error)
@@ -8581,9 +8584,10 @@ local void mkpipe (Handle * hin, bool dupinp, Handle * hout, bool dupoutp) {
 
 #endif
 
-local maygc bool init_launch_streamarg
-(gcv_object_t *streamarg, bool child_inputp, Handle stdhandle,
- Handle * h, Handle * ph, Handle * hnull, bool * wait_p) {
+local maygc bool init_launch_streamarg (gcv_object_t *streamarg,
+                                        bool child_inputp, Handle stdhandle,
+                                        Handle * h, Handle * ph, Handle * hnull,
+                                        bool * wait_p) {
   var int handletype = 0;
   *h = INVALID_HANDLE;
   *ph = INVALID_HANDLE;
@@ -8612,9 +8616,10 @@ local maygc bool init_launch_streamarg
   return (*h != INVALID_HANDLE);
 }
 
-local maygc void make_launch_pipe
-(gcv_object_t *ret, direction_t direction, Handle hparent_pipe, int childpid,
- gcv_object_t *enc, gcv_object_t *eltype, gcv_object_t *buffered) {
+local maygc void make_launch_pipe (gcv_object_t *ret, direction_t direction,
+                                   Handle hparent_pipe, int childpid,
+                                   gcv_object_t *enc, gcv_object_t *eltype,
+                                   gcv_object_t *buffered) {
   if (hparent_pipe != INVALID_HANDLE) {
     pushSTACK(*enc);            /* encoding */
     pushSTACK(*eltype);         /* element-type */

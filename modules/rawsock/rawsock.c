@@ -721,8 +721,9 @@ DEFUN(RAWSOCK:SOCKATMARK, sock) {
    SOCKADDR: extract data
  the return value is invalidated by GC, only use in with_opt_sa_arg
  can trigger GC */
-static /*maygc*/ struct sockaddr* optional_sockaddr_argument
-(gcv_object_t *arg, socklen_t *size PIN_ARG_DECL) {
+static /*maygc*/ struct sockaddr* optional_sockaddr_argument (gcv_object_t *arg,
+                                                              socklen_t *size
+                                                              PIN_ARG_DECL) {
   if (nullp(*arg))
     return NULL;
   else {

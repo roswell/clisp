@@ -1044,8 +1044,7 @@ global maygc object check_symbol_replacement (object obj) {
  > caller: a symbol
  < result: a non-constant symbol, a replacement
  can trigger GC */
-global maygc object check_symbol_non_constant_replacement
-(object obj, object caller) {
+global maygc object check_symbol_non_constant_replacement (object obj, object caller) {
   while (true) {
     obj = check_symbol(obj);
     if (!constant_var_p(TheSymbol(obj))) break;
@@ -1564,8 +1563,7 @@ global maygc object check_fdefinition (object funname, object caller)
  > obj: not a function name
  < result: a function name, either the same as obj or a replacement
  can trigger GC */
-global maygc object check_funname_replacement
-(condition_t errtype, object caller, object obj) {
+global maygc object check_funname_replacement (condition_t errtype, object caller, object obj) {
   pushSTACK(caller); /* save */
   do {
     caller = STACK_0;

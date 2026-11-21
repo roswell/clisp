@@ -808,8 +808,8 @@ local maygc void make_present (object sym, object pack) {
            2, if inherited via use-list
            3, if available as internal symbol
  can trigger GC */
-modexp maygc uintBWL intern
-(object string, bool invert, object pack, object* sym_) {
+modexp maygc uintBWL intern (object string, bool invert, object pack,
+                             object* sym_) {
   /* first check without locking */
   var uintBWL result = find_symbol(string,invert,pack,sym_);
   if (!(result==0)) {

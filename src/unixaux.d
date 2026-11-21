@@ -246,8 +246,7 @@ local inline int fd_read_will_hang_p (int fd)
    Return value like read().
    When the return value is 0, it sets errno to indicate whether EOF has been
    seen (ENOENT) or whether it is not yet known (EAGAIN). */
-modexp ssize_t fd_read
-(int fd, void* bufarea, size_t nbyte, perseverance_t persev) {
+modexp ssize_t fd_read (int fd, void* bufarea, size_t nbyte, perseverance_t persev) {
   var char* buf = (char*) bufarea;
   if (nbyte == 0) {
     errno = EAGAIN;
@@ -395,8 +394,7 @@ local inline int fd_write_will_hang_p (int fd)
    Return value like write().
    When the return value is 0, it sets errno to indicate whether EOWF has been
    seen (ENOENT) or whether it is not yet known (EAGAIN). */
-modexp ssize_t fd_write
-(int fd, const void* bufarea, size_t nbyte, perseverance_t persev) {
+modexp ssize_t fd_write (int fd, const void* bufarea, size_t nbyte, perseverance_t persev) {
   var const char* buf = (const char*) bufarea;
   if (nbyte == 0) {
     errno = EAGAIN;

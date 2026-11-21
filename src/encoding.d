@@ -2210,8 +2210,8 @@ LISPFUN(charset_range,seclass_read,3,1,norest,nokey,0,NIL) {
  < return: normal-simple-string with len characters as content
  can trigger GC */
 #ifdef ENABLE_UNICODE
-modexp maygc object n_char_to_string
-(const char* srcptr, uintL blen, object encoding) {
+modexp maygc object n_char_to_string (const char* srcptr, uintL blen,
+                                      object encoding) {
   var const uintB* bptr = (const uintB*)srcptr;
   var const uintB* bendptr = bptr+blen;
   var uintL clen = Encoding_mblen(encoding)(encoding,bptr,bendptr);

@@ -446,9 +446,9 @@ global gcv_object_t* specdecled_ (object symbol, gcv_object_t* spec_pointer,
  < uintC spec_count: number of SPECDECL bindings.
  changes STACK (STACK_0<-value1=({form}) + bindings requiring 2 unwind calls)
  can trigger GC */
-local /*maygc*/ void make_variable_frame
-(object caller, object varspecs, gcv_object_t** bind_ptr_, uintC* bind_count_,
- gcv_object_t** spec_ptr_, uintC* spec_count_)
+local /*maygc*/ void make_variable_frame (object caller, object varspecs,
+                                          gcv_object_t** bind_ptr_, uintC* bind_count_,
+                                          gcv_object_t** spec_ptr_, uintC* spec_count_)
 {
   GCTRIGGER4(caller,varspecs,value1,value2);
   var object declarations = value2;

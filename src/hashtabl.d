@@ -617,9 +617,8 @@ local inline uint32 hashcode_tree (object obj, int level,
 /* similar to hashcode_tree
  NB: use the SAME top-level need initial value (e.g., HASHCODE_NEED_LEAVES)
    for the corresponding hashcode_tree and gcinvariant_hashcode_tree_p calls */
-local inline bool gcinvariant_hashcode_tree_p_rec
-(object obj, int* need, int level,
- bool (gcinvariant_hashcode_leaf_p) (object)) {
+local inline bool gcinvariant_hashcode_tree_p_rec (object obj, int* need, int level,
+                                                   bool (gcinvariant_hashcode_leaf_p) (object)) {
   if (atomp(obj)) {
     (*need)--;
     return gcinvariant_hashcode_leaf_p(obj);
@@ -633,8 +632,8 @@ local inline bool gcinvariant_hashcode_tree_p_rec
                                           gcinvariant_hashcode_leaf_p));
   }
 }
-local inline bool gcinvariant_hashcode_tree_p
-(object obj, bool (gcinvariant_hashcode_leaf_p) (object)) {
+local inline bool gcinvariant_hashcode_tree_p (object obj,
+                                               bool (gcinvariant_hashcode_leaf_p) (object)) {
   int need = HASHCODE_NEED_LEAVES;
   return gcinvariant_hashcode_tree_p_rec(obj,&need,0,
                                          gcinvariant_hashcode_leaf_p);

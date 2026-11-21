@@ -1,5 +1,9 @@
 2026-11-21  Bruno Haible  <bruno@clisp.org>
 
+	Code style: Don't start a function's parameter list in a new line.
+
+2026-11-21  Bruno Haible  <bruno@clisp.org>
+
 	Code style: Write 'while (true)' instead of 'for (;;)'.
 
 2026-11-21  Bruno Haible  <bruno@clisp.org>

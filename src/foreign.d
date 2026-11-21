@@ -800,9 +800,10 @@ local maygc void push_foreign_object (object obj, object lib_spec) {
  > offset  - address offset in the library or NIL
  < new object address
  can trigger GC */
-local maygc object foreign_library_check
-(gcv_object_t *name, gcv_object_t *library,
- gcv_object_t *version, gcv_object_t *offset) {
+local maygc object foreign_library_check (gcv_object_t *name,
+                                          gcv_object_t *library,
+                                          gcv_object_t *version,
+                                          gcv_object_t *offset) {
   *library = check_library(library);
   if (!nullp(*offset)) *offset = check_sint32(*offset);
   if (!nullp(*version)) *version = coerce_ss(*version);
@@ -908,8 +909,8 @@ local maygc object foreign_library_variable (
  > flags: fv_readonly for read-only variables
  > size: its size in bytes
  can trigger GC */
-modexp maygc void register_foreign_variable
-(void* address, const char * name_asciz, uintBWL flags, uintL size) {
+modexp maygc void register_foreign_variable (void* address, const char * name_asciz,
+                                             uintBWL flags, uintL size) {
   var object name = asciz_to_string(name_asciz,O(internal_encoding));
   var object obj = gethash(name,O(foreign_variable_table),false);
   if (!eq(obj,nullobj)) {
@@ -945,8 +946,8 @@ modexp maygc void register_foreign_variable
  > name: its name
  > flags: its language and parameter passing convention
  can trigger GC */
-modexp maygc void register_foreign_function
-(void* address, const char * name_asciz, uintWL flags) {
+modexp maygc void register_foreign_function (void* address, const char * name_asciz,
+                                             uintWL flags) {
   var object name = asciz_to_string(name_asciz,O(internal_encoding));
   var object obj = gethash(name,O(foreign_function_table),false);
   if (!eq(obj,nullobj)) {
@@ -993,8 +994,8 @@ local object parse_foreign_inttype (uintL size, bool signed_p) {
  > size : sizeof(name_asciz)
  > alignment : alignof(name_asciz)
  can trigger GC */
-modexp maygc void register_foreign_inttype
-(const char * name_asciz, uintL size, bool signed_p) {
+modexp maygc void register_foreign_inttype (const char * name_asciz, uintL size,
+                                            bool signed_p) {
   var object name = asciz_to_string(name_asciz,O(internal_encoding));
   var object obj = gethash(name,O(foreign_inttype_table),false);
   var object inttype = parse_foreign_inttype(size, signed_p);
@@ -2389,9 +2390,10 @@ local maygc void convert_to_foreign_needs (object fvd, object obj,
    Storage is allocated through converter_malloc().
  Only the toplevel storage must already exist; its address is given.
  can trigger GC */
-modexp maygc void convert_to_foreign
-(object fvd, object obj, void* data, converter_malloc_t *converter_malloc,
- void** state) { /* keep in sync with foreign1.lisp:convert-to-foreign */
+modexp maygc void convert_to_foreign (object fvd, object obj, void* data,
+                                      converter_malloc_t *converter_malloc,
+                                      void** state) {
+  /* keep in sync with foreign1.lisp:convert-to-foreign */
   check_SP();
   check_STACK();
   if (NULL == data) {
@@ -2909,8 +2911,7 @@ local _Noreturn void error_variable_no_fvd (object obj) {
  > name -- lisp name
  > fvd --- FFI type
  can trigger GC */
-local maygc object lookup_foreign_variable
-(gcv_object_t *name, gcv_object_t *fvd) {
+local maygc object lookup_foreign_variable (gcv_object_t *name, gcv_object_t *fvd) {
   var object fvar = gethash(*name,O(foreign_variable_table),false);
   if (eq(fvar,nullobj)) {
     pushSTACK(NIL);             /* 4 continue-format-string */
@@ -3659,8 +3660,8 @@ local _Noreturn void error_function_no_fvd (object obj, object caller) {
 
 /* UP: looks up a foreign function, given its Lisp name.
  can trigger GC */
-local maygc object lookup_foreign_function
-(gcv_object_t *name_, gcv_object_t *fvd_, gcv_object_t *properties_) {
+local maygc object lookup_foreign_function (gcv_object_t *name_, gcv_object_t *fvd_,
+                                            gcv_object_t *properties_) {
   var object ffun = allocate_ffunction();
   var object props = *properties_;
   var object fvd = *fvd_;

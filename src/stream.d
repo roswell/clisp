@@ -620,9 +620,9 @@ local maygc uintL check_value_range (object value, object caller,
  > perseverance_t persev: how to react on incomplete I/O
  < uintL result: number of bytes that have been filled
  can trigger GC */
-modexp maygc uintL read_byte_array
-(const gcv_object_t* stream_, const gcv_object_t* bytearray_,
- uintL start, uintL len, perseverance_t persev) {
+modexp maygc uintL read_byte_array (const gcv_object_t* stream_,
+                                    const gcv_object_t* bytearray_,
+                                    uintL start, uintL len, perseverance_t persev) {
   if (len==0)
     return 0;
   var object stream = *stream_;
@@ -664,9 +664,9 @@ global maygc void write_byte (object stream, object byte) {
  > perseverance_t persev: how to react on incomplete I/O
  < uintL result: number of bytes that have been written
  can trigger GC */
-modexp maygc uintL write_byte_array
-(const gcv_object_t* stream_, const gcv_object_t* bytearray_,
- uintL start, uintL len, perseverance_t persev) {
+modexp maygc uintL write_byte_array (const gcv_object_t* stream_,
+                                     const gcv_object_t* bytearray_,
+                                     uintL start, uintL len, perseverance_t persev) {
   if (len==0)
     return 0;
   var object stream = *stream_;
@@ -5052,8 +5052,9 @@ local bool fd_error_eof_p (void) {
   return ret;
 }
 
-local maygc uintB* low_read_array_unbuffered_handle
-(object stream, uintB* byteptr, uintL len, perseverance_t persev) {
+local maygc uintB* low_read_array_unbuffered_handle (object stream,
+                                                     uintB* byteptr, uintL len,
+                                                     perseverance_t persev) {
   if (UnbufferedStream_status(stream) < 0) /* already EOF? */
     return byteptr;
   byteptr = UnbufferedStream_pop_all(stream,byteptr,&len);
@@ -5144,9 +5145,9 @@ local maygc object rd_by_iau8_unbuffered (object stream) {
 }
 
 /* READ-BYTE-ARRAY - Pseudo-Function for Handle-Streams, Type au, bitsize = 8 : */
-local maygc uintL rd_by_array_iau8_unbuffered
-(const gcv_object_t* stream_, const gcv_object_t* bytearray_,
- uintL start, uintL len, perseverance_t persev) {
+local maygc uintL rd_by_array_iau8_unbuffered (const gcv_object_t* stream_,
+                                               const gcv_object_t* bytearray_,
+                                               uintL start, uintL len, perseverance_t persev) {
   var uintB* startptr = &TheSbvector(*bytearray_)->data[start];
   pin_unprotect_varobject(*bytearray_,PROT_READ_WRITE);
   var uintB* endptr =
@@ -5487,8 +5488,9 @@ local maygc void low_write_unbuffered_handle (object stream, uintB b) {
     error_unwritable(TheSubr(subr_self)->name,stream);
 }
 
-local maygc const uintB* low_write_array_unbuffered_handle
-(object stream, const uintB* byteptr, uintL len, perseverance_t persev) {
+local maygc const uintB* low_write_array_unbuffered_handle (object stream,
+                                                            const uintB* byteptr, uintL len,
+                                                            perseverance_t persev) {
   var Handle handle = TheHandle(TheStream(stream)->strm_ochannel);
   /* On regular file handles, persev_immediate and persev_bonus are effectively
    equivalent to persev_partial. Transforming persev_immediate, persev_bonus
@@ -5555,9 +5557,9 @@ local maygc void wr_by_iau8_unbuffered (object stream, object obj) {
 }
 
 /* WRITE-BYTE-ARRAY - Pseudo-Function for Handle-Streams, Type au, bitsize = 8 : */
-local maygc uintL wr_by_array_iau8_unbuffered
-(const gcv_object_t* stream_, const gcv_object_t* bytearray_,
- uintL start, uintL len, perseverance_t persev) {
+local maygc uintL wr_by_array_iau8_unbuffered (const gcv_object_t* stream_,
+                                               const gcv_object_t* bytearray_,
+                                               uintL start, uintL len, perseverance_t persev) {
   var object stream = *stream_;
   var uintB* startp = &TheSbvector(*bytearray_)->data[start];
   pin_unprotect_varobject(*bytearray_,PROT_READ);
@@ -6011,9 +6013,9 @@ local void fill_pseudofuns_unbuffered (object stream,
  < result: File-Handle-Stream, Handle_{input,output}_init still needs to be called
  < STACK: cleaned up
  can trigger GC */
-local maygc object make_unbuffered_stream
-(uintB type, direction_t direction, const decoded_el_t* eltype,
- bool handle_regular, bool handle_tty) {
+local maygc object make_unbuffered_stream (uintB type, direction_t direction,
+                                           const decoded_el_t* eltype,
+                                           bool handle_regular, bool handle_tty) {
   var uintB flags = DIRECTION_FLAGS(direction) & ELTYPE_FLAFS(eltype);
   /* allocate Stream: */
   var object stream = allocate_stream(flags,type,strm_channel_len,
@@ -6518,8 +6520,9 @@ local maygc void sync_file_buffered (object stream) {
  < byteptr[0..count-1] : read Bytes.
  < result: &byteptr[count] (with count = len, or count < len if EOF reached)
  changed in stream: index, endvalid, buffstart */
-local maygc uintB* read_byte_array_buffered
-(object stream, uintB* byteptr, uintL len, perseverance_t persev) {
+local maygc uintB* read_byte_array_buffered (object stream,
+                                              uintB* byteptr, uintL len,
+                                               perseverance_t persev) {
   pushSTACK(stream);
   while (true) {
     var uintB* ptr = buffered_nextbyte(stream, persev == persev_full ? persev_partial : persev);
@@ -6567,8 +6570,9 @@ local maygc uintB* read_byte_array_buffered
  > persev: how to react on incomplete I/O
  < result: &byteptr[len]
  changed in stream: index, endvalid, buffstart */
-local maygc const uintB* write_byte_array_buffered
-(object stream, const uintB* byteptr, uintL len, perseverance_t persev) {
+local maygc const uintB* write_byte_array_buffered (object stream,
+                                                    const uintB* byteptr, uintL len,
+                                                    perseverance_t persev) {
   var uintL remaining = len;
   var uintB* ptr;
   pushSTACK(stream);
@@ -7518,9 +7522,9 @@ local maygc object rd_by_iau8_buffered (object stream) {
 }
 
 /* READ-BYTE-SEQUENCE for File-Streams of Integers, Type au, bitsize = 8 : */
-local maygc uintL rd_by_array_iau8_buffered
-(const gcv_object_t* stream_, const gcv_object_t* bytearray_,
- uintL start, uintL len, perseverance_t persev) {
+local maygc uintL rd_by_array_iau8_buffered (const gcv_object_t* stream_,
+                                             const gcv_object_t* bytearray_,
+                                             uintL start, uintL len, perseverance_t persev) {
   pin_unprotect_varobject(*bytearray_,PROT_READ_WRITE);
   var uintB* startptr = &TheSbvector(*bytearray_)->data[start];
   var uintB* endptr = read_byte_array_buffered(*stream_,startptr,len,persev);
@@ -7705,9 +7709,9 @@ local maygc void wr_by_iau8_buffered (object stream, object obj) {
 }
 
 /* WRITE-BYTE-SEQUENCE for File-Streams of Integers, Type au, bitsize = 8 : */
-local maygc uintL wr_by_array_iau8_buffered
-(const gcv_object_t* stream_, const gcv_object_t* bytearray_,
- uintL start, uintL len, perseverance_t persev) {
+local maygc uintL wr_by_array_iau8_buffered (const gcv_object_t* stream_,
+                                             const gcv_object_t* bytearray_,
+                                             uintL start, uintL len, perseverance_t persev) {
   pin_unprotect_varobject(*bytearray_,PROT_READ);
   write_byte_array_buffered(*stream_,TheSbvector(*bytearray_)->data+start,len,persev);
   unpin_varobject(*bytearray_);
@@ -7940,9 +7944,10 @@ local void fill_pseudofuns_buffered (object stream,
            for eltype.size<8 also eofposition still to be to determined
  < STACK: cleaned up
  can trigger GC */
-local maygc object make_buffered_stream
-(uintB type, direction_t direction, const decoded_el_t* eltype,
- bool handle_regular, bool handle_blockpositioning) {
+local maygc object make_buffered_stream (uintB type, direction_t direction,
+                                         const decoded_el_t* eltype,
+                                         bool handle_regular,
+                                         bool handle_blockpositioning) {
   var uintB flags = DIRECTION_FLAGS(direction) & ELTYPE_FLAFS(eltype);
   var uintC xlen = NON_WHOLE_BYTE_P(eltype)
     ? sizeof(strm_i_buffered_extrafields_t) /* integer file-streams */
@@ -8081,8 +8086,8 @@ global maygc void* find_open_file (struct file_id *fid, uintB flags) {
  < result: File-Stream (or poss. File-Handle-Stream)
  < STACK: cleaned up
  can trigger GC */
-modexp maygc object make_file_stream
-(direction_t direction, bool append_flag, bool handle_fresh) {
+modexp maygc object make_file_stream (direction_t direction,
+                                      bool append_flag, bool handle_fresh) {
   var decoded_el_t eltype;
   var buffered_t buffered;
   /* Check and canonicalize the :ELEMENT-TYPE argument: */
@@ -12865,8 +12870,9 @@ local maygc void low_write_unbuffered_pipe (object stream, uintB b) {
     error_unwritable(TheSubr(subr_self)->name,stream);
 }
 
-local maygc const uintB* low_write_array_unbuffered_pipe
-(object stream, const uintB* byteptr, uintL len, perseverance_t persev) {
+local maygc const uintB* low_write_array_unbuffered_pipe (object stream,
+                                                          const uintB* byteptr, uintL len,
+                                                          perseverance_t persev) {
   var Handle handle = TheHandle(TheStream(stream)->strm_ochannel);
   begin_system_call();
   pushSTACK(stream);
@@ -13396,8 +13402,9 @@ local bool low_clear_input_unbuffered_socket (object stream) {
   return false; /* Not sure whether this is the correct behaviour?? */
 }
 
-local maygc uintB* low_read_array_unbuffered_socket
-(object stream, uintB* byteptr, uintL len, perseverance_t persev) {
+local maygc uintB* low_read_array_unbuffered_socket (object stream,
+                                                     uintB* byteptr, uintL len,
+                                                     perseverance_t persev) {
   if (UnbufferedStream_status(stream) < 0) /* already EOF? */
     return byteptr;
   byteptr = UnbufferedStream_pop_all(stream,byteptr,&len);
@@ -13446,8 +13453,9 @@ local maygc void low_write_unbuffered_socket (object stream, uintB b) {
     error_unwritable(TheSubr(subr_self)->name,stream);
 }
 
-local maygc const uintB* low_write_array_unbuffered_socket
-(object stream, const uintB* byteptr, uintL len, perseverance_t persev) {
+local maygc const uintB* low_write_array_unbuffered_socket (object stream,
+                                                            const uintB* byteptr, uintL len,
+                                                            perseverance_t persev) {
   var SOCKET handle = TheSocket(TheStream(stream)->strm_ochannel);
   var ssize_t result;
   pushSTACK(stream);
@@ -13824,10 +13832,12 @@ LISPFUNN(socket_server_close,1) {
   VALUES1(NIL);
 }
 
-extern SOCKET create_server_socket_by_string
-(host_data_t *hd, const char *ip_interface, unsigned int port, int backlog);
-extern SOCKET create_server_socket_by_socket
-(host_data_t *hd, SOCKET sock, unsigned int port, int backlog);
+extern SOCKET create_server_socket_by_string (host_data_t *hd,
+                                              const char *ip_interface,
+                                              unsigned int port, int backlog);
+extern SOCKET create_server_socket_by_socket (host_data_t *hd,
+                                              SOCKET sock,
+                                              unsigned int port, int backlog);
 
 local object test_socket_stream (object obj, bool check_open) {
   if (builtin_stream_p(obj)) {
@@ -13931,8 +13941,8 @@ LISPFUNN(socket_server_host,1) {
  sec = posfixnum or (SEC . USEC) or (SEC USEC) or float or ratio or nil/unbound
  usec = posfixnum or nil/unbound
  can trigger GC */
-modexp maygc struct timeval * sec_usec
-(object sec, object usec, struct timeval *tv) {
+modexp maygc struct timeval * sec_usec (object sec, object usec,
+                                        struct timeval *tv) {
   if (missingp(sec)) {
     return NULL;
   } else if (consp(sec)) {
@@ -14757,10 +14767,11 @@ LISPFUNN(socket_stream_shutdown,2) {
 #if defined(WIN32_NATIVE)
 /* NtQueryInformationFile
    https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile */
-typedef NTSTATUS (__stdcall *QueryInformationFile_t)
-(IN HANDLE FileHandle, OUT PIO_STATUS_BLOCK IoStatusBlock,
- OUT PVOID FileInformation, IN ULONG Length,
- IN FILE_INFORMATION_CLASS FileInformationClass);
+typedef NTSTATUS (__stdcall *QueryInformationFile_t) (IN HANDLE FileHandle,
+                                                      OUT PIO_STATUS_BLOCK IoStatusBlock,
+                                                      OUT PVOID FileInformation,
+                                                      IN ULONG Length,
+                                                      IN FILE_INFORMATION_CLASS FileInformationClass);
 static QueryInformationFile_t qif = (QueryInformationFile_t) -1;
 static QueryInformationFile_t get_qif (void) {
   if (qif == NULL) return qif;
@@ -16009,8 +16020,7 @@ LISPFUNN(interactive_stream_p,1) {
        under IGNORE-ERRORS, i.e., some output might be silently lost
  < stream: Builtin-Stream
  can trigger GC */
-modexp maygc void builtin_stream_close
-(const gcv_object_t* stream_, uintB abort) {
+modexp maygc void builtin_stream_close (const gcv_object_t* stream_, uintB abort) {
   if ((TheStream(*stream_)->strmflags & strmflags_open_B) == 0) /* Stream already closed? */
     return;
   if (!abort) harden_elastic_newline(stream_);
@@ -16931,8 +16941,7 @@ local bool maygc check_endianness_arg (object arg) {
  < int * handletype 0:reserved, 1:file, 2:socket
  < Handle result - extracted handle
  can trigger GC */
-modexp maygc Handle stream_lend_handle
-(gcv_object_t *stream_, bool inputp, int * handletype) {
+modexp maygc Handle stream_lend_handle (gcv_object_t *stream_, bool inputp, int * handletype) {
   var int errkind = 0;
   var object stream = *stream_;
  restart_stream_lend_handle:

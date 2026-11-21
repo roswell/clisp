@@ -109,8 +109,8 @@ local bool init_language_from (const char* langname) {
 }
 
 /* Initializes the language. */
-global void init_language
-(const char* argv_language, const char* argv_localedir, bool lisp_error_p) {
+global void init_language (const char* argv_language, const char* argv_localedir,
+                           bool lisp_error_p) {
 #define ANSIC_ERROR(f,a)   if (lisp_error_p) ANSIC_error(); else {      \
   fprintf(stderr,GETTEXT("WARNING: %s/%s: %s.\n"),f,a,strerror(errno)); \
   goto init_language_failure;                                           \
