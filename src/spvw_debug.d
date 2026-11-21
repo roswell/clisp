@@ -109,7 +109,7 @@ local void nobject_out1 (FILE* out, object obj, int level) {
     fprint(out,")");
   } else if (consp(obj)) {
     fprint(out,"(");
-    while (1) {
+    while (true) {
       XOUT(Car(obj));
       obj = Cdr(obj);
       if (atomp(obj)) break;

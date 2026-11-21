@@ -868,7 +868,7 @@ LISPFUNN(nreverse,1) { /* (NREVERSE sequence), CLTL p. 248 */
           /* Stack layout: seq, typdescr, pointer1, pointer2.
              pointer1 and pointer2 walk together through seq,
              pointer2 has an advantage of k1. */
-          while (1) {
+          while (true) {
             /* Swap two blocks of length k2 = floor(len/2^(j+1)): */
             {
               var uintV i = k2; /* i:=k2 >0 */
@@ -998,7 +998,7 @@ LISPFUN(make_sequence,seclass_default,2,0,norest,key,2,
         pushSTACK(STACK_0); funcall(seq_init(STACK_(5+1)),1); /* (SEQ-INIT seq) */
         pushSTACK(value1);
         /* Stack layout: typdescr, count, element, updatefun, type-len, seq, pointer. */
-        while (1) {
+        while (true) {
           pushSTACK(STACK_(1+0)); pushSTACK(STACK_(0+1)); pushSTACK(STACK_(4+2));
           funcall(seq_access_set(STACK_(6+3)),3); /* (SEQ-ACCESS-SET seq pointer element) */
           /* pointer := (SEQ-UPD seq pointer) : */
@@ -1254,7 +1254,7 @@ modexp maygc void map_sequence
   pushSTACK(obj); funcall(seq_init(typdescr),1); /* (SEQ-INIT obj) */
   pushSTACK(value1);
   /* Stack layout: typdescr, sequence, pointer. */
-  while (1) {
+  while (true) {
     /* (SEQ-ENDTEST sequence pointer) : */
     pushSTACK(STACK_1); pushSTACK(STACK_1); funcall(seq_endtest(STACK_4),2);
     if (!nullp(value1))
@@ -1317,7 +1317,7 @@ local maygc Values seq_boolop (seq_boolop_fun* boolop_fun,
              [rest_args_pointer] {sequence}, default,
              [typdescr_pointer] {typdescr, pointer}, [STACK].
      Loop: Call the function: */
-  while (1) {
+  while (true) {
     var gcv_object_t* ptr1 = rest_args_pointer;
     var gcv_object_t* ptr2 = typdescr_pointer;
     /* ptr1 runs from the top through the sequences,
@@ -1407,7 +1407,7 @@ LISPFUN(map,seclass_default,3,0,rest,nokey,0,NIL)
                [typdescr_pointer] {typdescr, pointer, pointer}, [STACK].
        Get minimal length of all sequences, by running through with the second pointer: */
     pushSTACK(Fixnum_0); /* minlength:=0 */
-    while (1) {
+    while (true) {
       var gcv_object_t* ptr1 = rest_args_pointer;
       var gcv_object_t* ptr2 = typdescr_pointer;
       /* ptr1 runs from the top through the sequences,
@@ -1525,7 +1525,7 @@ LISPFUN(map_into,seclass_default,2,0,rest,nokey,0,NIL)
              [typdescr_pointer] {typdescr, pointer},
              result-typdescr, result-pointer, [STACK].
      Call as often as necessary the function, add result to result-sequence: */
-  while (1) {
+  while (true) {
     { /* Test, if another iteration necessary: */
       var gcv_object_t* ptr1 = rest_args_pointer;
       var gcv_object_t* ptr2 = typdescr_pointer;
@@ -3164,7 +3164,7 @@ local maygc object substitute_help (gcv_object_t* stackptr, uintV bvl,
       /* (There exist ones, because dl>0.) */
       {
         var object bv = STACK_(0+2);
-        while (1) {
+        while (true) {
           var uintV bvl_1 = bvl-1;
           if (sbvector_btst(bv,bvl_1)) /* Check bit bvl-1 */
             break;
@@ -3992,7 +3992,7 @@ LISPFUN(mismatch,seclass_default,2,0,norest,key,8,
     {
       var bool seq1_ended; /* Flag, if seq1-part at end */
       var bool seq2_ended; /* Flag, if seq2-part at end */
-      while (1) {
+      while (true) {
         /* Test, if seq1-part at end: */
         if (eq(STACK_1,Fixnum_0)) /* endvar1 = 0 (and therefore end1 /= nil) ? */
           seq1_ended = true;
@@ -4136,7 +4136,7 @@ LISPFUN(search,seclass_default,2,0,norest,key,8,
     /* Stack layout: seq1, seq2, start1, end1, start2, end2, from-end,
                      key, test, test-not, typdescr1, typdescr2,
                      pointer10, pointer20, len1, len2, index. */
-    while (1) {
+    while (true) {
       /* Run pointer1 and pointer2 from pointer10 resp. pointer20 on: */
       {
         pushSTACK(STACK_4); funcall(seq_copy(STACK_(1+5+1)),1); /* (SEQ-COPY pointer10) */
@@ -4152,7 +4152,7 @@ LISPFUN(search,seclass_default,2,0,norest,key,8,
                        key, test, test-not, typdescr1, typdescr2,
                        pointer10, pointer20, len1, len2, index,
                        pointer1, pointer2, count1, count2. */
-      while (1) {
+      while (true) {
         if (eq(STACK_1,Fixnum_0)) /* count1 (an integer) = 0 ? */
           goto found; /* yes -> seq1 finished, found */
         if (eq(STACK_0,Fixnum_0)) /* count2 (an integer) = 0 ? */
@@ -4210,7 +4210,7 @@ LISPFUN(search,seclass_default,2,0,norest,key,8,
     /* Stack layout: seq1, seq2, start1, end1, start2, end2, from-end,
                      key, test, test-not, typdescr1, typdescr2,
                      pointer10, pointer20, endvar10, endvar20, index. */
-    while (1) {
+    while (true) {
       /* Run pointer1 and pointer2 from pointer10 resp. pointer20 on: */
       {
         pushSTACK(STACK_4); funcall(seq_copy(STACK_(1+5+1)),1); /* (SEQ-COPY pointer10) */
@@ -4226,7 +4226,7 @@ LISPFUN(search,seclass_default,2,0,norest,key,8,
                        key, test, test-not, typdescr1, typdescr2,
                        pointer10, pointer20, endvar10, endvar20, index,
                        pointer1, pointer2, endvar1, endvar2. */
-      while (1) {
+      while (true) {
         /* Test, if seq1-part at the end. If yes: found. */
         if (eq(STACK_1,Fixnum_0)) /* endvar1 = 0 (and therefore end1 /= nil) ? */
           goto found;
@@ -4314,7 +4314,7 @@ LISPFUN(search,seclass_default,2,0,norest,key,8,
  count1 and count2 will be set to 0.
  can trigger GC */
 local maygc void merge (gcv_object_t* stackptr) {
-  while (1) {
+  while (true) {
     if (eq(STACK_4,Fixnum_0)) /* count1 = 0 -> seq1 at the end */
       goto seq1_end;
     if (eq(STACK_3,Fixnum_0)) /* count1 = 0 -> seq2 at the end */

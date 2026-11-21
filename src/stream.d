@@ -2750,7 +2750,7 @@ local maygc void wr_ch_array_pphelp (const gcv_object_t* stream_,
   var bool filling = !nullpSv(print_pretty_fill);
   var uintL beg = start;
   DEBUG_OUT(("s=%d l=%d",start,len));
-  while (1) {
+  while (true) {
     var uintL end = beg;
     var object nl_type = NIL;
     DEBUG_OUT((" [%d/",beg));
@@ -4434,7 +4434,7 @@ global object iconv_range (object encoding, uintL start, uintL end,
       var uintL i2;
       var bool have_i1_i2 = false; /* [i1,i2] = interval being built */
       var uintL i = start;
-      while (1) {
+      while (true) {
         /* Here count < maxintervals. */
         var chart ch = as_chart(i);
         var uintB buf[max_bytes_per_chart];
@@ -5190,7 +5190,7 @@ local maygc object rd_ch_unbuffered (const gcv_object_t* stream_) {
    #ifdef ENABLE_UNICODE
     var uintB buf[max_bytes_per_chart];
     var uintL buflen = 0;
-    while (1) {
+    while (true) {
       var sintL b = UnbufferedStreamLow_read(stream)(stream);
       if (b < 0)
         return eof_value;
@@ -5257,7 +5257,7 @@ local maygc listen_t listen_char_unbuffered (object stream) {
   var chart c;
   var uintB buf[max_bytes_per_chart];
   var uintL buflen = 0;
-  while (1) {
+  while (true) {
     result = UnbufferedStreamLow_listen(stream)(stream);
     if (result == LISTEN_EOF)
       break;
@@ -5359,7 +5359,7 @@ local maygc uintL rd_ch_array_unbuffered (const gcv_object_t* stream_,
   var object stream = *stream_;
   var uintL end = start+len;
   var uintL currindex = start;
-  while (1) {
+  while (true) {
     var uintL remaining = end - currindex;
     if (remaining == 0)
       break;
@@ -6683,7 +6683,7 @@ local maygc object rd_ch_buffered (const gcv_object_t* stream_) {
       var uintB buf[max_bytes_per_chart];
       var uintL buflen = 0;
       pushSTACK(encoding);
-      while (1) {
+      while (true) {
         ASSERT(buflen < max_bytes_per_chart);
         buf[buflen++] = *bufferptr;
         /* increment index and position */
@@ -6789,7 +6789,7 @@ local maygc uintL rd_ch_array_buffered (const gcv_object_t* stream_,
   var uintL currindex = start;
   var object encoding = TheStream(stream)->strm_encoding;
   pushSTACK(encoding);
-  while (1) {
+  while (true) {
     var uintL startindex = currindex;
     var uintB* bufferptr = buffered_nextbyte(stream,persev_partial);
     stream = *stream_; /* restore */
@@ -6818,7 +6818,7 @@ local maygc uintL rd_ch_array_buffered (const gcv_object_t* stream_,
       } else {
         var uintB buf[max_bytes_per_chart];
         var uintL buflen = 0;
-        while (1) {
+        while (true) {
           ASSERT(buflen < max_bytes_per_chart);
           buf[buflen++] = *bufferptr;
           /* increment index and position */
@@ -7401,7 +7401,7 @@ local maygc object rd_by_aux_icx_buffered (object stream,
   if (ptr != (uintB*)NULL) {
     if (bitshift==0) {
       /* Optimized loop, without shifting. */
-      while (1) {
+      while (true) {
         *bitbufferptr++ = *ptr; /* store 8 bits */
         /* After digesting *ptr, increment index: */
         BufferedStream_index(stream) += 1;
@@ -7421,7 +7421,7 @@ local maygc object rd_by_aux_icx_buffered (object stream,
       var uint16 bit_akku = (*ptr)>>bitshift;
       bitshift = 8-bitshift; /* bitshift := 8-bitindex (>0, <8) */
       count -= bitshift;
-      while (1) {
+      while (true) {
         BufferedStream_index(stream) += 1;
         /* bit_akku: bits (bitshift-1)..0 are valid.
          have to get count (>0) bits. */
@@ -7648,7 +7648,7 @@ local maygc void wr_by_aux_ic_buffered (object stream, uintL bitsize,
   bit_akku = (ptr==(uintB*)NULL ? 0 : (*ptr)&(bit(bitshift)-1) );
   count += bitshift;
   /* write individual bytes: */
-  while (1) {
+  while (true) {
     bit_akku |= (uint16)(*bitbufferptr++)<<bitshift;
     if (count<8)
       break;
@@ -8551,7 +8551,7 @@ local object rd_ch_keyboard (const gcv_object_t* stream_) {
  restart_it:
   handle = TheHandle(TheStream(*stream_)->strm_keyboard_handle);
   begin_system_call();
-  while (1) {
+  while (true) {
     if (!ReadConsoleInput1(handle,&event,&nevents_read)) {
       if (GetLastError()==ERROR_SIGINT) { /* Break by Ctrl-C ? */
         end_system_call();
@@ -9526,7 +9526,7 @@ local maygc object rd_ch_terminal2 (const gcv_object_t* stream_) {
     /* index=count -> must read a whole line from the keyboard: */
     TheStream(stream)->strm_terminal_index = Fixnum_0; /* index := 0 */
     TheIarray(TheStream(stream)->strm_terminal_inbuff)->dims[1] = 0; /* count := 0 */
-    while (1) {
+    while (true) {
       var object ch = rd_ch_unbuffered(stream_);
       if (eq(ch,eof_value)) {
         if (TheIarray(TheStream(stream)->strm_terminal_inbuff)->dims[1] > 0)
@@ -10451,7 +10451,7 @@ local void v_puts(HANDLE handle,char *s,COORD *pos,COORD sz,uintW attr) {
   do {
     /* move cp to end of line or newline char or right screen border
      set terminator accordingly */
-    while (1) {
+    while (true) {
       if (!(*cp) || *cp == NL) {
         terminator = *cp;
         break;              }
@@ -13810,7 +13810,7 @@ LISPFUNN(socket_server_close,1) {
   if (!nullp(TheSocketServer(ss)->socket_handle)) {
     var SOCKET s = TheSocket(TheSocketServer(ss)->socket_handle);
     begin_system_call();
-    while (1) {
+    while (true) {
       var int closed;
       GC_SAFE_CALL(closed = close(s));
       if (closed >= 0) break;

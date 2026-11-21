@@ -60,7 +60,7 @@ global void freea (void* address)
   var malloca_header_t* ptr = (malloca_header_t*)
     ((aint)address - offsetofa(malloca_header_t,usable_memory));
   var malloca_header_t* p = malloca_list;
-  while (1) {
+  while (true) {
     var malloca_header_t* n = p->next;
     free(p);
     if (!(p == ptr)) {

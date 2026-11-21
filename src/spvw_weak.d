@@ -493,7 +493,7 @@ local void propagate_through_weak (object obj, uintL index) {
 /* Straightens one pointer into a WeakHashedAlist. */
 local inline object weak_hashed_alist_update_one (object kvtable, uintL n,
                                                   object x) {
-  while (1) {
+  while (true) {
     if (!(posfixnump(x) && posfixnum_to_V(x) < n)) abort();
     var gcv_object_t* KVptr =
       &TheWeakHashedAlist(kvtable)->whal_data[3*posfixnum_to_V(x)];

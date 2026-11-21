@@ -972,7 +972,7 @@ local _Noreturn void error_eof (const gcv_object_t* stream_) {
  < uintWL scode: its syntaxcode
  can trigger GC */
 #define wpeek_char_syntax(ch_assignment,scode_assignment,stream_)       \
-  { while (1) {                                                         \
+  { while (true) {                                                      \
     object ch0 = read_char(stream_);              /* read Character */  \
     if (eq(ch0,eof_value)) { error_eof(stream_); }  /* EOF -> Error */  \
     /* check for Character: */                                          \
@@ -993,7 +993,7 @@ local _Noreturn void error_eof (const gcv_object_t* stream_) {
  < result: next character or eof_value
  can trigger GC */
 local maygc object wpeek_char_eof (const gcv_object_t* stream_) {
-  while (1) {
+  while (true) {
     var object ch = peek_char(stream_); /* peek character */
     if (eq(ch,eof_value))               /* EOF ? */
       return ch;
@@ -1196,7 +1196,7 @@ local maygc void read_token_1 (const gcv_object_t* stream_, object ch,
   var bool escape_flag = false;
   var bool fasl_stream = stream_get_fasl(*stream_); /* don't need to save ch */
   goto char_read;
-  while (1) {
+  while (true) {
     /* Here the token in STACK_1 (Semi-Simple-String for characters)
      and STACK_0 (Semi-Simple-Byte-Vector for attributecodes) is constructed.
      Multiple-Escape-Flag indicates, if we are situated between |...|.
@@ -1816,7 +1816,7 @@ local maygc Values read_macro (object ch, const gcv_object_t* stream_) {
     {                          /* read digits of argument: */
       var bool flag = false; /* flag, if there has been a digit already */
       pushSTACK(Fixnum_0);   /* previous Integer := 0 */
-      while (1) {
+      while (true) {
         var object nextch = read_char(stream_); /* read character */
         if (eq(nextch,eof_value)) {
           pushSTACK(*stream_);  /* STREAM-ERROR slot STREAM */
@@ -2004,7 +2004,7 @@ local maygc object read_internal (const gcv_object_t* stream_) {
     var uintL pack_end_index;
     var uintL name_start_index;
     var bool external_internal_flag = false; /* preliminary external */
-    while (1) {
+    while (true) {
       if (index>=len)
         goto current;           /* found no colon -> current package */
       if (*attrptr == a_illg)
@@ -2032,7 +2032,7 @@ local maygc object read_internal (const gcv_object_t* stream_) {
        external */
     }
     /* no more colons are to come: */
-    while (1) {
+    while (true) {
       if (index>=len)
         goto ex_in_ternal;      /* no further colon found -> ok */
       if (*attrptr == a_illg)
@@ -2360,7 +2360,7 @@ local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
   /* don't need to save endch and ifdotted. */
   {
     var object object1;     /* first List element */
-    while (1) {         /* loop, in order to read first Listenelement */
+    while (true) {          /* loop, in order to read first Listenelement */
       /* next non-whitespace Character: */
       var object ch;
       var uintWL scode;
@@ -2394,9 +2394,9 @@ local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
     pushSTACK(new_cons);
   }
   /* stack layout: entire_list, (last entire_list). */
-  while (1) {              /* loop over further List elements */
+  while (true) {           /* loop over further List elements */
     var object object1;    /* further List element */
-    while (1) {        /* loop in order to read another  List element */
+    while (true) {            /* loop in order to read another  List element */
       /* next non-whitespace Character: */
       var object ch;
       var uintWL scode;
@@ -2437,7 +2437,7 @@ local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
     error_dot(*stream_);
   {
     var object object1;       /* last List-element */
-    while (1) {           /* loop, in order to read last List-element */
+    while (true) {            /* loop, in order to read last List-element */
       /* next non-whitespace Character: */
       var object ch;
       var uintWL scode;
@@ -2468,7 +2468,7 @@ local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
      insert into list as (cdr (last Gesamtliste)): */
     Cdr(STACK_0) = object1;
   }
-  while (1) { /* loop, in order to read comment after the last List-element */
+  while (true) { /* loop, in order to read comment after the last List-element */
     /* next non-whitespace Character: */
     var object ch;
     var uintWL scode;
@@ -2546,7 +2546,7 @@ LISPFUNN(string_reader,2) {     /* reads " */
   /* stack layout: stream, char. */
   if (!nullpSv(read_suppress)) { /* *READ-SUPPRESS* /= NIL ? */
     /* yes -> only read ahead of string: */
-    while (1) {
+    while (true) {
       /* read next character: */
       var object ch;
       var uintWL scode;
@@ -2567,28 +2567,30 @@ LISPFUNN(string_reader,2) {     /* reads " */
     /* no -> really read String */
     get_buffers();  /* two empty Buffers on the Stack */
     /* stack layout: stream, char, Buffer, anotherBuffer. */
-    if (stream_get_fasl(*stream_)) while (1) { /* faithful */
-      /* read next character: */
-      object ch = read_char(stream_);
-      if (eq(ch,eof_value)) goto error_eof;
-      if (eq(ch,ascii_char('"')))
-        break;
-      /* ignore newlines */
-      if (!(eq(ch,ascii_char(0x0A)) || eq(ch,ascii_char(0x0D)))) {
-        if (eq(ch,ascii_char('\\'))) { /* single-escape-character? */
-          /* yes -> read another character: */
-          ch = read_char(stream_);
-          if (eq(ch,eof_value)) goto error_eof;
-          if (eq(ch,ascii_char('n')))
-            ch = ascii_char(0x0A); /* "\n" = #\Linefeed */
-          else if (eq(ch,ascii_char('r')))
-            ch = ascii_char(0x0D); /* "\r" = #\Return */
+    if (stream_get_fasl(*stream_)) {
+      while (true) { /* faithful */
+        /* read next character: */
+        object ch = read_char(stream_);
+        if (eq(ch,eof_value)) goto error_eof;
+        if (eq(ch,ascii_char('"')))
+          break;
+        /* ignore newlines */
+        if (!(eq(ch,ascii_char(0x0A)) || eq(ch,ascii_char(0x0D)))) {
+          if (eq(ch,ascii_char('\\'))) { /* single-escape-character? */
+            /* yes -> read another character: */
+            ch = read_char(stream_);
+            if (eq(ch,eof_value)) goto error_eof;
+            if (eq(ch,ascii_char('n')))
+              ch = ascii_char(0x0A); /* "\n" = #\Linefeed */
+            else if (eq(ch,ascii_char('r')))
+              ch = ascii_char(0x0D); /* "\r" = #\Return */
+          }
+          /* push character ch into Buffer: */
+          ssstring_push_extend(STACK_1,char_code(ch));
         }
-        /* push character ch into Buffer: */
-        ssstring_push_extend(STACK_1,char_code(ch));
       }
     } else {                      /* ANSI */
-      while (1) {
+      while (true) {
         /* read next character: */
         var object ch;
         var uintWL scode;
@@ -2677,7 +2679,7 @@ LISPFUNN(quote_reader,2) {                    /* reads ' */
        (values))) */
 LISPFUNN(line_comment_reader,2) { /* reads ; */
   var gcv_object_t* stream_ = check_stream_arg(&STACK_1);
-  while (1) {
+  while (true) {
     var object ch = read_char(stream_); /* read character */
     if (eq(ch,eof_value) || eq(ch,ascii_char(NL)))
       break;
@@ -3419,7 +3421,7 @@ LISPFUNN(array_reader,3) {                             /* reads #A */
     STACK_2 = S(t);                        /* yes -> eltype := 'T */
   } else {
     var object i = Fixnum_0;    /* former nesting depth */
-    while (1) {
+    while (true) {
       pushSTACK(STACK_1); funcall(L(length),1); /* (LENGTH subcontents) */
       /* push on dims: */
       STACK_3 = value1;
@@ -4071,7 +4073,7 @@ LISPFUNN(structure_reader,3) {                 /* reads #S */
   }
   /* stack layout: Stream, remaining Args, name, constructor. */
   var uintC argcount = 0;     /* number of arguments for constructor */
-  while (1) {                 /* process remaining Argumentlist, */
+  while (true) {              /* process remaining Argumentlist, */
     /* push Arguments for constructor on STACK: */
     check_STACK();
     args = *(stream_ STACKop -1); /* remaining Args */
@@ -4382,7 +4384,7 @@ LISPFUNN(ansi_pathname_reader,3) {                 /* reads #P */
 LISPFUNN(unix_executable_reader,3) {           /* reads #! */
   var gcv_object_t* stream_ = test_no_infix(); /* n must be NIL */
   /* stack layout: Stream, sub-char #\!. */
-  while (1) {
+  while (true) {
     var object ch = read_char(stream_); /* read character */
     if (eq(ch,eof_value) || eq(ch,ascii_char(NL)))
       break;
@@ -4573,7 +4575,7 @@ LISPFUN(peek_char,seclass_default,0,5,norest,nokey,0,NIL) {
   } else if (charp(peek_type)) {
     /* peek-type is a Character */
     var object ch;
-    while (1) {
+    while (true) {
       ch = peek_char(stream_); /* what next? */
       if (eq(ch,eof_value))
         goto eof;
@@ -4758,7 +4760,7 @@ LISPFUN(parse_integer,seclass_rd_sig,1,0,norest,key,4,
   {
     var chart c;                /* the last character read */
     /* step 1: skip whitespace */
-    while (1) {
+    while (true) {
       if (count==0)             /* the string has already ended? */
         goto badsyntax;
       c = *charptr;             /* the next character */
@@ -4782,7 +4784,7 @@ LISPFUN(parse_integer,seclass_rd_sig,1,0,norest,key,4,
   start_offset = arg.offset + index;
   /* now:  start_offset = offset of the first digit in the data vector
    step 3: read digits */
-  while (1) {
+  while (true) {
     var cint c = as_cint(*charptr); /* the next character */
     /* check the digits: (digit-char-p (code-char c) base) ?
      (cf. DIGIT-CHAR-P in CHARSTRG.D) */
@@ -5910,7 +5912,7 @@ local maygc void justify_end_fill (const gcv_object_t* stream_) {
      themselves and from the single-liners by Newline.
      But as many consecutive single-liners as possible are packed
      (separated by Space) into one line. */
-    while (1) {                 /* Run through Blocklist STACK_0: */
+    while (true) {                     /* Run through Blocklist STACK_0: */
       var object block = Car(STACK_0); /* next block */
       STACK_0 = Cdr(STACK_0);          /* shorten blocklist */
       if (consp(block)) {       /* Sub-Block with several lines */
@@ -6024,7 +6026,7 @@ local maygc void justify_end_linear (const gcv_object_t* stream_) {
    gesamt_einzeiler: {          /* a single-liner, altogether. */
       /* print blocks apartly, separated by Spaces, to the stream: */
       pushSTACK(nreverse(Symbol_value(S(prin_jblocks)))); /* (nreverse SYS::*PRIN-JBLOCKS*) */
-      while (1) {             /* peruse (non-empty) block list STACK_0: */
+      while (true) {                 /* peruse (non-empty) block list STACK_0: */
         var object block = Car(STACK_0); /* next block */
         /* (a single-liner, string without #\Newline) */
         STACK_0 = Cdr(STACK_0);      /* shorten block list */
@@ -6037,7 +6039,7 @@ local maygc void justify_end_linear (const gcv_object_t* stream_) {
    gesamt_mehrzeiler: {         /* a multi-liner, altogether. */
       /* print blocks apartly, separated by Newline, to the stream: */
       pushSTACK(nreverse(Symbol_value(S(prin_jblocks)))); /* (nreverse SYS::*PRIN-JBLOCKS*) */
-      while (1) {             /* peruse (non-empty) block list STACK_0: */
+      while (true) {                     /* peruse (non-empty) block list STACK_0: */
         var object block = Car(STACK_0); /* next block */
         STACK_0 = Cdr(STACK_0);          /* shorten block list */
         if (consp(block)) {              /* multi-line sub-block */
@@ -7080,7 +7082,7 @@ local maygc void pr_symbol_part (const gcv_object_t* stream_, object string,
       /* its syntaxcode shall be Constituent: */
       if (!(syntax_table_get(syntax_table,c) == syntax_constituent))
         goto surround;          /* no -> must use |...| */
-      while (1) {
+      while (true) {
         if (attribute_of(c) == a_pack_m) /* Attributcode Package-Marker ? */
           goto surround;                 /* yes -> must use |...| */
         if (!case_sensitive)
@@ -7269,7 +7271,7 @@ local maygc void pr_sstring_ab (const gcv_object_t* stream_, object string,
       #else  /* the same stuff, a little optimized */
       SstringDispatch(string,X, {
         var uintL index0 = index;
-        while (1) { /* search the next #\Linefeed or #\Return or #\" or #\\ : */
+        while (true) { /* search the next #\Linefeed or #\Return or #\" or #\\ : */
           string = STACK_0;
           while (len > 0) {
             var chart c = as_chart(((SstringX)TheVarobject(string))->data[index]);
@@ -7315,7 +7317,7 @@ local maygc void pr_sstring_ab (const gcv_object_t* stream_, object string,
         #else  /* the same stuff, a little optimized */
         SstringDispatch(string,X, {
           var uintL index0 = index;
-          while (1) {           /* search the next #\" or #\\ : */
+          while (true) {           /* search the next #\" or #\\ : */
             string = STACK_0;
             while (len > 0) {
               var chart c = as_chart(((SstringX)TheVarobject(string))->data[index]);
@@ -7461,7 +7463,7 @@ local maygc void pr_cons (const gcv_object_t* stream_, object list) {
     CHECK_LENGTH_LIMIT(length_limit==0,goto end_of_list);
     /* test for attaining of *PRINT-LINES* : */
     CHECK_LINES_LIMIT(goto end_of_list);
-    while (1) {
+    while (true) {
       /* print the CAR from here */
       list = *list_; *list_ = Cdr(list); /* shorten list */
       JUSTIFY_LAST(nullp(*list_));
@@ -7935,11 +7937,11 @@ local maygc void pr_kvtable (const gcv_object_t* stream_, gcv_object_t* kvt_,
                              uintL index, uintL count) {
   var uintL length = 0;
   var uintL length_limit = get_print_length(); /* *PRINT-LENGTH*-limit */
-  while (1) {
+  while (true) {
     length++;            /* increase previous length */
     /* search for next to be printed Key-Value-Pair: */
     var object kvt = *kvt_;
-    while (1) {
+    while (true) {
       if (index==0)             /* finished kvtable? */
         goto kvt_finish;
       index -= 3;               /* decrease index */
@@ -9270,7 +9272,7 @@ local maygc void pr_orecord (const gcv_object_t* stream_, object obj) {
               break;
           if (i1 < wl_length) {
             pushSTACK(TheWeakList(*wl_)->wl_elements[i1]);
-            while (1) {
+            while (true) {
               var uintL i2;
               for (i2 = i1+1; i2 < wl_length; i2++)
                 if (!eq(TheWeakList(*wl_)->wl_elements[i2],unbound))
@@ -9337,7 +9339,7 @@ local maygc void pr_orecord (const gcv_object_t* stream_, object obj) {
           if (i1 < wal_length) {
             pushSTACK(TheWeakAlist(*wal_)->wal_data[2*i1+0]);
             pushSTACK(TheWeakAlist(*wal_)->wal_data[2*i1+1]);
-            while (1) {
+            while (true) {
               var uintL i2;
               for (i2 = i1+1; i2 < wal_length; i2++)
                 if (!eq(TheWeakAlist(*wal_)->wal_data[2*i2+0],unbound))

@@ -586,7 +586,7 @@ LISPFUNN(psleep,2)
   var uintL useconds = posfixnum_to_V(popSTACK());
   var uintL seconds = posfixnum_to_V(popSTACK());
   begin_system_call();
-  while (1) {
+  while (true) {
     var struct timeval start_time;
     var struct timeval end_time;
     if (!( gettimeofday(&start_time,NULL) ==0)) { OS_error(); }

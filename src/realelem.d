@@ -1639,7 +1639,7 @@ local maygc object R_rationalize_RA (object x)
   pushSTACK(Fixnum_0); pushSTACK(Fixnum_1);
   pushSTACK(Fixnum_1); pushSTACK(Fixnum_0);
   /* stack layout: -, -, s, b, a, p[i-1], p[i], q[i-1], q[i]. */
-  while (1) {
+  while (true) {
     RA_ceiling_I_RA(STACK_4); /* c := (ceiling a) */
     /* stack layout: ..., c, -. */
     if (RA_RA_comp(STACK_1,STACK_(5+2))<0) break; /* if c<b end of loop */

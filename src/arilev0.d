@@ -1081,10 +1081,10 @@
   #  3. Am Schluss gilt x >= y^2.
   # )
   #define isqrt_32_16(x,y_assignment,sqrtp_assignment)  \
-    { var uint32 _x = (x);                                               \
-      var uint16 _x1 = high16(_x);                                       \
-      var uint16 _y = floor(_x1,2) | bit(16-1);                          \
-      while (1) {                                                       \
+    { var uint32 _x = (x);                                              \
+      var uint16 _x1 = high16(_x);                                      \
+      var uint16 _y = floor(_x1,2) | bit(16-1);                         \
+      while (true) {                                                    \
         var uint16 _z;                                                  \
         var uint16 _r;                                                  \
         if (_x1 >= _y) # Division _x/_y ergäbe Überlauf -> _z > _y      \
@@ -1120,7 +1120,7 @@
       { var uint32 _xhi = (xhi);                                        \
         var uint32 _xlo = (xlo);                                        \
         var uint32 _y = floor(_xhi,2) | bit(32-1);                      \
-        while (1) {                                                     \
+        while (true) {                                                  \
           var uint32 _z;                                                \
           var uint32 _rest;                                             \
           if (_xhi >= _y) # Division _x/_y ergäbe Überlauf -> _z > _y   \

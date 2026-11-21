@@ -475,7 +475,7 @@ local size_t find_marker (Handle handle, const char* marker, size_t marker_len)
   char buf[BUFSIZ];
   size_t marker_pos = 0;
   size_t pos = 0;
-  while (1) {
+  while (true) {
     size_t result = full_read(handle,(void*)buf,BUFSIZ);
     size_t i;
     if (result <= 0)
@@ -606,7 +606,7 @@ static void savemem_with_runtime (Handle handle, bool delegating) {
   } else { /* mem_start == -1 ==> no memory image in the executable,
               just copy everything */
     mem_start = 0;
-    while (1) {
+    while (true) {
       var ssize_t res = full_read(runtime,(void*)buf,BUFSIZ);
       if (res == 0) break;
       end_system_call();

@@ -1072,7 +1072,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 #else
   var uintC min_hole_len = 0;
 #endif
-  while (1) {
+  while (true) {
     if (p2==end) break; /* we have finished */
     objlen=objsize((Varobject)p2);
     if (!marked(p2)) {
@@ -2701,7 +2701,7 @@ local void gc_compact_from_varobject_page (Heap* heapptr, Page* page)
     var aint p2;                /* cache of new_page->page_end */
     var uintM l2;               /* cache of new_page->page_room */
     /* try to copy all objects between p1 and p1end : */
-    while (1) {
+    while (true) {
       if (p1==p1end)            /* upper bound reached -> finished */
         break;
       var uintM laenge = objsize((Varobject)p1); /* determine byte-length */
@@ -2760,7 +2760,7 @@ local void gc_compact_from_cons_page (Heap* heapptr, Page* page)
     var aint p2;                /* cache of new_page->page_end */
     var uintM l2;               /* cache of new_page->page_room */
     /* try to copy all objects between p1start and p1: */
-    while (1) {
+    while (true) {
       if (p1==p1start)          /* lower bound reached -> finished */
         break;
       /* search a page, that has at least sizeof(cons_) bytes free: */

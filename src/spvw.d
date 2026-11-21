@@ -1119,7 +1119,7 @@ modexp uintL asciz_length (const char * asciz) {
  < result: true if both sequences are equal */
 modexp bool asciz_equal (const char * asciz1, const char * asciz2) {
   /* compare bytes until the first nullbyte: */
-  while (1) {
+  while (true) {
     var char ch1 = *asciz1++;
     if (ch1 != *asciz2++) goto no;
     if (ch1 == '\0') goto yes;
@@ -1135,7 +1135,7 @@ modexp bool asciz_equal (const char * asciz1, const char * asciz2) {
  < result: true if both sequences are equal up to the length of the second */
 modexp bool asciz_startswith (const char *asciz, const char *prefix) {
   /* compare bytes until the first nullbyte: */
-  while (1) {
+  while (true) {
     var char ch = *prefix++;
     if (ch == '\0') return true;
     if (ch != *asciz++) return false;
@@ -3172,7 +3172,7 @@ local inline int init_memory (struct argv_initparams *p) {
     /* No need to call mymalloc at all. */
     memblock = 0;
    #else
-    while (1) {
+    while (true) {
       /* Try to allocate memory. */
       memblock = (aint)mymalloc(memneed);
       VAROUT(memneed); VAROUT(memblock);
@@ -4701,7 +4701,7 @@ global maygc void dynload_modules (const char * library, uintC modcount,
    without causing deadlock with the GC in the lisp world. */
 local void lock_heap_from_signal()
 {
-  while (1) {
+  while (true) {
     while (!spinlock_tryacquire(&mem.alloc_lock))
       xthread_yield();
     /* we got the heap lock, let's check that there is no GC in progress */
@@ -5074,7 +5074,7 @@ global bool interrupt_thread(clisp_thread_t *thr)
  > arg: not used. */
 local void *signal_handler_thread(void *arg)
 {
-  while (1) {
+  while (true) {
     var int sig = signal_wait();
     /* before proceeding we have to be sure that there is no GC
        in progress at the moment. This is the only situation in

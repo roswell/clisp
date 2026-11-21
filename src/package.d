@@ -2031,7 +2031,7 @@ LISPFUN(rename_package,seclass_default,2,1,norest,nokey,0,NIL) {
       var object name = STACK_1;
       var object nicknamelistr = STACK_0;
       /* name loops over the names and all nicknames */
-      while (1) { /* find package with this name: */
+      while (true) { /* find package with this name: */
         pushSTACK(name); pushSTACK(nicknamelistr); /* save (MT) */
         var object found = find_package(name);
         nicknamelistr = popSTACK(); name = popSTACK(); /* restore */

@@ -1399,7 +1399,7 @@ local inline void set_last_inplace (object list) {
     Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
   if (consp(list)) {
     var object list1;
-    while (1) { /* list is a cons */
+    while (true) { /* list is a cons */
       list1 = Cdr(list);
       if (atomp(list1)) break;
       list = list1;
@@ -1453,7 +1453,8 @@ local inline maygc void set_last_copy (object list) {
     pushSTACK(NIL); /* start of the result list */                      \
    {var gcv_object_t* ergptr = &STACK_0; /* pointer to it */            \
     /* traverse all lists in parallel: */                               \
-    while (1) { var gcv_object_t* argptr = args_pointer;                \
+    while (true) {                                                      \
+      var gcv_object_t* argptr = args_pointer;                          \
       var object fun = NEXT(argptr);                                    \
       var uintC count = argcount;                                       \
       do {                                                              \
@@ -1487,7 +1488,8 @@ local inline maygc void set_last_copy (object list) {
     pushSTACK(NIL); /* (last totallist) */                              \
    {var gcv_object_t *ret=&STACK_1; /* remember the total list*/        \
     /* traverse all lists in parallel: */                               \
-    while (1) { var gcv_object_t* argptr = args_pointer;                \
+    while (true) {                                                      \
+      var gcv_object_t* argptr = args_pointer;                          \
       var object fun = NEXT(argptr);                                    \
       var uintC count = argcount;                                       \
       do {                                                              \
@@ -1522,7 +1524,8 @@ local inline maygc void set_last_copy (object list) {
     pushSTACK(BEFORE(rest_args_pointer)); /* save first list argument */ \
    {var gcv_object_t* ergptr = &STACK_0; /* pointer to it */            \
     /* traverse all lists in parallel: */                               \
-    while (1) { var gcv_object_t* argptr = args_pointer;                \
+    while (true) {                                                      \
+      var gcv_object_t* argptr = args_pointer;                          \
       var object fun = NEXT(argptr);                                    \
       var uintC count = argcount;                                       \
       do {                                                              \
@@ -1554,7 +1557,8 @@ local inline maygc void set_last_copy (object list) {
     pushSTACK(NIL); /* (last totallist) */                              \
    {var gcv_object_t *ret=&STACK_1; /* remember the total list*/        \
     /* traverse all lists in parallel: */                               \
-    while (1) { var gcv_object_t* argptr = args_pointer;                \
+    while (true) {                                                      \
+      var gcv_object_t* argptr = args_pointer;                          \
       var object fun = NEXT(argptr);                                    \
       var uintC count = argcount;                                       \
       do {                                                              \
@@ -1855,7 +1859,7 @@ LISPSPECFORM(multiple_value_bind, 2,0,body)
       mv_pointer = &mv_space[1];
      #endif
       /* still min(r,s)>0 values to bind: */
-      while (1) {
+      while (true) {
         bind_next_var(*mv_pointer++);
         if (--r == 0) goto ok; /* no more variables? */
         if (--s == 0) goto fill; /* no more values? */
@@ -2011,7 +2015,7 @@ LISPFUNN(driver,1)
   var sp_jmp_buf returner; /* remember entry point */
   finish_entry_frame(DRIVER,returner,,;);
   /* this is the entry point. */
-  while (1) { funcall(STACK_(0+2),0); } /* call fun, endless loop */
+  while (true) { funcall(STACK_(0+2),0); } /* call fun, endless loop */
 }
 
 LISPFUNN(unwind_to_driver,1)
@@ -2316,7 +2320,7 @@ local bool form_constant_p (object form) {
     if ((cclosurep(fdef) && (Cclosure_seclass(fdef) == seclass_foldable))
         || (subrp(fdef) && (TheSubr(fdef)->seclass == seclass_foldable))) {
       check_SP();
-      while (1) {
+      while (true) {
         form = Cdr(form);
         if (nullp(form)) return true;  /* list is over */
         if (!consp(form)) return false;  /* invalid form */
@@ -2493,7 +2497,7 @@ LISPSPECFORM(and, 0,0,body)
   if (atomp(body)) {
     VALUES1(T); /* (AND) -> T */
   } else {
-    while (1) {
+    while (true) {
       pushSTACK(Cdr(body));
       eval(Car(body)); /* evaluate form */
       body = popSTACK();
@@ -2512,7 +2516,7 @@ LISPSPECFORM(or, 0,0,body)
   if (atomp(body)) {
     VALUES1(NIL); /* (OR) -> NIL */
   } else {
-    while (1) {
+    while (true) {
       pushSTACK(Cdr(body));
       eval(Car(body)); /* evaluate form */
       body = popSTACK();

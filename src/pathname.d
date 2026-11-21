@@ -887,7 +887,7 @@ local _Noreturn void error_pathname_designator (object thing) {
  < stream: File-Stream */
 local object as_file_stream (object stream) {
   var object s = stream;
-  while (1) {
+  while (true) {
     if (TheStream(s)->strmtype == strmtype_file)
       return s;
     if (!(TheStream(s)->strmtype == strmtype_synonym))
@@ -1149,7 +1149,7 @@ local maygc object parse_logical_host_prefix (zustand* zp, object string) {
   var uintL startindex = zp->index;
   var chart ch;
   /* a sequence of alphanumeric characters and then ':' */
-  while (1) {
+  while (true) {
     if (zp->count==0)
       return NIL; /* string already ended -> no host */
     ch = schar(string,zp->index); /* next character */
@@ -1304,7 +1304,7 @@ local maygc uintL parse_logical_pathnamestring (zustand z) {
   } else {
     Car(STACK_0) = S(Kabsolute);
   }
-  while (1) {
+  while (true) {
     /* try to parse the next subdir */
     var object subdir = parse_logical_word(&z,true);
     if (nullp(subdir))
@@ -1601,7 +1601,7 @@ LISPFUN(parse_namestring,seclass_rd_sig,1,2,norest,key,3,
         goto hostspec_ok;
        #else
         /* is it a sequence of alphanumeric characters and then a ':' resp. '::' ? */
-        while (1) {
+        while (true) {
           if (z.count==0)
             goto no_hostspec; /* string already through -> no Host */
           ch = TheSnstring(STACK_1)->data[z.index]; /* next character */
@@ -1829,12 +1829,12 @@ LISPFUN(parse_namestring,seclass_rd_sig,1,2,norest,key,3,
           STACK_0 = new_cons;
         }
      #endif
-      while (1) {
+      while (true) {
         /* try to parse another subdirectory. */
        #ifdef PATHNAME_NOEXT
         {
           var uintL z_start_index = z.index; /* index at the start */
-          while (1) {
+          while (true) {
             var chart ch;
             if (z.count == 0)
               break;
@@ -2183,7 +2183,7 @@ LISPFUN(translate_logical_pathname,seclass_default,1,0,norest,key,1,
     pushSTACK(S(Ktest)); pushSTACK(L(equal)); funcall(L(make_hash_table),2);
     pushSTACK(value1);
     /* stack layout: pathname, ht. */
-    while (1) {
+    while (true) {
       if (!nullp(shifthash(STACK_0,STACK_1,T,true))) {
         /* STACK_1 = pathname; -- FILE-ERROR slot PATHNAME */
         STACK_0 = STACK_1;
@@ -2984,7 +2984,7 @@ LISPFUN(enough_namestring,seclass_read,1,1,norest,nokey,0,NIL) {
               var object Lp = p_directory;
               var object Ld = d_directory;
               /* Is Ld a starting piece of Lp ? */
-              while (1) {
+              while (true) {
                 if (atomp(Ld)) { /* Ld finished -> yes */
                   new_subdirs = Lp;
                   /* new-subdirs := (cons :RELATIVE new-subdirs) : */
@@ -3784,7 +3784,7 @@ local bool wildcard_match (object pattern, object sample) {
 local bool wildcard_match_ab (uintL m_count, const chart* m_ptr,
                               uintL b_count, const chart* b_ptr) {
   var chart c;
-  while (1) {
+  while (true) {
     if (m_count==0)
       return (b_count==0); /* "" matches only "" */
     m_count--;
@@ -3803,7 +3803,7 @@ local bool wildcard_match_ab (uintL m_count, const chart* m_ptr,
    (because a sequence '*??*???***?' matches everything, that is as least as
    long as the sequence of question marks). The '?' can also be utilized
    immediately, because '*??*???***?' is equivalent to '??????*' . */
-  while (1) {
+  while (true) {
     if (m_count==0) return true; /* wildcard at the end matches the rest. */
     m_count--;
     c = *m_ptr++; /* next match-character */
@@ -3815,7 +3815,7 @@ local bool wildcard_match_ab (uintL m_count, const chart* m_ptr,
       break;
   }
   /* c = next non-wildcard-character. Search it. */
-  while (1) {
+  while (true) {
     if (b_count==0) return false; /* c not found */
     b_count--;
     if (equal_pathchar(*b_ptr++,c)) {
@@ -3883,7 +3883,7 @@ local bool directory_match_ab (object m_list, object b_list, bool logical);
 local bool directory_match_ab (object m_list, object b_list, bool logical) {
   /* Algorithm analogous to wildcard_match_ab. */
   var object item;
-  while (1) {
+  while (true) {
     if (atomp(m_list)) { return atomp(b_list); }
     item = Car(m_list); m_list = Cdr(m_list);
     if (eq(item,S(Kwild_inferiors))) break;
@@ -3891,12 +3891,12 @@ local bool directory_match_ab (object m_list, object b_list, bool logical) {
     if (!subdir_match(item,Car(b_list),logical)) return false;
     b_list = Cdr(b_list);
   }
-  while (1) {
+  while (true) {
     if (atomp(m_list)) return true;
     item = Car(m_list); m_list = Cdr(m_list);
     if (!eq(item,S(Kwild_inferiors))) break;
   }
-  while (1) {
+  while (true) {
     if (atomp(b_list)) return false;
     if (subdir_match(item,Car(b_list),logical)) {
       b_list = Cdr(b_list);
@@ -4027,7 +4027,7 @@ local maygc void wildcard_diff_ab (object pattern, object sample,
                                    const gcv_object_t* previous,
                                    gcv_object_t* solutions) {
   var chart cc;
-  while (1) {
+  while (true) {
     if (m_index == Sstring_length(pattern)) {
       if (b_index == Sstring_length(sample))
         push_solution();
@@ -4061,7 +4061,7 @@ local maygc void wildcard_diff_ab (object pattern, object sample,
     }
   }
   var uintL b_start_index = b_index;
-  while (1) {
+  while (true) {
     /* to reduce consing, intercept cases when wildcard_diff_ab()
        does nothing */
     if (m_index == Sstring_length(pattern)
@@ -4243,7 +4243,7 @@ local maygc void directory_diff_ab (object m_list, object b_list, bool logical,
     skipSTACK(3);
   } else {
     pushSTACK(b_list); /* b_start_list := b_list */
-    while (1) {
+    while (true) {
       /* to reduce consing, intercept cases when directory_diff_ab()
        does nothing: */
       if (atomp(m_list)
@@ -4472,7 +4472,7 @@ local maygc object translate_nametype_aux (gcv_object_t* subst, object pattern,
     var uintL len = Sstring_length(pattern);
     var uintL index = 0;
     var uintL stringcount = 0; /* number of strings on the stack */
-    while (1) {
+    while (true) {
       var uintL last_index = index;
       var chart cc;
       /* search next wildcard-character: */
@@ -5472,7 +5472,7 @@ local maygc void assure_dir_exists (struct file_status *fs,
   var uintC allowed_links = MAXSYMLINKS; /* number of allowed symbolic links */
   if (links_resolved)
     goto dir_exists;
-  while (1) { /* loop over the symbolic links to be resolved */
+  while (true) { /* loop over the symbolic links to be resolved */
     { /* determine Truepath of the directory: */
       var char path_buffer[MAXPATHLEN]; /* cf. REALPATH(3) */
       {
@@ -7181,7 +7181,7 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
         default: NOTREACHED;
       }
     }
-    while (1) {
+    while (true) {
      #if defined(MULTITHREAD) && defined(HAVE_READDIR_R)
       /* we should use readdir_r(). it is thread safe (but optional in POSIX)
          TODO: some config scripts for it ? Is there thread safe, portable
@@ -7364,7 +7364,7 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
           } else
             OS_file_error(STACK_1);
         }, break; );
-        while (1) {
+        while (true) {
           end_blocking_system_call();
           /* convert directory-entry into string: */
           var object direntry = direntry_to_string(READDIR_entry_name(),-1);
@@ -7529,7 +7529,7 @@ local maygc object directory_search (object pathname, dir_search_param_t *dsp) {
   }
   var bool recursively = /* Flag, if the next operation has to be applied */
     false;               /* to all subdirectories. */
-  while (1) {
+  while (true) {
     /* stack layout: result-list, pathname, name&type, subdir-list,
                    pathname-list.
      result-list = list of finished pathnames/lists, reversed.
@@ -7577,7 +7577,7 @@ local maygc object directory_search (object pathname, dir_search_param_t *dsp) {
     } else
       pushSTACK(NIL);
     pushSTACK(STACK_(0+2));
-    while (1) {
+    while (true) {
       /* stack layout: ..., new-pathname-list, ht, pathname-list-rest. */
       var object pathname_list_rest = STACK_0;
       if (atomp(pathname_list_rest))

@@ -58,7 +58,7 @@ local maygc object pi_F_float_F (object f)
     pushSTACK(temp); /* =: t */
   }
   /* Stack layout: a, b, x, t. */
-  while (1) {
+  while (true) {
     {
       var object temp;
       temp = LF_LF_minus_LF(STACK_3,STACK_2); /* (- a b) */
@@ -167,7 +167,7 @@ local maygc object F_atanx_F (object x);
       var sintL e_limit = 1+sqrt_d; /* 1+floor(sqrt(d))              */ \
       pushSTACK(x = F_div_F(F_abs_F(x))); /* 1/|x|                   */ \
       /* Stack layout: originales x, neues x.                        */ \
-      while (1) {                                                       \
+      while (true) {                                                    \
         /* calculate next x with the formula x := x+sqrt(x^2 +- 1):  */ \
         x = F_sqrt_F(R_R_plus_R(F_square_F(x),Fixnum_plusminus1));      \
         STACK_0 = x = F_F_plus_F(STACK_0,x);                            \
@@ -189,7 +189,7 @@ local maygc object F_atanx_F (object x);
     pushSTACK(I_F_float_F(Fixnum_1,STACK_1)); /* b := (float 1 x)    */ \
     pushSTACK(I_F_float_F(Fixnum_0,STACK_2)); /* sum := (float 0 x)  */ \
     /* Stack layout: x, a, b, sum.                                   */ \
-    while (1) {                                                         \
+    while (true) {                                                      \
       var object temp;                                                  \
       temp = R_R_div_R(STACK_1,i); /* (/ b i)                        */ \
       temp = F_F_plus_F(STACK_0,temp); /* (+ sum (/ b i))            */ \
@@ -375,7 +375,7 @@ local maygc object F_sinhx_F (object x);
     pushSTACK(I_F_float_F(Fixnum_1,STACK_2)); /* b := (float 1 x) */    \
     pushSTACK(I_F_float_F(Fixnum_0,STACK_3)); /* sum := (float 0 x)  */ \
     /* Stack layout: x, x^2, a, b, sum.                              */ \
-    while (1) {                                                         \
+    while (true) {                                                      \
       var object temp;                                                  \
       temp = F_F_plus_F(STACK_0,STACK_1); /* (+ sum b)               */ \
       if (eql(STACK_0,temp)) /* = sum ?                              */ \
@@ -686,7 +686,7 @@ local maygc object F_lnx1_F (object x)
     pushSTACK(I_F_float_F(Fixnum_0,STACK_1)); /* sum := (float 0 x) */
     STACK_2 = F_minus_F(STACK_1); /* a := -y, b := y */
     /* Stack layout: a, b, sum. */
-    while (1) {
+    while (true) {
       var object temp;
       temp = R_R_div_R(STACK_1,i); /* (/ b i) */
       temp = F_F_plus_F(STACK_0,temp); /* (+ sum (/ b i)) */
@@ -945,7 +945,7 @@ local maygc object I_I_log_RA (object a, object b)
   var uintL ud = 0;
   var uintL vc = 0;
   var uintL vd = 1;
-  while (1) {
+  while (true) {
     if (eq(a,Fixnum_1)) /* a=1 -> end of recursion */
       break;
     if (I_I_comp(a,b) >=0) {
@@ -1140,7 +1140,7 @@ local maygc object F_expx_F (object x)
     pushSTACK(I_F_float_F(Fixnum_1,STACK_0)); /* b := (float 1 x) */
     pushSTACK(I_F_float_F(Fixnum_0,STACK_1)); /* sum := (float 0 x) */
     /* Stack layout: x, b, sum. */
-    while (1) {
+    while (true) {
       var object temp;
       temp = F_F_plus_F(STACK_0,STACK_1); /* (+ sum b) */
       if (eql(STACK_0,temp)) /* = sum ? */

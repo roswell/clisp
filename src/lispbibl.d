@@ -17007,7 +17007,7 @@ extern maygc object hash_table_test (object ht);
     var uintL index_from_map_hashtable =                                \
       3*posfixnum_to_V(TheHashtable(ht_from_map_hashtable)->ht_maxcount); \
     pushSTACK(TheHashtable(ht_from_map_hashtable)->ht_kvtable);         \
-    while (1) {                                                         \
+    while (true) {                                                         \
       if (index_from_map_hashtable==0) break;                           \
       index_from_map_hashtable -= 3;                                    \
       {var gcv_object_t* KVptr_from_map_hashtable =                     \
@@ -17026,7 +17026,7 @@ extern maygc object hash_table_test (object ht);
       posfixnum_to_V(TheHashtable(ht_from_map_hashtable)->ht_maxcount); \
     var gcv_object_t* KVptr_from_map_hashtable =                        \
       &TheHashedAlist(TheHashtable(ht_from_map_hashtable)->ht_kvtable)->hal_data[3*index_from_map_hashtable]; \
-    while (1) {                                                         \
+    while (true) {                                                         \
       if (index_from_map_hashtable==0) break;                           \
       index_from_map_hashtable--; KVptr_from_map_hashtable -= 3;        \
       { var object key = KVptr_from_map_hashtable[0];                   \

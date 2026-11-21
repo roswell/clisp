@@ -567,7 +567,7 @@ global _GL_NORETURN_FUNC void reset (uintL count) {
   VALUES0;
   unwind_protect_to_save.fun = &reset_restartf;
   unwind_protect_to_save.upto_frame = NULL;
-  while (1) {
+  while (true) {
     /* does STACK end here? */
     if (eq(STACK_0,nullobj) && eq(STACK_1,nullobj)) { /* check STACK_start? */
       if (last_driver_frame) {  /* restart at last driver frame */
@@ -691,8 +691,8 @@ global _GL_NORETURN_FUNC /*maygc*/ void unwind_upto (gcv_object_t* upto_frame) {
 global void throw_to (object tag) {
   /* search for Catch-Frame with Tag = tag: */
   var gcv_object_t* FRAME = STACK;
-  while (1) { /* search in the Stack starting at FRAME
-                 for a CATCH-Frame with the same Tag: */
+  while (true) { /* search in the Stack starting at FRAME
+                    for a CATCH-Frame with the same Tag: */
     if (eq(FRAME_(0),nullobj)) /* end of Stack? */
       return; /* yes -> no suitable Catch there -> jump back */
     if (framecode(FRAME_(0)) & fbit(frame_bit_t)) {
@@ -723,7 +723,7 @@ global maygc void invoke_handlers (object cond) {
   var stack_range_t new_range;
   /* Search for Handler-Frame, that handles a Type with (TYPEP cond type): */
   var gcv_object_t* FRAME = STACK;
-  while (1) {
+  while (true) {
     /* search in Stack starting at FRAME for a suitable HANDLER-Frame: */
     if (!(other_ranges == NULL) && (FRAME == other_ranges->low_limit)) {
       FRAME = other_ranges->high_limit;
@@ -1988,7 +1988,7 @@ global maygc object get_closure (object lambdabody, object name, bool blockp,
       if (eq(item,S(LLbody)))             goto badLLkey;    /* &BODY ? */ \
     }
  req: /* process required-parameter push on STACK: */
-  while (1) {
+  while (true) {
     NEXT_ITEM(opt,rest,key,badLLkey,aux,ende);
     item = check_symbol_non_constant(item,S(function));
     Car(*lalist_save_) = item;
@@ -7006,7 +7006,7 @@ local /*maygc*/ Values interpret_bytecode_ (object closure_in, Sbvector codeptr,
       count--;
       { /* at least 2 values desired and present */
         var object* mvp = &mv_space[1];
-        while (1) {
+        while (true) {
           pushSTACK(*mvp++);
           n--; if (n==0) goto nv_to_stack_end; /* no further value desired -> finished */
           count--; if (count==0) goto nv_to_stack_fill; /* no further value present -> fill with NILs */

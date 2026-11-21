@@ -179,7 +179,7 @@ local uintL base64_to_bytes (const chart *src, const chart* srcend,
   var uintB *dest = destp;
   var uintL num_bytes = 0;
 
-  while (1) {
+  while (true) {
     /* Process first byte of a quadruplet. */
     READ_QUADRUPLET_BYTE(return num_bytes);
     if (!BASE64_P(c)) { *error_p = src-1; return num_bytes; }

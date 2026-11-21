@@ -216,7 +216,7 @@ LISPFUN(vector,seclass_no_se,0,0,rest,nokey,0,NIL)
  every intermediate array.
  It is not checked whether the chain is ultimately circular. */
 local object iarray_displace (object array, uintL* index) {
-  while (1) {
+  while (true) {
     if (*index >= TheIarray(array)->totalsize)
       goto error_bad_index;
     if (!(Iarray_flags(array) & bit(arrayflags_displaced_bit)))
@@ -260,7 +260,7 @@ local _Noreturn void error_displaced_inconsistent (void) {
  < result: storage vector
  < index: is incremented by the offset into the storage vector */
 global object iarray_displace_check (object array, uintL size, uintL* index) {
-  while (1) {
+  while (true) {
     if (*index+size > TheIarray(array)->totalsize)
       goto error_bad_index;
     if (!(Iarray_flags(array) & bit(arrayflags_displaced_bit)))
@@ -301,7 +301,7 @@ global object iarray_displace_check (object array, uintL size, uintL* index) {
 modexp object array_displace_check (object array, uintV size, uintL* index) {
   if (array_simplep(array)) /* indirect array? */
     goto simple;
-  while (1) {
+  while (true) {
     if (*index+size > TheIarray(array)->totalsize)
       goto error_bad_index;
     if (!(Iarray_flags(array) & bit(arrayflags_displaced_bit)))
@@ -1480,7 +1480,7 @@ local void bit_copy (object array1, uintL index1,
        We distinguish two cases in order to avoid a memory overrun bug.
        The tighter loop is just an added benefit for speed. */
     if (index1 == 0) {
-      while (1) {
+      while (true) {
         /* After n>=0 rounds ptr1 has advanced by n words, i.e. it points
            to the next word to be read, and ptr2 has advanced by n words, i.e.
            it points to the next word to be written. bitpackcount has been
@@ -1496,7 +1496,7 @@ local void bit_copy (object array1, uintL index1,
       var uint_2bitpack_t carry1 = LR_bitpack_0((*ptr1++) << index1);
       /* The upper bitpack-index1 bits of carry1 are the affected bits of
          the first word of array1. The other bits in carry1 are zero. */
-      while (1) {
+      while (true) {
         /* After n>=0 rounds ptr1 has advanced by n+1 words, i.e. it points
            to the next word to be read, and ptr2 has advanced by n words, i.e.
            it points to the next word to be written. bitpackcount has been
@@ -1594,7 +1594,7 @@ local void bit_op (object array1, uintL index1,
     if (index1 == 0) {
       if (index2 == 0) {
         /* index1 = 0, index2 = 0. */
-        while (1) {
+        while (true) {
           /* combination loop (wordwise):
              After n>=0 loop runs ptr1 and ptr2 are advanced
              by n words, which means pointer to the
@@ -1620,7 +1620,7 @@ local void bit_op (object array1, uintL index1,
         /* carry2 has in its upper bitpack-index2 bits
            (bits 2*bitpack-1..bitpack+index2)
            the affected bits of the 1st word of the 2nd array, else nulls. */
-        while (1) {
+        while (true) {
           /* combination loop (wordwise):
              After n>=0 loop runs ptr1 is advanced by n words
              and ptr2 has advanced by n+1 words, which means pointer to the
@@ -1656,7 +1656,7 @@ local void bit_op (object array1, uintL index1,
         /* carry1 has in its upper bitpack-index1 bits
            (bits 2*bitpack-1..bitpack+index1)
            the affected bits of the 1st word of the 1st array, else nulls. */
-        while (1) {
+        while (true) {
           /* combination loop (wordwise):
              After n>=0 loop runs ptr1 is advanced by n+1 words
              and ptr2 has advanced by n words, which means pointer to the
@@ -1695,7 +1695,7 @@ local void bit_op (object array1, uintL index1,
         /* carry2 has in its upper bitpack-index2 bits
            (bits 2*bitpack-1..bitpack+index2)
            the affected bits of the 1st word of the 2nd array, else nulls. */
-        while (1) {
+        while (true) {
           /* combination loop (wordwise):
              After n>=0 loop runs ptr1 and ptr2  are advanced
              by n+1 words, which means pointer to the
@@ -4964,7 +4964,7 @@ LISPFUN(adjust_array,seclass_default,2,0,norest,key,6,
       var object array = STACK_6; /* array, that has to be displaced */
       var object to_array = STACK_1; /* array, to which displacement takes place */
       /* test, if array occurs in the data vector chain of to_array: */
-      while (1) {
+      while (true) {
         /* if array = to_array, we have a cycle. */
         if (eq(array,to_array)) {
           pushSTACK(array);

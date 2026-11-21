@@ -937,7 +937,7 @@ local _Noreturn void mal_ueberlauf (void) {
       pushSTACK(n);        # n
       pushSTACK(Fixnum_1); # k := 1
       pushSTACK(n);        # obere Intervallgrenze floor(n/2^(k-1))
-      while (1) {
+      while (true) {
         # Stackaufbau: prod, n, k, floor(n/2^(k-1)).
         # 'n' enthält floor(n/2^(k-1)).
         n = I_I_ash_I(n,Fixnum_minus1); # untere Grenze floor(n/2^k)

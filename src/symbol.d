@@ -23,7 +23,7 @@ local _Noreturn void error_sym_plist_odd (object symbol) {
  < tail: eq(Car(*tail),key), or a pointer to an atom if not found,
          or NULL if odd length */
 local inline gcv_object_t* plist_find (gcv_object_t *plist_, object key) {
-  while (1) {
+  while (true) {
     var object plistr = *plist_;
     if (atomp(plistr)) /* not found */
       return plist_;
@@ -209,7 +209,7 @@ LISPFUNNR(get_properties,2)
   var object keylist = popSTACK();
   var object plist = popSTACK();
   var object plistr = plist;
-  while (1) {
+  while (true) {
     if (endp(plistr))
       goto notfound;
     var object item = Car(plistr);

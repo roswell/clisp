@@ -161,7 +161,7 @@ local void write_errorasciz (const char* asciz) {
 local gcv_object_t* write_errorstring (const char* errorstring)
 {
   var gcv_object_t* argptr = args_end_pointer STACKop 7; /* pointer above stream and frame */
-  while (1) {
+  while (true) {
     var char ch = *errorstring; /* next character */
     if (ch==0) /* string finished? */
       break;
@@ -184,7 +184,7 @@ local gcv_object_t* write_errorstring (const char* errorstring)
     }
     /* output all characters until the next special character */
     var const char* ptr = errorstring;
-    while (1) {
+    while (true) {
       ptr++;
       ch = *ptr;
       if (ch==0 || ch=='~')
@@ -1682,7 +1682,7 @@ modexp _Noreturn void error_c_integer (object obj, int tcode, bool signedp) {
  can trigger GC */
 modexp maygc object check_c_integer_replacement (object obj, int tcode,
                                                  bool signedp) {
-  while (1) {
+  while (true) {
     pushSTACK(NIL); /* no PLACE */
     check_value(type_error,prepare_c_integer_signal(obj,tcode,signedp));
     obj = value1;
