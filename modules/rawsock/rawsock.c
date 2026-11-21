@@ -431,12 +431,12 @@ DEFUN(RAWSOCK:PROTOCOL, &optional protocol)
 { /* interface to getprotobyname() et al
      http://www.opengroup.org/onlinepubs/9699919799/functions/getprotoent.html */
   object proto = popSTACK();
-  struct protoent *pe = NULL;
   if (missingp(proto)) {        /* get all protocols */
     int count = 0;
     begin_system_call();
 #  if defined(HAVE_SETPROTOENT) && defined(HAVE_GETPROTOENT) && defined(HAVE_ENDPROTOENT)
     setprotoent(1);
+    struct protoent *pe;
     while ((pe = getprotoent())) {
       end_system_call();
       protoent_to_protocol(pe); pushSTACK(value1); count++;
@@ -446,27 +446,36 @@ DEFUN(RAWSOCK:PROTOCOL, &optional protocol)
 #  endif
     end_system_call();
     VALUES1(listof(count));
-    return;
   } else if (sint_p(proto)) {
+    struct protoent *pe = NULL;
 #  if defined(HAVE_GETPROTOBYNUMBER) || defined(WIN32_NATIVE)
     begin_system_call();
     pe = getprotobynumber(I_to_sint(proto));
     end_system_call();
 #  endif
+    if (pe)
+      protoent_to_protocol(pe);
+    else
+      VALUES1(NIL);
   } else if (stringp(proto)) {
 #  if defined(HAVE_GETPROTOBYNAME) || defined(WIN32_NATIVE)
+    object result = nullobj;
     with_string_0(proto,GLO(misc_encoding),protoz, {
       begin_system_call();
-      pe = getprotobyname(protoz);
+      struct protoent *pe = getprotobyname(protoz);
       end_system_call();
+      if (pe)
+        protoent_to_protocol(pe);
+      else
+        VALUES1(NIL);
+      result = value1;
     });
+    VALUES1(result);
+#  else
+    VALUES1(NIL);
 #  endif
   } else
     error_string_integer(proto);
-  if (pe)
-    protoent_to_protocol(pe);
-  else
-    VALUES1(NIL);
 }
 /* --------------- */
 /* return RAWSOCK:NETWORK object in value1 */

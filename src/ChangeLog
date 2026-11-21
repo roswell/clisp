@@ -1,5 +1,12 @@
 2026-11-21  Bruno Haible  <bruno@clisp.org>
 
+	rawsock: Fix a bug in the RAWSOCK:PROTOCOL function.
+	* modules/rawsock/rawsock.c (RAWSOCK:PROTOCOL): Call
+	protoent_to_protocol before the stack-allocated protoz goes
+	out-of-scope.
+
+2026-11-21  Bruno Haible  <bruno@clisp.org>
+
 	i18n: Fix a possible memory overrun bug.
 	* modules/i18n/gettext.c (thousands_sep_to_STACK): Don't access res[end]
 	if end >= limit.
