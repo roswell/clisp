@@ -360,10 +360,10 @@ static void thousands_sep_to_STACK (int what, char** gres, int* res_size) {
   int start = 0;
   int end = 0;
   int count = 0;
-  while (res[end] && (end < limit)) {
-    while (res[end] && (res[end] != ';') && (end < limit)) end++;
+  while ((end < limit) && res[end]) {
+    while ((end < limit) && res[end] != '\0' && (res[end] != ';')) end++;
     pushSTACK(sfixnum(my_atoi(res+start))); count++;
-    if (!res[end]) break;
+    if (!((end < limit) && res[end] != '\0')) break;
     start = ++end;
   }
   value1 = vectorof(count); pushSTACK(value1);

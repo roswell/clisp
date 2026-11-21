@@ -1,5 +1,11 @@
 2026-11-21  Bruno Haible  <bruno@clisp.org>
 
+	i18n: Fix a possible memory overrun bug.
+	* modules/i18n/gettext.c (thousands_sep_to_STACK): Don't access res[end]
+	if end >= limit.
+
+2026-11-21  Bruno Haible  <bruno@clisp.org>
+
 	Fix a function's specification.
 	* foreign.d (register_foreign_inttype): Fix specification.
 
