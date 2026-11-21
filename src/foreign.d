@@ -417,9 +417,12 @@ LISPFUNNR(foreign_address_unsigned,1) {
   if (fvariablep(arg)) arg = TheFvariable(arg)->fv_address;
   else if (ffunctionp(arg)) arg = TheFfunction(arg)->ff_address;
   /* address --> integer */
-  if (faddressp(arg)) value1 = uintP_to_I((uintP)Faddress_value(arg));
-  else if (fpointerp(arg)) value1 = uintP_to_I((uintP)Fpointer_value(arg));
-  else error_foreign_object(arg);
+  if (faddressp(arg))
+    value1 = uintP_to_I((uintP)Faddress_value(arg));
+  else if (fpointerp(arg))
+    value1 = uintP_to_I((uintP)Fpointer_value(arg));
+  else
+    error_foreign_object(arg);
   mv_count = 1;
 }
 
@@ -1000,7 +1003,8 @@ modexp maygc void register_foreign_inttype
       pushSTACK(inttype); pushSTACK(obj); pushSTACK(name);
       error(error_condition,GETTEXT("Cannot redefine foreign type ~S from ~S to ~S"));
     }
-  } else shifthash(O(foreign_inttype_table),name,inttype,true);
+  } else
+    shifthash(O(foreign_inttype_table),name,inttype,true);
 }
 
 LISPFUNNF(parse_foreign_inttype,2) { /* "size_t" --> FFI:UINT64 */
@@ -2780,9 +2784,12 @@ modexp maygc void convert_to_foreign
             obj = check_faddress_valid(obj);
             *(void**)data = Faddress_value(obj);
             return;
-          } else goto bad_obj;
-        } else if (nullp(obj)) { *(void**)data = NULL; return; }
-        else goto bad_obj;
+          } else
+            goto bad_obj;
+        } else if (nullp(obj))
+          { *(void**)data = NULL; return; }
+        else
+          goto bad_obj;
       } else if (eq(fvdtype,S(c_array_ptr)) && (fvdlen == 2)) {
         if (nullp(obj)) {
           *(void**)data = NULL;
@@ -2969,8 +2976,9 @@ LISPFUNN(find_foreign_variable,5) {
     if (!nullp(STACK_1)) /* version */
       error_version_nonlibrary(STACK_4,STACK_1);
     VALUES1(lookup_foreign_variable(&STACK_4,&STACK_3));
-  } else VALUES1(foreign_library_variable(&STACK_4,&STACK_3,&STACK_2,
-                                          &STACK_1,&STACK_0));
+  } else
+    VALUES1(foreign_library_variable(&STACK_4,&STACK_3,&STACK_2,
+                                     &STACK_1,&STACK_0));
   skipSTACK(5);
 }
 
@@ -3692,8 +3700,9 @@ LISPFUNN(find_foreign_function,6) {
     if (!nullp(STACK_1)) /* version */
       error_version_nonlibrary(STACK_5,STACK_1);
     VALUES1(lookup_foreign_function(&STACK_5,&STACK_4,&STACK_3));
-  } else VALUES1(foreign_library_function(&STACK_5,&STACK_4,&STACK_3,
-                                          &STACK_2,&STACK_1,&STACK_0));
+  } else
+    VALUES1(foreign_library_function(&STACK_5,&STACK_4,&STACK_3,
+                                     &STACK_2,&STACK_1,&STACK_0));
   skipSTACK(6);
 }
 
@@ -3808,7 +3817,8 @@ local void do_av_start (uintWL flags, object result_fvd, av_alist *alist,
     if (!eq(inttype,nullobj))
       do_av_start (flags, inttype, alist, address, result_address,
                    result_size, result_splittable);
-    else error_foreign_type(result_fvd);
+    else
+      error_foreign_type(result_fvd);
   }
  #if defined(WIN32_NATIVE) || defined(UNIX_CYGWIN)
   /* This code does not compile with libffcall >= 2.0 and old C compilers.
@@ -3922,7 +3932,8 @@ local void do_av_arg (uintWL flags, object arg_fvd, av_alist * alist,
     var object inttype = gethash(arg_fvd,O(foreign_inttype_table),false);
     if (!eq(inttype,nullobj))
       do_av_arg (flags, inttype, alist, arg_address, arg_size, arg_alignment);
-    else error_foreign_type(arg_fvd);
+    else
+      error_foreign_type(arg_fvd);
   }
 }
 
@@ -4270,7 +4281,8 @@ local void do_va_start (uintWL flags, object result_fvd, va_alist alist,
     if (!eq(inttype,nullobj))
       do_va_start (flags, inttype, alist, result_size, result_alignment,
                    result_splittable);
-    else error_foreign_type(result_fvd);
+    else
+      error_foreign_type(result_fvd);
   }
   if (flags & ff_lang_stdcall)
     alist->flags |= __VA_STDCALL_CLEANUP;
@@ -4396,7 +4408,8 @@ local void* do_va_arg (uintWL flags, object arg_fvd, va_alist alist)
     var object inttype = gethash(arg_fvd,O(foreign_inttype_table),false);
     if (!eq(inttype,nullobj))
       return do_va_arg (flags, inttype, alist);
-    else error_foreign_type(arg_fvd);
+    else
+      error_foreign_type(arg_fvd);
   }
 }
 
@@ -4503,7 +4516,8 @@ local void do_va_return (uintWL flags, object result_fvd, va_alist alist, void* 
     if (!eq(inttype,nullobj))
       do_va_return (flags, inttype, alist, result_address,
                     result_size, result_alignment);
-    else error_foreign_type(result_fvd);
+    else
+      error_foreign_type(result_fvd);
   }
 }
 

@@ -169,8 +169,10 @@ local void gc_mark (object obj)
  #define down_cclosure()  if (cclosurep(curr) && cclosure_jitc_p(curr)) { \
    object jitc = cclosure_jitc(curr);                                   \
    if (fpointerp(jitc)) {                                               \
-     if (gc_drop_jitc) cclosure_jitc(curr) = NIL;                       \
-     else gc_mark_jitc_object(TheFpointer(jitc)->fp_pointer);           \
+     if (gc_drop_jitc)                                                  \
+       cclosure_jitc(curr) = NIL;                                       \
+     else                                                               \
+       gc_mark_jitc_object(TheFpointer(jitc)->fp_pointer);              \
    }                                                                    \
  }
 #else

@@ -2683,8 +2683,10 @@ local inline int parse_options (int argc, const char* const* argv,
               if (arg[2] == '\0') {             \
                 if (argptr < argptr_limit)      \
                   arg = *argptr++;              \
-                else INVALID_ARG(arg);          \
-              } else arg += 2
+                else                            \
+                  INVALID_ARG(arg);             \
+              } else                            \
+                arg += 2
           case 'm':             /* memory size  */
             if (arg[2]=='m' && arg[3]=='\0') { /* "-mm" -> print a memory map */
               #if defined(WIN32_NATIVE)
@@ -3641,7 +3643,8 @@ local inline int init_memory (struct argv_initparams *p) {
     loadmem(p->argv_memfile);   /* load memory file */
   else if (!loadmem_from_executable())
     p->argv_memfile = get_executable_name();
-  else initmem();               /* manual initialization */
+  else
+    initmem();                  /* manual initialization */
  #if defined(MULTITHREAD)
   /* clear the list of threads. the one that we have loaded contains
      single thread record which is invalid.*/
@@ -3731,7 +3734,8 @@ local inline void main_actions (struct argv_actions *p) {
     do { pushSTACK(asciz_to_string(*execute_arg_ptr++,O(misc_encoding))); }
     while (--count);
     Symbol_value(S(args)) = listof(p->argv_execute_arg_count);
-  } else Symbol_value(S(args)) = NIL;
+  } else
+    Symbol_value(S(args)) = NIL;
   if (p->argv_execute_file != NULL && p->argv_compile) {
     push_to_args(p->argv_execute_file); /* compiling: (push exec-file *args*) */
   }
@@ -3839,7 +3843,8 @@ local inline void main_actions (struct argv_actions *p) {
       && nullp(ThePathname(value1)->pathname_type))
     /* ~/.clisp/ exists and is a directory */
     Symbol_value(S(user_lib_directory)) = value1;
-  else Symbol_value(S(user_lib_directory)) = NIL;
+  else
+    Symbol_value(S(user_lib_directory)) = NIL;
   /* load RC file ~/.clisprc */
   if (nullpSv(norc) && !p->argv_norc && p->argv_memfile) {
     var gcv_object_t* top_of_frame = STACK; /* pointer over frame */
@@ -4484,9 +4489,10 @@ global void* find_name (void *handle, const char *name)
     if ((EnumProcessModules_t)1 == fEnumProcessModules) {
       /* first call: try to load EnumProcessModules */
       HMODULE psapi = LoadLibrary("psapi.dll");
-      if (psapi == NULL) fEnumProcessModules = NULL;
-      else fEnumProcessModules =
-        (EnumProcessModules_t)GetProcAddress(psapi,"EnumProcessModules");
+      if (psapi == NULL)
+        fEnumProcessModules = NULL;
+      else
+        fEnumProcessModules = (EnumProcessModules_t)GetProcAddress(psapi,"EnumProcessModules");
     }
     if (NULL != fEnumProcessModules) {
       cur_proc = GetCurrentProcess();
@@ -4499,7 +4505,8 @@ global void* find_name (void *handle, const char *name)
           break;
       FREE_DYNAMIC_ARRAY(modules_mem);
     }
-  } else ret = (void*)GetProcAddress((HMODULE)handle,name);
+  } else
+    ret = (void*)GetProcAddress((HMODULE)handle,name);
  #elif !defined(RTLD_DEFAULT)
   /* FreeBSD 4.0 and AIX 5.1 do not support RTLD_DEFAULT, so we emulate it by
      searching the executable and the libc. */

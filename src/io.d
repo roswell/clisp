@@ -2587,23 +2587,25 @@ LISPFUNN(string_reader,2) {     /* reads " */
         /* push character ch into Buffer: */
         ssstring_push_extend(STACK_1,char_code(ch));
       }
-    } else while (1) {          /* ANSI */
-      /* read next character: */
-      var object ch;
-      var uintWL scode;
-      read_char_syntax(ch = ,scode = ,stream_);
-      if (scode == syntax_eof)  /* EOF -> error */
-        goto error_eof;
-      if (eq(ch,STACK_2))       /* same character as char -> finished */
-        break;
-      if (scode == syntax_single_esc) { /* Single-Escape-Character? */
-        /* yes -> read another character: */
+    } else {                      /* ANSI */
+      while (1) {
+        /* read next character: */
+        var object ch;
+        var uintWL scode;
         read_char_syntax(ch = ,scode = ,stream_);
-        if (scode == syntax_eof) /* EOF -> error */
+        if (scode == syntax_eof)  /* EOF -> error */
           goto error_eof;
+        if (eq(ch,STACK_2))       /* same character as char -> finished */
+          break;
+        if (scode == syntax_single_esc) { /* Single-Escape-Character? */
+          /* yes -> read another character: */
+          read_char_syntax(ch = ,scode = ,stream_);
+          if (scode == syntax_eof) /* EOF -> error */
+            goto error_eof;
+        }
+        /* push character ch into Buffer: */
+        ssstring_push_extend(STACK_1,char_code(ch));
       }
-      /* push character ch into Buffer: */
-      ssstring_push_extend(STACK_1,char_code(ch));
     }
     /* copy Buffer and convert it into Simple-String: */
     {
@@ -3757,8 +3759,10 @@ local uintWL interpret_features (uintWL and_or_flag, object expr) {
 local uintWL interpret_feature (object expr) {
   check_SP();
   if (symbolp(expr)) {          /* expr Symbol, search in *FEATURES*: */
-    if (nullp(memq(expr,Symbol_value(S(features))))) return ~0;  /* no */
-    else return 0; /* yes */
+    if (nullp(memq(expr,Symbol_value(S(features)))))
+      return ~0; /* no */
+    else
+      return 0; /* yes */
   } else if (consp(expr) && symbolp(Car(expr))) {
     var object opname = Symbol_name(Car(expr));
     if (string_eq(opname,Symbol_name(S(and)))) /* expr = (AND ...) */
@@ -4595,7 +4599,8 @@ LISPFUN(listenL,seclass_default,0,1,norest,nokey,0,NIL) {
   check_istream(&STACK_0);      /* check input-stream */
   if (builtin_stream_p(STACK_0))
     VALUES_IF(LISTEN_AVAIL == listen_char(popSTACK()));
-  else funcall(S(stream_listen),1);
+  else
+    funcall(S(stream_listen),1);
 }
 
 /* (READ-CHAR-WILL-HANG-P input-stream)
@@ -5516,14 +5521,19 @@ local uintL format_tab (object stream, object colon_p, object atsig_p,
   var uintL ret;
   /* MSVC6 has broken %, so both arguments to % must be non-negative! */
   if (nullp(atsig_p)) {
-    if (nullp(pos)) ret = 2;
-    else if (pos_i < new_col_i) ret = new_col_i - pos_i;
-    else if (col_inc_i == 0) ret = 0;
-    else ret = col_inc_i - (pos_i - new_col_i) % col_inc_i;
+    if (nullp(pos))
+      ret = 2;
+    else if (pos_i < new_col_i)
+      ret = new_col_i - pos_i;
+    else if (col_inc_i == 0)
+      ret = 0;
+    else
+      ret = col_inc_i - (pos_i - new_col_i) % col_inc_i;
   } else {
-    if (nullp(pos)) ret = new_col_i;
-    else ret = new_col_i +
-           (new_inc_i - (pos_i + new_col_i) % new_inc_i) % new_inc_i;
+    if (nullp(pos))
+      ret = new_col_i;
+    else
+      ret = new_col_i + (new_inc_i - (pos_i + new_col_i) % new_inc_i) % new_inc_i;
   }
  #if IO_DEBUG > 1
   printf("%d\n",ret);
@@ -5580,8 +5590,10 @@ local object right_margin (void) {
   }
   if (nullp(prm)) return prm;   /* *PRIN-LINELENGTH* is NIL */
   var uintV margin = posfixnum_to_V(prm);
-  if (margin <= pp_pref_len) return Fixnum_0;
-  else return fixnum(margin - pp_pref_len);
+  if (margin <= pp_pref_len)
+    return Fixnum_0;
+  else
+    return fixnum(margin - pp_pref_len);
 }
 
 /* Returns the string-width of a PPHELP stream block. */
@@ -5833,7 +5845,8 @@ local maygc void justify_empty_2 (const gcv_object_t* stream_) {
       } while (--string_count);
       TheIarray(STACK_0)->dims[1] = needed_len;
       Car(TheStream(*stream_)->strm_pphelp_strings) = popSTACK();
-    } else skipSTACK(1);        /* drop the only string */
+    } else
+      skipSTACK(1);        /* drop the only string */
     /* (push (first strings) SYS::*PRIN-JBLOCKS*), or shorter:
      (setq SYS::*PRIN-JBLOCKS* (rplacd strings SYS::*PRIN-JBLOCKS*)) */
     new_cons = TheStream(*stream_)->strm_pphelp_strings;
@@ -6442,8 +6455,10 @@ local maygc inline bool string_fit_line_p (const gcv_object_t *stream_,
   else if (vectorp(top)) {
     len = PPH_FORMAT_TAB(*stream_,top);
     while (mconsp(list) && !stringp(Car(list))) list = Cdr(list);
-    if (mconsp(list)) len += vector_length(Car(list)); /* string! */
-    else return false;          /* do not need to print this tab */
+    if (mconsp(list))
+      len += vector_length(Car(list)); /* string! */
+    else
+      return false;          /* do not need to print this tab */
   } else NOTREACHED;
   return posfixnum_to_V(avail) >= len + offset;
 }
@@ -6529,7 +6544,8 @@ local maygc void pr_enter_1 (const gcv_object_t* stream_, object obj,
         pprint_prefix(stream_,PPHELP_INDENTN(Car(STACK_0)));
         STACK_0 = Cdr(STACK_0);
         goto skip_NL;
-      } else STACK_0 = Cdr(STACK_0);
+      } else
+        STACK_0 = Cdr(STACK_0);
       /* Symbol_value(S(prin_lines)) = Fixnum_0; */
       do {                      /* NL & indent */
         { var object top = Car(STACK_0);
@@ -6906,7 +6922,8 @@ local void prin_object_dispatch_pretty (const gcv_object_t* stream_, object obj)
 local void maygc prin_object_dispatch (const gcv_object_t* stream_, object obj)
 { if (!nullpSv(print_pretty))
     prin_object_dispatch_pretty(stream_,obj);
-  else prin_object_dispatch_low(stream_,obj);
+  else
+    prin_object_dispatch_low(stream_,obj);
 }
 
 /* ------------- PRINT-Routines for various data-types -------------------- */
@@ -8276,7 +8293,8 @@ local maygc void pr_instance (const gcv_object_t* stream_, object obj) {
       pr_sharp_dot(stream_,value1);
       return;
     }
-  } else obj = popSTACK();
+  } else
+    obj = popSTACK();
   LEVEL_CHECK;
   /* execute (CLOS:PRINT-OBJECT obj stream) : */
   var uintC count = pr_external_1(*stream_); /* instantiate bindings */
@@ -9825,11 +9843,15 @@ local maygc void pr_stream (const gcv_object_t* stream_, object obj) {
     var bool input_p = (TheStream(*obj_)->strmflags & strmflags_rd_B) != 0;
     var bool output_p = (TheStream(*obj_)->strmflags & strmflags_wr_B) != 0;
     if (input_p) {
-      if (output_p) write_sstring_case(stream_,O(printstring_io));
-      else write_sstring_case(stream_,O(printstring_input));
+      if (output_p)
+        write_sstring_case(stream_,O(printstring_io));
+      else
+        write_sstring_case(stream_,O(printstring_input));
     } else {
-      if (output_p) write_sstring_case(stream_,O(printstring_output));
-      else write_sstring_case(stream_,O(printstring_invalid));
+      if (output_p)
+        write_sstring_case(stream_,O(printstring_output));
+      else
+        write_sstring_case(stream_,O(printstring_invalid));
     }
   }
   /* if a channel or socket stream, print "BUFFERED " or "UNBUFFERED ": */

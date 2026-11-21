@@ -181,7 +181,8 @@ local maygc object valid_type1 (gcv_object_t* type_) {
          expanded_maybe_constrained:
           if (consp(name2) && integerp(Car(name2)))
             { pushSTACK(Car(name2)); goto expanded; }
-          else goto expanded_unconstrained;
+          else
+            goto expanded_unconstrained;
         }
       }
       {
@@ -202,8 +203,10 @@ local maygc object valid_type1 (gcv_object_t* type_) {
             if (eq(name1,S(vector))) {
               if (integerp(name3)) pushSTACK(name3); else pushSTACK(unbound);
             } else {
-              if (consp(name3) && integerp(Car(name3))) pushSTACK(Car(name3));
-              else pushSTACK(unbound);
+              if (consp(name3) && integerp(Car(name3)))
+                pushSTACK(Car(name3));
+              else
+                pushSTACK(unbound);
             }
             var uintB atype = (eq(name2,S(star)) ? Atype_T : eltype_code(name2));
             if (atype==Atype_T) { /* (VECTOR T) */
@@ -317,7 +320,8 @@ local object get_seq_type (object seq) {
     while (consp(name) && consp(Cdr(name)) && consp(Cdr(Cdr(name))))
       name = Cdr(name);
     name = Car(name);
-  } else return NIL;
+  } else
+    return NIL;
   /* Search for name in SEQ-TYPES list: */
   return find_seq_type(name);
 }

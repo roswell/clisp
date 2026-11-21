@@ -1315,7 +1315,8 @@ LISPFUNNF(float_scale_exponent,1)
   if (R_minusp(STACK_0)) {
     s = -1;
     STACK_0 = F_minus_F(STACK_0);
-  } else s = 1;
+  } else
+    s = 1;
   /* STACK_0 > 0 */
   /* increase computational precision to avoid overflow
      short -> double since single has the same exponent size as short */

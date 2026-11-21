@@ -451,13 +451,17 @@ LISPFUN(make_closure,seclass_default,0,0,norest,key,7,(kw(name),kw(code),
   if (listp(STACK_1)) {
     *ccv_flags |= bit(1);
     *ptr++ = STACK_1;
-  } else *ccv_flags &= ~bit(1);
+  } else
+    *ccv_flags &= ~bit(1);
   if (nullp(STACK_0) || stringp(STACK_0)) {
     *ccv_flags |= bit(2);
     *ptr++ = STACK_0;
-  } else *ccv_flags &= ~bit(2);
-  if (jitc_p) *ccv_flags |= bit(5);
-  else *ccv_flags &= ~bit(5);
+  } else
+    *ccv_flags &= ~bit(2);
+  if (jitc_p)
+    *ccv_flags |= bit(5);
+  else
+    *ccv_flags &= ~bit(5);
   VALUES1(closure); skipSTACK(6);
 }
 
@@ -1593,8 +1597,10 @@ local void keyword_test (object caller, gcv_object_t* rest_args_pointer,
       var object key = NEXT(ptr);
       var object val = NEXT(ptr);
       if (eq(key,S(Kallow_other_keys))) {
-        if (nullp(val)) break;  /* need a check */
-        else return;            /* no check */
+        if (nullp(val))
+          break;             /* need a check */
+        else
+          return;            /* no check */
       }
     } while(--count);
     ptr = rest_args_pointer;

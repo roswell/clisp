@@ -355,7 +355,8 @@ LISPFUN(make_thread,seclass_default,1,0,norest,key,4,
         delete_thread(new_thread);
         startup_failed = true;
       }
-    } else alloc_failed = true;
+    } else
+      alloc_failed = true;
   });
   if (alloc_failed) {
     pushSTACK(S(make_thread));

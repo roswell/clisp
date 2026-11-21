@@ -1764,7 +1764,8 @@ local object broadcast_stream_last (object stream)
       stream_list = Cdr(stream_list);
     } while (consp(stream_list));
     return stream;
-  } else return nullobj;
+  } else
+    return nullobj;
 }
 
 /* Concatenated-Stream
@@ -2973,8 +2974,9 @@ local bool running_handle_close_errors = false;
 local void handle_close_errors (void* sp, gcv_object_t* frame, object label,
                                 object condition) {
   unused(sp); unused(label); unused(condition);
-  if (running_handle_close_errors) return;
-  else running_handle_close_errors = true;
+  if (running_handle_close_errors)
+    return;
+  running_handle_close_errors = true;
   unwind_upto(frame);
 }
 #define MAYBE_IGNORE_ERRORS(abort,code)                                     \
@@ -3540,13 +3542,15 @@ local void finish_tty_output (Handle handle) {
   if (!( fsync(handle) ==0)) {
     if (!IS_EINVAL)
       { OS_error(); }
-  } else goto ok;
+  } else
+    goto ok;
  #endif
  #ifdef UNIX_TERM_TERMIOS
   if (!( TCDRAIN(handle) ==0)) {
     if (!((errno==ENOTTY)||IS_EINVAL))
       { OS_error(); } /* no TTY: OK, report other Error */
-  } else goto ok;
+  } else
+    goto ok;
  #endif
  #if defined(UNIX_TERM_TERMIOS) && defined(TCGETS) && defined(TCSETSW)
   {
@@ -3555,7 +3559,8 @@ local void finish_tty_output (Handle handle) {
           && ( ioctl(handle,TCSETSW,&term_parameters) ==0))) {
       if (!((errno==ENOTTY)||IS_EINVAL))
         { OS_error(); } /* no TTY: OK, report other Error */
-    } else goto ok;
+    } else
+      goto ok;
   }
  #endif
  #if 0 /* Caution: This should cause FINISH-OUTPUT and CLEAR-INPUT! */
@@ -3564,7 +3569,8 @@ local void finish_tty_output (Handle handle) {
     if (!(   ( ioctl(handle,TIOCGETP,&tty_parameters) ==0)
           && ( ioctl(handle,TIOCSETP,&tty_parameters) ==0))) {
       if (!(errno==ENOTTY)) { OS_error(); }
-    } else goto ok;
+    } else
+      goto ok;
   }
  #endif
  ok:
@@ -5159,7 +5165,8 @@ local maygc uintL rd_by_array_iau8_unbuffered
     ChannelStream_ignore_next_LF(stream) = false;
     endptr = UnbufferedStreamLow_read_array(stream)(stream,startptr,1,persev);
     return len + (endptr - startptr);
-  } else return endptr-startptr;
+  } else
+    return endptr - startptr;
 }
 
 /* Determines, if  a Byte is available on an Unbuffered-Channel-Stream.
@@ -10476,7 +10483,8 @@ local void v_puts(HANDLE handle,char *s,COORD *pos,COORD sz,uintW attr) {
         pos->X = 0;
         if (pos->Y >= sz.Y - 1)
           pos->Y = 0;
-        else pos->Y++;
+        else
+          pos->Y++;
       }
       free(ac);
     }
@@ -14365,7 +14373,8 @@ LISPFUN(socket_status,seclass_default,1,2,norest,nokey,0,NIL) {
       }
       if (need_new_list)
         VALUES2(listof(index),fixnum(count));
-      else VALUES2(STACK_2,fixnum(count));
+      else
+        VALUES2(STACK_2,fixnum(count));
     } else {
       value1 = handle_isset(all,&readfds,&writefds,&errorfds);
       value2 = nullp(value1) ? Fixnum_0 : Fixnum_1;
@@ -14660,11 +14669,15 @@ LISPFUNN(socket_stream_shutdown,2) {
   switch (dir) {
     case DIRECTION_PROBE:       /* INPUT/OUTPUT/IO */
       if (rd_p) {
-        if (wr_p) value1 = S(Kio);
-        else value1 = S(Kinput);
+        if (wr_p)
+          value1 = S(Kio);
+        else
+          value1 = S(Kinput);
       } else {
-        if (wr_p) value1 = S(Koutput);
-        else value1 = NIL;
+        if (wr_p)
+          value1 = S(Koutput);
+        else
+          value1 = NIL;
       }
       goto done;
     case DIRECTION_INPUT_IMMUTABLE: case DIRECTION_INPUT:
@@ -14798,9 +14811,11 @@ local bool handle_direction_compatible (Handle fd, direction_t dir) {
       if (GetNumberOfConsoleInputEvents(fd,&nevents)) { /* It's a console. */
         var INPUT_RECORD ir;
         ret = PeekConsoleInput(fd,&ir,1,&nr);
-      } else switch (GetLastError()) {
+      } else {
+        switch (GetLastError()) {
           case ERROR_INVALID_HANDLE: case ERROR_ACCESS_DENIED:
           case ERROR_INVALID_FUNCTION: ret = false;
+        }
       }
       DEBUG_OUT(("\nhandle_direction_compatible(%d,%d)C: %d %d => %d (%d)\n",
                  fd,dir,nevents,nr,ret,GetLastError()));
@@ -14864,7 +14879,8 @@ local maygc object handle_pathname (Handle fd) {
     pushSTACK(n_char_to_string(abuf,n,O(pathname_encoding)));
     funcall(L(pathname),1);
     return value1;
-  } else return NIL;
+  } else
+    return NIL;
  #else
   return NIL;
  #endif
@@ -15110,8 +15126,10 @@ local int previous_line_virtual (int count, int key) {
     var int col = get_col();
     do {
       while(rl_point && rl_line_buffer[rl_point]!='\n') rl_point--;
-      if (rl_point) rl_point--;
-      else return 0;
+      if (rl_point)
+        rl_point--;
+      else
+        return 0;
     } while (count--);
     rl_point += col+1;
   } else if (count < 0)
@@ -15263,8 +15281,10 @@ local _Noreturn void rl_memory_abort (void) {
 
 local char* xmalloc (int count) {
   var char* tmp = (char*)malloc(count);
-  if (tmp) return tmp;
-  else     rl_memory_abort();
+  if (tmp)
+    return tmp;
+  else
+    rl_memory_abort();
 }
 #endif
 
@@ -15334,8 +15354,10 @@ local maygc object combine_stream_element_types (uintL numarg) {
       var object tmp = allocate_cons();
       Car(tmp) = S(or); Cdr(tmp) = popSTACK();
       return tmp;
-    } else return Car(value1); /* single type, no OR */
-  } else return value1; /* NIL */
+    } else
+      return Car(value1); /* single type, no OR */
+  } else
+    return value1; /* NIL */
 }
 
 /* (SYS::BUILT-IN-STREAM-ELEMENT-TYPE stream)
@@ -15360,7 +15382,8 @@ LISPFUNNR(built_in_stream_element_type,1) {
       if (streamp(stream)) {
         pushSTACK(stream); funcall(S(stream_element_type),1);
         return;
-      } else eltype = T; /* empty stream list */
+      } else
+        eltype = T; /* empty stream list */
       break;
     /* first the stream-types with restricted element-types: */
     case strmtype_str_out: {    /* could be (VECTOR NIL) */
@@ -15467,10 +15490,13 @@ LISPFUNNR(built_in_stream_element_type,1) {
         if (flags & strmflags_ch_B) { /* (OR CHARACTER INTEGER) */
           pushSTACK(S(or)); pushSTACK(S(character)); pushSTACK(S(integer));
           eltype = listof(3);
-        } else eltype = S(integer);
+        } else
+          eltype = S(integer);
       } else
-        if (flags & strmflags_ch_B) eltype = S(character);
-        else eltype = NIL;
+        if (flags & strmflags_ch_B)
+          eltype = S(character);
+        else
+          eltype = NIL;
     }
       break;
   }
@@ -16116,8 +16142,8 @@ LISPFUN(built_in_stream_close,seclass_default,1,0,norest,key,1, (kw(abort)) ) {
 local inline maygc bool push_ch (object ch, object buffer) {
   if (!charp(ch)) {
     if (eq(subr_self,L(read_line))) error_char(ch);
-    else with_saved_back_trace_subr(L(read_line),STACK STACKop -4,-1,
-                                    error_char(ch));
+    with_saved_back_trace_subr(L(read_line),STACK STACKop -4,-1,
+                               error_char(ch));
   }
   if (eq(ch,ascii_char(NL)))
     return false;
@@ -16924,8 +16950,10 @@ modexp maygc Handle stream_lend_handle
            cf strmtype_pipe_in below */
         if (ChannelStream_buffered(stream))
           return TheHandle(TheStream(stream)->strm_buffered_channel);
-        else if (inputp) return TheHandle(TheStream(stream)->strm_ichannel);
-        else return TheHandle(TheStream(stream)->strm_ochannel);
+        else if (inputp)
+          return TheHandle(TheStream(stream)->strm_ichannel);
+        else
+          return TheHandle(TheStream(stream)->strm_ochannel);
        #endif
       case strmtype_file:
         if (handletype) *handletype = 1;
@@ -17738,7 +17766,8 @@ local uintB stream_isbuffered_low (object stream, uintL *avail) {
         if (avail) *avail = BufferedStream_endvalid(stream)
           - BufferedStream_index(stream);
         return bit(1)|bit(0);
-      } else return 0;
+      } else
+        return 0;
     #ifdef SOCKET_STREAMS
     case strmtype_twoway_socket:
     #endif

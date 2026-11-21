@@ -996,7 +996,8 @@ local uint32 hashcode4_atom (object obj, int level) {
         var object dv = array_displace_check(obj,len,&index);
         /* dv is the data-vector, index is the index into the data-vector. */
         return hashcode4_vector(dv,index,len,bish_code,level+1);
-      } else return bish_code;
+      } else
+        return bish_code;
     }
     case_mdarray: {             /* array with rank /=1 */
       /* rank and dimensions, then look at it component-wise: */
@@ -1018,7 +1019,8 @@ local uint32 hashcode4_atom (object obj, int level) {
         var uintL index = 0;
         var object dv = iarray_displace_check(obj,len,&index);
         return hashcode4_vector(dv,index,len,bish_code,level+1);
-      } else return bish_code;
+      } else
+        return bish_code;
     }
    #ifdef TYPECODES
     _case_structure
@@ -1578,13 +1580,14 @@ global object hash_table_weak_type (object ht) {
   var object kvt = TheHashtable(ht)->ht_kvtable;
   if (simple_vector_p(kvt))
     return NIL;
-  else switch (Record_type(kvt)) {
+  else
+    switch (Record_type(kvt)) {
       case Rectype_WeakHashedAlist_Key:    { return S(Kkey); }
       case Rectype_WeakHashedAlist_Value:  { return S(Kvalue); }
       case Rectype_WeakHashedAlist_Either: { return S(Kkey_and_value); }
       case Rectype_WeakHashedAlist_Both:   { return S(Kkey_or_value); }
       default: NOTREACHED;
-  }
+    }
 }
 
 /* UP: Allocates the key-value-table for a new hash-table.

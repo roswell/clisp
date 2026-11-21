@@ -1401,9 +1401,12 @@ global object name_char (object string) {
           if (c > 'f') break;
           if (c >= 'a') { c -= 'a'-'A'; }
           if (c < '0') break;
-          if (c <= '9') { c = c - '0'; }
-          else if ((c >= 'A') && (c <= 'F')) { c = c - 'A' + 10; }
-          else break;
+          if (c <= '9') {
+            c = c - '0';
+          } else if ((c >= 'A') && (c <= 'F')) {
+            c = c - 'A' + 10;
+          } else
+            break;
           code = 16*code + c; /* put in the digit */
           /* code should be < char_code_limit: */
           if (code >= char_code_limit) break; /* should not occur */
@@ -1629,9 +1632,12 @@ LISPFUN(digit_char_p,seclass_foldable,1,1,norest,nokey,0,NIL)
   /* now: $00 <= ch <= $60. */
   if (c < '0') goto no;
   /* convert $30 <= c <= $60 into number value: */
-  if (c <= '9') { c = c - '0'; }
-  else if (c >= 'A') { c = c - 'A' + 10; }
-  else goto no;
+  if (c <= '9') {
+    c = c - '0';
+  } else if (c >= 'A') {
+    c = c - 'A' + 10;
+  } else
+    goto no;
  #endif
   /* now, c is the number value of the digit, >=0, <=41. */
   if (c >= radix) goto no; /* only valid, if 0 <= c < radix. */

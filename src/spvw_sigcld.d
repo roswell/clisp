@@ -42,7 +42,8 @@ local int sigcld_enabled = 0;
     spinlock_acquire(&sigcld_enabled_lock);       \
     if (sigcld_enabled)                           \
       v = --sigcld_enabled;                       \
-    else v = 0;                                   \
+    else                                          \
+      v = 0;                                      \
     spinlock_release(&sigcld_enabled_lock)
 #else
   #define sigcld_enabled_INCF(v)  v = sigcld_enabled++

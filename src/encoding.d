@@ -2079,11 +2079,13 @@ LISPFUN(make_encoding,seclass_read,0,0,norest,key,5,
       }
     }
     #else
-    else error_illegal_arg(arg,S(encoding),S(Kcharset));
+    else
+      error_illegal_arg(arg,S(encoding),S(Kcharset));
     #endif
   }
  #endif
-  else error_illegal_arg(arg,S(encoding),S(Kcharset));
+  else
+    error_illegal_arg(arg,S(encoding),S(Kcharset));
   STACK_3 = arg;
   /* Check the :LINE-TERMINATOR argument. */
   arg = STACK_2;
@@ -2501,17 +2503,20 @@ global void init_encodings_2 (void) {
       C_make_encoding(); /* cannot use funcall yet */
       if (nullp(value1)) {
         pushSTACK(symbol); pushSTACK(O(charset_package)); C_unintern();
-      } else define_constant(symbol,value1);
+      } else
+        define_constant(symbol,value1);
       symbol = objectplus(symbol,(soint)sizeof(*TheSymbol(symbol))<<(oint_addr_shift-addr_shift));
     }
   }
   /* Now some aliases, to be defined only if their targets still exit. */
   if (!boundp(Symbol_value(S(cp1255)))) {
     pushSTACK(S(windows_1255)); pushSTACK(O(charset_package)); C_unintern();
-  } else define_constant(S(windows_1255),Symbol_value(S(cp1255)));
+  } else
+    define_constant(S(windows_1255),Symbol_value(S(cp1255)));
   if (!boundp(Symbol_value(S(cp1258)))) {
     pushSTACK(S(windows_1258)); pushSTACK(O(charset_package)); C_unintern();
-  } else define_constant(S(windows_1258),Symbol_value(S(cp1258)));
+  } else
+    define_constant(S(windows_1258),Symbol_value(S(cp1258)));
  #endif
   /* Initialize O(internal_encoding): */
   pushSTACK(Symbol_value(S(utf_8))); /* :charset */
@@ -2584,7 +2589,7 @@ local maygc object encoding_from_name (const char* const_name, const char* conte
               context,name,DEFAULT_1_1_ENCODING_NAME);
       fprint(stderr,"\n");
       pushSTACK(DEFAULT_1_1_ENCODING);
-    } else  {
+    } else {
       fprintf(stderr,GETTEXT("WARNING: %s: no encoding %s, using %s"),
               context,name,"locale encoding");
       fprint(stderr,"\n");

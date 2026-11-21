@@ -150,7 +150,8 @@ local BOOL DoInterruptible(LPTHREAD_START_ROUTINE fn, LPVOID arg, BOOL socketp)
       }
       return false;               /* aborted by Ctrl-C */
     }
-  } else OS_error();
+  } else
+    OS_error();
 }
 
 /* Sleep a certain time.
@@ -482,7 +483,8 @@ global int fd_read_wont_hang_p (HANDLE fd)
               return -1;
         }
         return 0;
-      } else CHECK_ERROR_IGNORE_INVALID;
+      } else
+        CHECK_ERROR_IGNORE_INVALID;
       var DWORD errors;
       var COMSTAT stat;
       if (ClearCommError(fd,&errors,&stat)) { /* it's a serial comm dev */
@@ -490,7 +492,8 @@ global int fd_read_wont_hang_p (HANDLE fd)
         if (stat.fEof) return 2;
         if (stat.cbInQue) return 3;
         return 0;
-      } else CHECK_ERROR_IGNORE_INVALID;
+      } else
+        CHECK_ERROR_IGNORE_INVALID;
       /* neither a console nor a serial comm dev. */
       switch (WaitForSingleObject(fd,0)) {
         case WAIT_OBJECT_0:     /* a byte is available, or EOF */

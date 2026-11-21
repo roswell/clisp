@@ -942,8 +942,10 @@ global maygc off_t savemem (object stream, uintL executable)
   }
   #endif
  #endif
-  if (executable>0) WRITE(&mem_start,sizeof(size_t)); /* see find_memdump() */
-  else { size_t tmp = (size_t)-1; WRITE(&tmp,sizeof(size_t)); }
+  if (executable>0)
+    WRITE(&mem_start,sizeof(size_t)); /* see find_memdump() */
+  else
+    { size_t tmp = (size_t)-1; WRITE(&tmp,sizeof(size_t)); }
   /* close stream (stream-buffer is unchanged, but thus also the
      handle at the operating system is closed): */
   var off_t res;
@@ -1201,8 +1203,11 @@ local bool memfile_handle_do_operation (Handle handle, const char* filename, mem
         }                                                               \
       } while(0)
    begin_read:
-    if (mem_searched) {set_file_offset(mem_start);}
-    else {set_file_offset(0);}
+    if (mem_searched) {
+      set_file_offset(mem_start);
+    } else {
+      set_file_offset(0);
+    }
     /* read basic information: */
     READ(&header,sizeof(header));
     if (header._magic != memdump_magic) {

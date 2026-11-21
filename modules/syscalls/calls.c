@@ -179,8 +179,10 @@ static Handle stream_get_handle (gcv_object_t *stream_) {
 
 /* signal the appropriate error error */
 static _Noreturn void error_OS_stream (object stream) {
-  if (eq(nullobj,stream)) OS_error();
-  else OS_filestream_error(stream);
+  if (eq(nullobj,stream))
+    OS_error();
+  else
+    OS_filestream_error(stream);
 }
 
 /* ============================== locking ============================== */
@@ -438,7 +440,8 @@ DEFUN(POSIX::%SET-FILE-SIZE, file new-size) {
   if (eq(nullobj,STACK_0)) {    /* not a stream - use path */
     if (ON_PNAMESTRING(STACK_2,path_truncate,&length))
       OS_file_error(value1);
-  } else stream_truncate(fd,&length); /* stream - use fd */
+  } else
+    stream_truncate(fd,&length); /* stream - use fd */
   VALUES1(STACK_1); skipSTACK(3);
 }
 
@@ -573,8 +576,10 @@ DEFUN(POSIX:STRING-TIME, format &optional datum timezone)
         with_string_0(STACK_2,GLO(misc_encoding),format, {
             char *ret;
             begin_system_call();
-            if ((ret = strptime(buf,format,&tm))) offset = ret - buf;
-            else offset = 0;
+            if ((ret = strptime(buf,format,&tm)))
+              offset = ret - buf;
+            else
+              offset = 0;
             end_system_call();
           });
       });
@@ -616,7 +621,8 @@ DEFUN(POSIX:STRING-TIME, format &optional datum timezone)
         VALUES1(n_char_to_string(buf,retval,GLO(misc_encoding)));
       });
     skipSTACK(1);
-  } else error_string_integer(STACK_1);
+  } else
+    error_string_integer(STACK_1);
 }
 
 #if defined(HAVE_GETDATE) && defined(HAVE_DECL_GETDATE_ERR) \
@@ -744,7 +750,8 @@ static Values utmpx_to_lisp (struct utmpx *utmpx, gcv_object_t *utmpx_o) {
     TheStructure(*utmpx_o)->recdata[2] = popSTACK(); /* user */
     TheStructure(*utmpx_o)->recdata[1] = popSTACK(); /* type */
     VALUES1(*utmpx_o);
-  } else funcall(`POSIX::MAKE-UTMPX`,7);
+  } else
+    funcall(`POSIX::MAKE-UTMPX`,7);
 }
 #if defined(HAVE_ENDUTXENT)
 DEFUN(POSIX::ENDUTXENT,) {
@@ -757,8 +764,10 @@ DEFUN(POSIX::GETUTXENT, &optional utmpx) {
   struct utmpx *utmpx;
   if (!missingp(STACK_0)) STACK_0 = check_classname(STACK_0,`POSIX::UTMPX`);
   begin_blocking_system_call(); utmpx=getutxent(); end_blocking_system_call();
-  if (utmpx) utmpx_to_lisp(utmpx,missingp(STACK_0) ? NULL : &STACK_0);
-  else VALUES1(NIL);
+  if (utmpx)
+    utmpx_to_lisp(utmpx,missingp(STACK_0) ? NULL : &STACK_0);
+  else
+    VALUES1(NIL);
   skipSTACK(1);
 }
 #endif
@@ -769,8 +778,10 @@ DEFUN(POSIX::GETUTXID, id) {
   begin_blocking_system_call();
   utmpx_p = getutxid(&utmpx);
   end_blocking_system_call();
-  if (utmpx_p) utmpx_to_lisp(utmpx_p,&STACK_0);
-  else VALUES1(NIL);
+  if (utmpx_p)
+    utmpx_to_lisp(utmpx_p,&STACK_0);
+  else
+    VALUES1(NIL);
   skipSTACK(1);
 }
 #endif
@@ -781,8 +792,10 @@ DEFUN(POSIX::GETUTXLINE, line) {
   begin_blocking_system_call();
   utmpx_p = getutxline(&utmpx);
   end_blocking_system_call();
-  if (utmpx_p) utmpx_to_lisp(utmpx_p,&STACK_0);
-  else VALUES1(NIL);
+  if (utmpx_p)
+    utmpx_to_lisp(utmpx_p,&STACK_0);
+  else
+    VALUES1(NIL);
   skipSTACK(1);
 }
 #endif
@@ -793,8 +806,10 @@ DEFUN(POSIX::PUTUTXLINE, utmpx) {
   begin_blocking_system_call();
   utmpx_p = pututxline(&utmpx);
   end_blocking_system_call();
-  if (utmpx_p) utmpx_to_lisp(utmpx_p,&STACK_0);
-  else ANSIC_error();
+  if (utmpx_p)
+    utmpx_to_lisp(utmpx_p,&STACK_0);
+  else
+    ANSIC_error();
   skipSTACK(1);
 }
 #endif
@@ -918,7 +933,8 @@ DEFUN(OS:PRIORITY, pid &optional which) {
       res = (int)GetPriorityClass(handle);
       failed_p = (res == 0);
       CloseHandle(handle);
-    } else failed_p = true;
+    } else
+      failed_p = true;
     end_system_call();
   }
 #else
@@ -1221,7 +1237,8 @@ DEFUN(POSIX::PATHCONF, pathspec &optional what)
       with_string_0(STACK_1 = physical_namestring(STACK_1),
                     GLO(pathname_encoding), namez,
           { DO_PATHCONF(pathconf,namez,STACK_0); });
-    } else goto pathconf_fd;       /* open stream ==> use fd */
+    } else
+      goto pathconf_fd;       /* open stream ==> use fd */
   }
   skipSTACK(2);
 }
@@ -1287,7 +1304,8 @@ DEFUN(POSIX::WAIT, &key :PID :USAGE :NOHANG :UNTRACED :STOPPED :EXITED \
       rusage_to_lisp(&ru);
       STACK_0 = value1;
       mv_count = 4;
-    } else mv_count = 3;
+    } else
+      mv_count = 3;
     STACK_1 = pid_to_I(ret);
     if (WIFEXITED(status)) {
       value2 = `:EXITED`;
@@ -1341,8 +1359,10 @@ DEFUN(POSIX::USAGE, &optional what) { /* getrusage(3) */
       begin_system_call();
       status = getrusage(check_rusage_map.table[pos].c_const,&ru);
       end_system_call();
-      if (status) pushSTACK(S(Kerror));
-      else { rusage_to_lisp(&ru); pushSTACK(value1); }
+      if (status)
+        pushSTACK(S(Kerror));
+      else
+        { rusage_to_lisp(&ru); pushSTACK(value1); }
     }
     VALUES1(listof(2*check_rusage_map.size));
   } else {
@@ -1684,7 +1704,8 @@ DEFUN(POSIX::GROUP-INFO, &optional group)
       check_value(error_condition,GETTEXT("~S(~S): No such group"));
       group = value1;
       goto group_info_restart;
-    } else ANSIC_error();
+    } else
+      ANSIC_error();
   }
   grp_to_lisp(gr);
 }
@@ -1745,7 +1766,8 @@ DEFUN(POSIX::USER-INFO, &optional user)
     char *username = getlogin();
     if (username != NULL)
       pwd = getpwnam(username);
-    else pwd = getpwuid(getuid());
+    else
+      pwd = getpwuid(getuid());
   } else if (symbolp(user)) {
     user = Symbol_name(user);
     goto user_info_string;
@@ -1764,7 +1786,8 @@ DEFUN(POSIX::USER-INFO, &optional user)
       check_value(error_condition,GETTEXT("~S(~S): No such user"));
       user = value1;
       goto user_info_restart;
-    } else ANSIC_error();
+    } else
+      ANSIC_error();
   }
   passwd_to_lisp(pwd);
 }
@@ -1905,7 +1928,8 @@ static void file_stat_to_STACK (object file, const struct stat *ps) {
       pushSTACK(allocate_cons());
       Car(STACK_0) = mknod_type_check_reverse(fmt);
       Cdr(STACK_0) = check_chmod_mode_to_list(ps->st_mode & ~S_IFMT);
-    } else pushSTACK(check_chmod_mode_to_list(ps->st_mode));
+    } else
+      pushSTACK(check_chmod_mode_to_list(ps->st_mode));
   }
 #else
   pushSTACK(check_chmod_mode_to_list(ps->st_mode)); /* protection */
@@ -2201,7 +2225,8 @@ static int nftw_fn (const char *path, const struct stat *ps, int kind,
     file_stat_to_STACK(STACK_0,ps);
     funcall(`POSIX::MAKE-FILE-STAT`,14);
     pushSTACK(value1);
-  } else pushSTACK(NIL);
+  } else
+    pushSTACK(NIL);
   pushSTACK(check_ftw_kind_reverse(kind));
   pushSTACK(fixnum(ftw->base));
   pushSTACK(fixnum(ftw->level));
@@ -2631,8 +2656,9 @@ static const char * get_owner (const char *filename) {
                   strncpy(buf1, s, buf1size);
                   buf1[buf1size - 1] = '\0';
                   LocalFree(s);
-                  owner = buf1;
-                } else (owner = buf1)[0] = '\0';
+                } else
+                  buf1[0] = '\0';
+                owner = buf1;
               } else { /* DOMAIN\Account */
                 int len = strlen(buf2);
                 buf2[len] = '\\';
@@ -3108,7 +3134,8 @@ static void copy_one_file (object source, object src_path,
         break;
       default: NOTREACHED;
     }
-  } else pushSTACK(STACK_0); /* destination does not exist, use dest_path */
+  } else
+    pushSTACK(STACK_0); /* destination does not exist, use dest_path */
 
   pushSTACK(STACK_3); funcall(L(probe_pathname),1);
   if (nullp(value1)) { /* source does not exist */
@@ -3309,7 +3336,8 @@ DEFUN(POSIX::CONVERT-ATTRIBUTES, attributes)
             (I_to_uint32(check_uint32(popSTACK()))));
   else if (listp(STACK_0))
     VALUES1(fixnum(check_file_attributes_of_list(popSTACK())));
-  else VALUES1(fixnum(check_file_attributes(popSTACK())));
+  else
+    VALUES1(fixnum(check_file_attributes(popSTACK())));
 }
 /* convert the 8 members of WIN32_FIND_DATA to the FILE-INFO struct
  can trigger GC */
@@ -3379,25 +3407,28 @@ DEFUN(POSIX::MAKE-SHORTCUT, file &key WORKING-DIRECTORY ARGUMENTS \
     object hk = STACK_0;
     BYTE *pb = (BYTE*)&hot_key;
    restart_hot_key:
-    if (charp(hk)) hot_key = char_int(hk);
-    else while (consp(hk)) {
-      if (eq(Car(hk),`:CONTROL`)) pb[1] |= HOTKEYF_CONTROL;
-      else if (eq(Car(hk),`:ALT`)) pb[1] |= HOTKEYF_ALT;
-      else if (eq(Car(hk),`:EXT`)) pb[1] |= HOTKEYF_EXT;
-      else if (eq(Car(hk),`:SHIFT`)) pb[1] |= HOTKEYF_SHIFT;
-      else if (charp(Car(hk))) {
-        pb[0] = char_int(hk);
-        break;
-      } else {
-        pushSTACK(NIL);         /* no PLACE */
-        pushSTACK(hk);          /* TYPE-ERROR slot DATUM */
-        pushSTACK(`(MEMBER :ALT :CONTROL :EXT :SHIFT)`); /* EXPECTED-TYPE */
-        pushSTACK(STACK_0); pushSTACK(hk); pushSTACK(TheSubr(subr_self)->name);
-        check_value(type_error,GETTEXT("~S: ~S is not a ~S"));
-        hk = value1;
-        goto restart_hot_key;
+    if (charp(hk))
+      hot_key = char_int(hk);
+    else {
+      while (consp(hk)) {
+        if (eq(Car(hk),`:CONTROL`)) pb[1] |= HOTKEYF_CONTROL;
+        else if (eq(Car(hk),`:ALT`)) pb[1] |= HOTKEYF_ALT;
+        else if (eq(Car(hk),`:EXT`)) pb[1] |= HOTKEYF_EXT;
+        else if (eq(Car(hk),`:SHIFT`)) pb[1] |= HOTKEYF_SHIFT;
+        else if (charp(Car(hk))) {
+          pb[0] = char_int(hk);
+          break;
+        } else {
+          pushSTACK(NIL);         /* no PLACE */
+          pushSTACK(hk);          /* TYPE-ERROR slot DATUM */
+          pushSTACK(`(MEMBER :ALT :CONTROL :EXT :SHIFT)`); /* EXPECTED-TYPE */
+          pushSTACK(STACK_0); pushSTACK(hk); pushSTACK(TheSubr(subr_self)->name);
+          check_value(type_error,GETTEXT("~S: ~S is not a ~S"));
+          hk = value1;
+          goto restart_hot_key;
+        }
+        hk = Cdr(hk);
       }
-      hk = Cdr(hk);
     }
     if (pb[0] == 0) {           /* STACK_0 is the HOT-KEY arg */
       pushSTACK(TheSubr(subr_self)->name);
@@ -3427,7 +3458,8 @@ DEFUN(POSIX::MAKE-SHORTCUT, file &key WORKING-DIRECTORY ARGUMENTS \
       icon_idx = I_to_uint32(check_uint32(consp(Cdr(STACK_0))
                                           ? Car(Cdr(STACK_0))
                                           : Cdr(STACK_0)));
-    } else icon_name = check_string(STACK_0);
+    } else
+      icon_name = check_string(STACK_0);
     with_string_0(icon_name,GLO(pathname_encoding),iconz, {
       begin_blocking_system_call();
       hres = psl->lpVtbl->SetIconLocation(psl,iconz,icon_idx);
@@ -3802,7 +3834,9 @@ static int LispToPropVariant (PROPVARIANT * pvar) {
       else if (eq(Car(STACK_0),`:FILETIME`)) typehint = VT_FILETIME;
       else if (eq(Car(STACK_0),`:LPSTR`)) typehint = VT_LPSTR;
       else if (eq(Car(STACK_0),`:LPWSTR`)) typehint = VT_LPWSTR;
-      else { skipSTACK(1); return 0; }
+      else {
+        skipSTACK(1); return 0;
+      }
       STACK_0 = Car(Cdr(STACK_0)); /* VALUE */
     } else { skipSTACK(1); return 0; }
   }
@@ -4146,8 +4180,10 @@ DEFUN(POSIX::FILE-PROPERTIES, file set &rest pairs)
             GETTEXT("~S: bad property specifier - it must be string, "
                     "positive number, list or keyword"));
         } else { use_wpn++; nproprd++; }
-      } else if (symbolp(STACK_(i)) && eq(STACK_(i),`:INITID`)) initid = 0;
-      else nproprd++;
+      } else if (symbolp(STACK_(i)) && eq(STACK_(i),`:INITID`))
+        initid = 0;
+      else
+        nproprd++;
     } else { /* value */
       if (!initid) {
         if (integerp(STACK_(i))) initid = I_to_UL(STACK_(i));
@@ -4609,8 +4645,10 @@ DEFUN(POSIX::FOPEN, path mode) {
           begin_blocking_system_call();
           fp = fopen(pathz,modez);
           end_blocking_system_call();
-          if (fp) STACK_0 = allocate_fpointer((FOREIGN)fp);
-          else ANSIC_error();
+          if (fp)
+            STACK_0 = allocate_fpointer((FOREIGN)fp);
+          else
+            ANSIC_error();
         });
     });
   VALUES1(STACK_0); skipSTACK(2);
@@ -4623,8 +4661,10 @@ DEFUN(POSIX::FDOPEN, fd mode) {
       begin_blocking_system_call();
       fp = fdopen(I_to_sint(STACK_1),modez);
       end_blocking_system_call();
-      if (fp) STACK_0 = allocate_fpointer((FOREIGN)fp);
-      else ANSIC_error();
+      if (fp)
+        STACK_0 = allocate_fpointer((FOREIGN)fp);
+      else
+        ANSIC_error();
     });
   VALUES1(STACK_0); skipSTACK(2);
 }
@@ -4638,8 +4678,10 @@ DEFUN(POSIX::FREOPEN, path mode file) {
           begin_blocking_system_call();
           fp = freopen(pathz,modez,(FILE*)TheFpointer(STACK_0)->fp_pointer);
           end_blocking_system_call();
-          if (fp) TheFpointer(STACK_0)->fp_pointer = fp;
-          else ANSIC_error();
+          if (fp)
+            TheFpointer(STACK_0)->fp_pointer = fp;
+          else
+            ANSIC_error();
         });
     });
   VALUES0; skipSTACK(3);
@@ -5699,7 +5741,8 @@ DEFUN(SYS::FORMAT-MESSAGE, &optional error_code) {
     begin_system_call();
     error_code = GetLastError();
     end_system_call();
-  } else error_code = check_last_error(STACK_0);
+  } else
+    error_code = check_last_error(STACK_0);
   STACK_0 = UL_to_I(error_code);
   funcall(L(format_message),1);
 }
@@ -5779,7 +5822,8 @@ DEFUN(SYS::STRERROR, &optional error_code) {
     begin_system_call();
     error_code = errno;
     end_system_call();
-  } else error_code = check_errno(STACK_0);
+  } else
+    error_code = check_errno(STACK_0);
   STACK_0 = L_to_I(error_code);
   funcall(L(strerror),1);
 }

@@ -860,7 +860,8 @@ local maygc object RA_ln1_F (object x, gcv_object_t *y) {
   x = R_abs_R(TheRatio(x)->rt_num);
   if (I_I_comp(x,TheRatio(STACK_0)->rt_den) < 0) /* x<1 */
     x = F_extend_lnx1_F(RA_R_float_F(STACK_0,*y));
-  else x = RA_ln_F(R_R_plus_R(STACK_0,Fixnum_1),y);
+  else
+    x = RA_ln_F(R_R_plus_R(STACK_0,Fixnum_1),y);
   skipSTACK(1);
   return x;
 }
@@ -1397,6 +1398,6 @@ local maygc object R_tanh_R (object x)
     if (floatp(STACK_0) || floatp(STACK_1))
       result = F_R_float_F(result,STACK_2); /* reduce precision */
     skipSTACK(3); return result;
-  } else return positivep(x) ? posF_tanh_posF(x)
-           : F_minus_F(posF_tanh_posF(F_minus_F(x)));
+  } else
+    return positivep(x) ? posF_tanh_posF(x) : F_minus_F(posF_tanh_posF(F_minus_F(x)));
 }

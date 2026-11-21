@@ -908,11 +908,13 @@ local maygc Values climb_stack (const climb_fun_t* table) {
   if (uint32_p(repeat_arg)) {
     uint32 count = I_to_uint32(repeat_arg);
     while (count--) stackptr = (*climber)(stackptr);
-  } else while (1) { /* climb as far as possible: */
-    gcv_object_t* next_stackptr = (*climber)(stackptr);
-    if (next_stackptr == stackptr)
-      break;
-    stackptr = next_stackptr;
+  } else {
+    while (1) { /* climb as far as possible: */
+      gcv_object_t* next_stackptr = (*climber)(stackptr);
+      if (next_stackptr == stackptr)
+        break;
+      stackptr = next_stackptr;
+    }
   }
   VALUES1(make_framepointer(stackptr));
 }

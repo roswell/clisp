@@ -603,8 +603,10 @@ global void close_all_fd (void) {
 #elif defined(HAVE_GETRLIMIT) && defined(RLIMIT_NOFILE)
   int fd;
   struct rlimit rl;
-  if (0 == getrlimit(RLIMIT_NOFILE,&rl)) fd = rl.rlim_cur;
-  else fd = CLISP_OPEN_MAX_FALLBACK;
+  if (0 == getrlimit(RLIMIT_NOFILE,&rl))
+    fd = rl.rlim_cur;
+  else
+    fd = CLISP_OPEN_MAX_FALLBACK;
 #elif defined(OPEN_MAX)
   int fd = OPEN_MAX;
 #else

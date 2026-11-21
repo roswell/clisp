@@ -1393,8 +1393,10 @@ LISPSPECFORM(return_from, 1,1,nobody)
  set_last_copy()   is "APPEND" [can trigger GC]
  modifies */
 local inline void set_last_inplace (object list) {
-  if (!consp(STACK_0)) STACK_1=STACK_0=list; /* init */
-  else Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
+  if (!consp(STACK_0))
+    STACK_1 = STACK_0 = list; /* init */
+  else
+    Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
   if (consp(list)) {
     var object list1;
     while (1) { /* list is a cons */
@@ -1428,8 +1430,10 @@ local inline maygc void set_last_copy (object list) {
     }
     skipSTACK(3);
   } else {
-    if (!consp(STACK_0)) STACK_1=STACK_0=list; /* init */
-    else Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
+    if (!consp(STACK_0))
+      STACK_1 = STACK_0 = list; /* init */
+    else
+      Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
   }
 }
 
@@ -1497,8 +1501,10 @@ local inline maygc void set_last_copy (object list) {
       pushSTACK(value1);                                                \
      {var object new_cons = allocate_cons(); /* new cons */             \
       Car(new_cons) = popSTACK(); /* new_cons = (LIST (FUNCALL ...)) */ \
-      if (nullp(STACK_1)) STACK_1 = STACK_0 = new_cons; /* init */      \
-      else { Cdr(STACK_0) = new_cons; STACK_0 = new_cons; } /* append */ \
+      if (nullp(STACK_1))                                               \
+        STACK_1 = STACK_0 = new_cons; /* init */                        \
+      else                                                              \
+        { Cdr(STACK_0) = new_cons; STACK_0 = new_cons; } /* append */   \
     }}                                                                  \
    done:                                                                \
     VALUES1(*ret); /* result list-cons */                               \
@@ -2028,14 +2034,16 @@ local maygc void test_env (void) {
   var object arg = STACK_0;
   if (missingp(arg)) { /* required by ANSI CL sections 3.1.1.3.1, 3.1.1.4 */
     arg = allocate_vector(2); /* vector #(nil nil) as default */
-  } else while (!(simple_vector_p(arg) && (Svector_length(arg) == 2))) {
-    pushSTACK(NIL); /* no PLACE */
-    pushSTACK(arg); /* TYPE-ERROR slot DATUM */
-    pushSTACK(O(type_svector2)); /* TYPE-ERROR slot EXPECTED-TYPE */
-    pushSTACK(arg);
-    check_value(type_error,
-                GETTEXT("Argument ~S is not a macroexpansion environment"));
-    arg = value1;
+  } else {
+    while (!(simple_vector_p(arg) && (Svector_length(arg) == 2))) {
+      pushSTACK(NIL); /* no PLACE */
+      pushSTACK(arg); /* TYPE-ERROR slot DATUM */
+      pushSTACK(O(type_svector2)); /* TYPE-ERROR slot EXPECTED-TYPE */
+      pushSTACK(arg);
+      check_value(type_error,
+                  GETTEXT("Argument ~S is not a macroexpansion environment"));
+      arg = value1;
+    }
   }
   STACK_0 = arg;
 }
@@ -2447,8 +2455,10 @@ LISPFUNN(keyword_test,2)
       var object key = Car(arglistr); arglistr = Cdr(arglistr);
       var object val = Car(arglistr); arglistr = Cdr(arglistr);
       if (eq(key,S(Kallow_other_keys))) {
-        if (nullp(val)) break;  /* need check */
-        else goto done;         /* no check */
+        if (nullp(val))
+          break;             /* need check */
+        else
+          goto done;         /* no check */
       }
     }
     for (arglistr = arglist; consp(arglistr); ) {

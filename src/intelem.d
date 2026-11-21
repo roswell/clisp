@@ -18,7 +18,7 @@
   #define get_max32_Dptr(count,ptr)  \
     ((count)==0 ? 0 : (uint32)((ptr)[0]))
   #define set_max32_Dptr(count,ptr,value)  \
-    do { if ((count) != 0) (ptr)[0] = (uintD)(value);} while(0)
+    do { if ((count) != 0) (ptr)[0] = (uintD)(value); } while(0)
 #endif
 #if (intDsize==16)
   /* #define get_32_Dptr(ptr)  (((uint32)((ptr)[0])<<16) | ((uint32)((ptr)[1]))) */
@@ -29,10 +29,14 @@
     ((count)==0 ? 0 :                   \
      (count)<=16 ? (uint32)((ptr)[0]) : highlow32_at(ptr))
   #define set_max32_Dptr(count,ptr,value)               \
-    do { if ((count) != 0) {                            \
-      if ((count)<=16) (ptr)[0] = (uintD)(value);       \
-      else set_highlow32_at(ptr,value);                 \
-    }} while(0)
+    do {                                                \
+      if ((count) != 0) {                               \
+        if ((count)<=16)                                \
+          (ptr)[0] = (uintD)(value);                    \
+        else                                            \
+          set_highlow32_at(ptr,value);                  \
+      }                                                 \
+    } while(0)
 #endif
 
 /* conversion routines digit-sequence-part <--> longword:
@@ -179,7 +183,8 @@ modexp uint32 I_to_UL (object obj)
                && ( ((i-1)*intDsize-1 >= 32)                             \
                     || (bn->data[0] >= (uintD)bitc(32-(i-1)*intDsize)))) \
             goto bad;                                                    \
-          else return get_udelta;                                        \
+          else                                                           \
+            return get_udelta;                                           \
         }
     IF_LENGTH(1, get_uint1D_Dptr(bn->data))
     IF_LENGTH(2, get_uint2D_Dptr(bn->data))
@@ -241,7 +246,8 @@ modexp sint32 I_to_L (object obj)
                && ( ((i-1)*intDsize >= 32)                               \
                     || (bn->data[0] >= (uintD)bitc(31-(i-1)*intDsize)))) \
             goto bad;                                                    \
-          else return get_udelta;                                        \
+          else                                                           \
+            return get_udelta;                                           \
         }
     IF_LENGTH(1, get_uint1D_Dptr(bn->data))
     IF_LENGTH(2, get_uint2D_Dptr(bn->data))
@@ -270,7 +276,8 @@ modexp sint32 I_to_L (object obj)
                && ( ((i-1)*intDsize >= 32)                                 \
                     || (bn->data[0] < (uintD)(-bitc(31-(i-1)*intDsize))))) \
             goto bad;                                                      \
-          else return get_udelta;                                          \
+          else                                                             \
+            return get_udelta;                                             \
         }
     IF_LENGTH(1, get_sint1D_Dptr(bn->data))
     IF_LENGTH(2, get_sint2D_Dptr(bn->data))
@@ -318,7 +325,8 @@ modexp uint64 I_to_UQ (object obj)
                  && ( ((i-1)*intDsize-1 >= 64)                             \
                       || (bn->data[0] >= (uintD)bitc(64-(i-1)*intDsize)))) \
               goto bad;                                                    \
-            else return get_udelta;                                        \
+            else                                                           \
+              return get_udelta;                                           \
           }
      #if (intDsize==32)
       IF_LENGTH(1, (uint64)get_uint1D_Dptr(bn->data))
@@ -380,7 +388,8 @@ modexp sint64 I_to_Q (object obj)
                  && ( ((i-1)*intDsize >= 64)                               \
                       || (bn->data[0] >= (uintD)bitc(63-(i-1)*intDsize)))) \
               goto bad;                                                    \
-            else return get_udelta;                                        \
+            else                                                           \
+              return get_udelta;                                           \
           }
      #if (intDsize==32)
       IF_LENGTH(1, (uint64)get_uint1D_Dptr(bn->data))
@@ -408,7 +417,8 @@ modexp sint64 I_to_Q (object obj)
                  && ( ((i-1)*intDsize >= 64)                                 \
                       || (bn->data[0] < (uintD)(-bitc(63-(i-1)*intDsize))))) \
               goto bad;                                                      \
-            else return get_udelta;                                          \
+            else                                                             \
+              return get_udelta;                                             \
           }
      #if (intDsize==32)
       IF_LENGTH(1, (sint64)get_sint1D_Dptr(bn->data))

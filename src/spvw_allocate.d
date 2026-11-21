@@ -558,8 +558,10 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     interruptp({                                                    \
       pushSTACK(S(gc)); tast_break();                               \
      {var Pages page = AVL(AVLID,least)(need,pages_ptr,stack_ptr);  \
-      if (page==EMPTY) goto not_enough_room;                        \
-      else return page;                                             \
+      if (page==EMPTY)                                              \
+        goto not_enough_room;                                       \
+      else                                                          \
+        return page;                                                \
     }})
   #if !defined(AVL_SEPARATE)
     /* try to get space from the operating system: */

@@ -535,7 +535,8 @@ modexp _Noreturn void OS_filestream_error (object stream) {
     if (TheStream(stream)->strmtype == strmtype_file
         && !nullp(TheStream(stream)->strm_file_truename))
       OS_error_arg(S(os_file_error),TheStream(stream)->strm_file_truename);
-    else OS_error_arg(S(os_stream_error),stream);
+    else
+      OS_error_arg(S(os_stream_error),stream);
   } else {
     OS_error();
   }
@@ -1094,7 +1095,8 @@ global maygc object check_symbol_not_symbol_macro (object symbol) {
       STACK_2 = CLSTEXT("~S: attempting to turn ~S into a SPECIAL variable, but it is already a global SYMBOL-MACRO.");
     else if (eq(subr_self,L(proclaim_constant)))
       STACK_2 = CLSTEXT("~S: attempting to turn ~S into a constant, but it is already a global SYMBOL-MACRO.");
-    else STACK_2 = CLSTEXT("~S: interning ~S into the KEYWORD package would turn it into a constant, but it is already a global SYMBOL-MACRO.");
+    else
+      STACK_2 = CLSTEXT("~S: interning ~S into the KEYWORD package would turn it into a constant, but it is already a global SYMBOL-MACRO.");
     funcall(L(cerror_of_type),5);
     /* continue restart ==> remove SYMBOL-MACRO definition */
     pushSTACK(STACK_0);                  /* save symbol */
@@ -1488,13 +1490,16 @@ global maygc object check_function_replacement (object obj) {
       obj = Symbol_function(value1);
     else if (funnamep(value1)) {
       var object name = get(Car(Cdr(value1)),S(setf_function));
-      if (symbolp(name)) obj = Symbol_function(name);
-      else obj = value1;
+      if (symbolp(name))
+        obj = Symbol_function(name);
+      else
+        obj = value1;
     } else if (consp(value1) && eq(Car(value1),S(lambda))) {
       pushSTACK(value1); pushSTACK(S(function));
       funcall(L(coerce),2);
       obj = value1;
-    } else obj = value1;
+    } else
+      obj = value1;
   } while (!functionp(obj));
   return obj;
 }
@@ -1646,7 +1651,8 @@ global maygc void check_variable_value_replacement (gcv_object_t *symbol_,
     pushSTACK(*symbol_); pushSTACK(caller_name());
     if (restart_p)
       check_value(unbound_variable,GETTEXT("~S: variable ~S has no value"));
-    else error(unbound_variable,GETTEXT("~S: variable ~S has no value"));
+    else
+      error(unbound_variable,GETTEXT("~S: variable ~S has no value"));
   } while (!boundp(value1));
 }
 

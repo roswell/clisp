@@ -63,8 +63,10 @@ DEFUN(REGEXP::REGEXP-FREE, compiled)
       TheFpointer(fp)->fp_pointer = NULL;
       mark_fp_invalid(TheFpointer(fp));
       VALUES1(T);
-    } else VALUES1(NIL);
-  } else VALUES1(NIL);
+    } else
+      VALUES1(NIL);
+  } else
+    VALUES1(NIL);
 }
 
 typedef enum { ret_values, ret_list, ret_vector, ret_bool } rettype_t;
@@ -142,7 +144,8 @@ DEFUN(REGEXP::REGEXP-EXEC,pattern string &key           \
                                                                         (const uintB*)stringz,
                                                                         (const uintB*)stringz+ret[re_count].rm_eo)));
             funcall(`REGEXP::MAKE-MATCH-BOA`,2); pushSTACK(value1);
-          } else pushSTACK(NIL);
+          } else
+            pushSTACK(NIL);
       }
       switch (rettype) {
         case ret_values:

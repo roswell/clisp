@@ -253,7 +253,7 @@ static int get_locale_info (int what, char**res, int *res_size, int errorp) {
   end_system_call();
   if (val == 0) {
     if (errorp) OS_error();
-    else return 1;
+    return 1;
   }
   if (val > *res_size) {
     *res = (char*)clisp_realloc(*res,val);
@@ -469,8 +469,10 @@ DEFCHECKER(check_nl_item,CODESET                                        \
            LOCALE_STIME LOCALE_STIMEFORMAT LOCALE_SYEARMONTH)
 #if defined(WIN32_NATIVE)
 # define get_lang_info(what,errorp)                                     \
-  if (get_locale_info(what,&res,&res_size,errorp)) funcall(`OS::ERRNO`,0); \
-  else VALUES1(asciz_to_string(res,GLO(misc_encoding)))
+  if (get_locale_info(what,&res,&res_size,errorp))                      \
+    funcall(`OS::ERRNO`,0);                                             \
+  else                                                                  \
+    VALUES1(asciz_to_string(res,GLO(misc_encoding)))
 # define DECLARE_RES  int res_size=GET_LOCALE_INFO_BUF_SIZE; char *res=(char*)clisp_malloc(res_size)
 # define FINISH_RES   begin_system_call(); free(res); end_system_call()
 #else

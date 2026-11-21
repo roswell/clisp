@@ -305,8 +305,10 @@ local bool symtab_find (object sym, object symtab) {
     else
       return false;
   } else { /* entry is a symbol-list */
-    if (nullp(memq(sym,entry))) return false; /* not found */
-    else return true; /* found as CAR from entry */
+    if (nullp(memq(sym,entry)))
+      return false; /* not found */
+    else
+      return true; /* found as CAR from entry */
   }
 }
 
@@ -740,8 +742,10 @@ local maygc void cerror_package_locked (object func, object pack, object obj) {
   pushSTACK(NIL);              /* 7 continue-format-string */
   pushSTACK(S(package_error)); /* 6 error type */
   pushSTACK(S(Kpackage));      /* 5 :PACKAGE */
-  if (consp(pack)) pushSTACK(Car(pack)); /* from check-redefinition */
-  else pushSTACK(pack);        /* 4 PACKAGE-ERROR slot PACKAGE */
+  if (consp(pack))
+    pushSTACK(Car(pack)); /* from check-redefinition */
+  else
+    pushSTACK(pack);           /* 4 PACKAGE-ERROR slot PACKAGE */
   pushSTACK(NIL);              /* 3 error-format-string */
   pushSTACK(func);             /* 2 */
   pushSTACK(obj);              /* 1 */
@@ -2094,8 +2098,10 @@ LISPFUNNR(package_case_sensitive_p,1) {
 LISPFUNN(set_package_case_sensitive_p,2) {
   var object pack = test_package_arg(popSTACK());
   var bool value = !nullp(popSTACK());
-  if (value) mark_pack_casesensitive(pack);
-  else mark_pack_caseinsensitive(pack);
+  if (value)
+    mark_pack_casesensitive(pack);
+  else
+    mark_pack_caseinsensitive(pack);
   VALUES_IF(value);
 }
 
@@ -2109,8 +2115,10 @@ LISPFUNNR(package_case_inverted_p,1) {
 LISPFUNN(set_package_case_inverted_p,2) {
   var object pack = test_package_arg(popSTACK());
   var bool value = !nullp(popSTACK());
-  if (value) mark_pack_caseinverted(pack);
-  else mark_pack_casepreserved(pack);
+  if (value)
+    mark_pack_caseinverted(pack);
+  else
+    mark_pack_casepreserved(pack);
   VALUES_IF(value);
 }
 
@@ -2148,14 +2156,18 @@ LISPFUNN(set_package_lock,2) {
   if (mconsp(pack)) {
     while (mconsp(STACK_0)) {
       var object pa = test_package_arg(Car(STACK_0)); STACK_0 = Cdr(STACK_0);
-      if (unlock_p) mark_pack_unlocked(pa);
-      else          mark_pack_locked(pa);
+      if (unlock_p)
+        mark_pack_unlocked(pa);
+      else
+        mark_pack_locked(pa);
     }
   } else if (nullp(pack)) { /* do nothing - package list was empty */
   } else {
     pack = test_package_arg(pack);
-    if (unlock_p) mark_pack_unlocked(pack);
-    else          mark_pack_locked(pack);
+    if (unlock_p)
+      mark_pack_unlocked(pack);
+    else
+      mark_pack_locked(pack);
   }
   skipSTACK(2);
   VALUES_IF(!unlock_p);
@@ -2611,8 +2623,10 @@ LISPFUN(pin_package,seclass_default,1,0,norest,key,4,
             STACK_1 = CLSTEXT("One should not change the case sensitiveness of ~S.");
             funcall(S(warn),2);
           }
-          if (value) mark_pack_casesensitive(*pack_);
-          else mark_pack_caseinsensitive(*pack_);
+          if (value)
+            mark_pack_casesensitive(*pack_);
+          else
+            mark_pack_caseinsensitive(*pack_);
         }
         if (boundp(STACK_0)) { /* check the case-invertedness: */
           var bool value = !nullp(STACK_0);
@@ -2621,8 +2635,10 @@ LISPFUN(pin_package,seclass_default,1,0,norest,key,4,
             STACK_1 = CLSTEXT("One should not change the case inversion of ~S.");
             funcall(S(warn),2);
           }
-          if (value) mark_pack_caseinverted(*pack_);
-          else mark_pack_casepreserved(*pack_);
+          if (value)
+            mark_pack_caseinverted(*pack_);
+          else
+            mark_pack_casepreserved(*pack_);
         }
         /* adjust the nicknames: */
         if (boundp(STACK_3)) {

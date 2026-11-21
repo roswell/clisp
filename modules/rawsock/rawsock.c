@@ -460,9 +460,12 @@ DEFUN(RAWSOCK:PROTOCOL, &optional protocol)
         end_system_call();
       });
 #  endif
-  } else error_string_integer(proto);
-  if (pe) protoent_to_protocol(pe);
-  else VALUES1(NIL);
+  } else
+    error_string_integer(proto);
+  if (pe)
+    protoent_to_protocol(pe);
+  else
+    VALUES1(NIL);
 }
 /* --------------- */
 /* return RAWSOCK:NETWORK object in value1 */
@@ -510,9 +513,12 @@ DEFUN(RAWSOCK:NETWORK, &optional network type)
         end_system_call();
       });
 #  endif
-  } else error_string_integer(net);
-  if (ne) netent_to_network(ne);
-  else VALUES1(NIL);
+  } else
+    error_string_integer(net);
+  if (ne)
+    netent_to_network(ne);
+  else
+    VALUES1(NIL);
 }
 #endif  /* HAVE_NETDB_H */
 /* ================== net/if.h interface ================== */
@@ -558,7 +564,8 @@ DEFUN(RAWSOCK:IF-NAME-INDEX, &optional what) {
     pushSTACK(TheSubr(subr_self)->name);
     error(error_condition,GETTEXT("~S: no if_nametoindex() at configure time"));
 #  endif
-  } else error_string_integer(STACK_0);
+  } else
+    error_string_integer(STACK_0);
   skipSTACK(1);
 }
 #endif  /* net/if.h */
@@ -591,10 +598,12 @@ DEFUN(RAWSOCK:IFADDRS,&key FLAGS-AND FLAGS-OR) {
           pushSTACK(STACK_3);   /* ifa_name */
           pushSTACK(TheSubr(subr_self)->name);
           error(error_condition,GETTEXT("~S: both IFF_BROADCAST and IFF_POINTOPOINT set for ~S"));
-        } else pushSTACK_sockaddr(ifap->ifa_broadaddr);
+        } else
+          pushSTACK_sockaddr(ifap->ifa_broadaddr);
       else if (ifap->ifa_flags & IFF_POINTOPOINT)
         pushSTACK_sockaddr(ifap->ifa_dstaddr);
-      else pushSTACK(NIL);
+      else
+        pushSTACK(NIL);
       pushSTACK(ifap->ifa_data ? allocate_fpointer(ifap->ifa_data) : NIL);
       funcall(`RAWSOCK::MAKE-IFADDRS`,6);
       pushSTACK(value1); count++;
@@ -714,7 +723,8 @@ DEFUN(RAWSOCK:SOCKATMARK, sock) {
  can trigger GC */
 static /*maygc*/ struct sockaddr* optional_sockaddr_argument
 (gcv_object_t *arg, socklen_t *size PIN_ARG_DECL) {
-  if (nullp(*arg)) return NULL;
+  if (nullp(*arg))
+    return NULL;
   else {
     if (eq(T,*arg)) *arg = make_sockaddr();
     { struct sockaddr* sa =
@@ -1209,8 +1219,10 @@ DEFCHECKER(sockopt_name,default=-1,prefix=SO,                            \
     begin_sock_call();                                                  \
     status = getsockopt(sock,level,name,(SETSOCKOPT_ARG_T)&val,&len);   \
     end_sock_call();                                                    \
-    if (status==0) return retform;                                      \
-    else return (err_p ? OS_file_error(fixnum(sock)),NIL : S(Kerror));  \
+    if (status==0)                                                      \
+      return retform;                                                   \
+    else                                                                \
+      return (err_p ? OS_file_error(fixnum(sock)),NIL : S(Kerror));     \
   } while(0)
 static int check_sockopt_name (int name) {
   pushSTACK(NIL);           /* no PLACE */
@@ -1389,9 +1401,12 @@ static void set_sock_opt (rawsock_t sock, int level, int name, object value) {
 #  if defined(SO_LINGER)
     case SO_LINGER:
       SET_SOCK_OPT(struct linger,
-                   if (nullp(value)) val.l_onoff=0;
-                   else { val.l_onoff = 1;
-                     val.l_linger = I_to_sint32(check_sint32(value));});
+                   if (nullp(value))
+                     val.l_onoff=0;
+                   else {
+                     val.l_onoff = 1;
+                     val.l_linger = I_to_sint32(check_sint32(value));
+                   });
 #  endif
 #  if defined(SO_RCVTIMEO)
     case SO_RCVTIMEO:

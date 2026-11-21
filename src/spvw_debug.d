@@ -72,8 +72,10 @@ local void string_out (FILE* out, object str) {
 /* the recursive helper for nobject_out() which does all the work
  must be enclosed in begin_system_call()/end_system_call() */
 local void nobject_out1 (FILE* out, object obj, int level) {
-  if (level) --level;
-  else { fprint(out,"<...>"); return; }
+  if (level)
+    --level;
+  else
+    { fprint(out,"<...>"); return; }
  #define XOUT(x) nobject_out1(out,x,level)
   if (stringp(obj)) {
     fprint(out,"\"");
@@ -215,8 +217,10 @@ local void nobject_out1 (FILE* out, object obj, int level) {
     fprint(out," ");
     XOUT(TheWeakpointer(obj)->wp_value);
     fprint(out," ");
-    if (weakpointerp(TheWeakpointer(obj)->wp_cdr)) fprint(out,"#<next wp>");
-    else XOUT(TheWeakpointer(obj)->wp_cdr);
+    if (weakpointerp(TheWeakpointer(obj)->wp_cdr))
+      fprint(out,"#<next wp>");
+    else
+      XOUT(TheWeakpointer(obj)->wp_cdr);
     fprintf(out," 0x%lx>",as_oint(obj));
   } else if (fpointerp(obj)) {
     fprint(out,"#<");
@@ -329,7 +333,8 @@ local void nobject_out1 (FILE* out, object obj, int level) {
     fprintf(out,"#<varobject type=%d address=0x%lx>",
             varobject_type(TheVarobject(obj)),(uintP)ThePointer(obj));
   #endif
-  else fprintf(out,"#<huh?! address=0x%lx>",(uintP)ThePointer(obj));
+  else
+    fprintf(out,"#<huh?! address=0x%lx>",(uintP)ThePointer(obj));
  #undef XOUT
 }
 
@@ -426,7 +431,8 @@ local object find_pack (char* pack_s) {
     value1 = find_package(pack);
     FREE_DYNAMIC_STRING(pack);
     return value1;
-  } else return O(default_package); /* CL */
+  } else
+    return O(default_package); /* CL */
 }
 
 local object find_sym (char* name_s, char* pack_s) {
@@ -449,8 +455,10 @@ unsigned int get_constsym_count (void);
 unsigned int get_constsym_count (void) { return symbol_count; }
 object get_constsym (unsigned int);
 object get_constsym (unsigned int pos) {
-  if (pos < symbol_count) return symbol_tab_ptr_as_object(((symbol_*)((char*)&symbol_tab+varobjects_misaligned))+pos);
-  else return Fixnum_0;
+  if (pos < symbol_count)
+    return symbol_tab_ptr_as_object(((symbol_*)((char*)&symbol_tab+varobjects_misaligned))+pos);
+  else
+    return Fixnum_0;
 }
 #define FUN(from,to,name) local to CONCAT(name,_) (from x) { return name(x); }
 FUN(chart,cint,as_cint)
