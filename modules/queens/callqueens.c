@@ -23,9 +23,8 @@ DEFUN(USER::QUEENS, n)
    */
   unsigned int n = I_to_uint(check_uint(popSTACK()));
   if (n>0 && n<=nmax) { /* the argument is good. Do our job: */
-    unsigned int result;
     begin_call();
-    result = queens(n); /* call external function */
+    unsigned int result = queens(n); /* call external function */
     end_call();
     /*
      * Assume result is >=0 and <2^32 (which is guaranteed by the type
