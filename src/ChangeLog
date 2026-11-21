@@ -1,5 +1,10 @@
 2026-11-21  Bruno Haible  <bruno@clisp.org>
 
+	syscalls tests: Make more maintainable.
+	* modules/syscalls/test.tst: Remove anti-patterns with use of #+.
+
+2026-11-21  Bruno Haible  <bruno@clisp.org>
+
 	syscalls: Fix a crash in OS:FILE-VERSION.
 	* modules/syscalls/calls.c (file_version): Don't access lpBuffer if
 	VerQueryValue failed.

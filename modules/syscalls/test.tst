@@ -102,16 +102,22 @@ CHECK-TIME-DATE
   T)
 T
 
-#+unix (find :rdwr (show (os:stream-options *tmp1* :fl))) #+unix :RDWR
+#+unix (find :rdwr (show (os:stream-options *tmp1* :fl)))
+#+unix :RDWR
 #+unix (ext:appease-cerrors
         (with-open-file (s *tmp1*)
           (find :rdonly (show (os:stream-options s :fl)))))
 #+unix :RDONLY
-#+unix (os:stream-options *tmp1* :fd) NIL
-#+unix (os:stream-options *tmp1* :fd '(:cloexec)) NIL
-#+unix (os:stream-options *tmp1* :fd) #+unix (:cloexec)
-#+unix (os:stream-options *tmp1* :fd nil) NIL
-#+unix (os:stream-options *tmp1* :fd) NIL
+#+unix (os:stream-options *tmp1* :fd)
+#+unix NIL
+#+unix (os:stream-options *tmp1* :fd '(:cloexec))
+#+unix NIL
+#+unix (os:stream-options *tmp1* :fd)
+#+unix (:CLOEXEC)
+#+unix (os:stream-options *tmp1* :fd nil)
+#+unix NIL
+#+unix (os:stream-options *tmp1* :fd)
+#+unix NIL
 
 ;; may fail with ENOLCK or EOPNOTSUPP - in which case we do not test locking
 (handler-case (os:stream-lock *tmp1* t)
@@ -258,63 +264,87 @@ NIL
   :return (list n tg))
 (172 FLOATING-POINT-OVERFLOW) ; ... but it IS accurate at single precision!
 
-#+unix (= (show (os:process-id)) (show (os:getppid))) #+unix NIL
-#+unix (let ((id (show (os:uid)))) (= id (setf (os:uid) id))) T
-#+unix (let ((id (show (os:gid)))) (= id (setf (os:gid) id))) T
-#+unix (let ((id (show (os:euid)))) (= id (setf (os:euid) id))) T
-#+unix (let ((id (show (os:egid)))) (= id (setf (os:egid) id))) T
+#+unix (= (show (os:process-id)) (show (os:getppid)))
+#+unix NIL
+#+unix (let ((id (show (os:uid)))) (= id (setf (os:uid) id)))
+#+unix T
+#+unix (let ((id (show (os:gid)))) (= id (setf (os:gid) id)))
+#+unix T
+#+unix (let ((id (show (os:euid)))) (= id (setf (os:euid) id)))
+#+unix T
+#+unix (let ((id (show (os:egid)))) (= id (setf (os:egid) id)))
+#+unix T
 #+unix (let* ((pid (os:process-id))
               (gid (show (os:pgid pid))))
          (check-os-error (= gid (setf (os:pgid pid) gid))
-                         (:eperm 1))) #+unix T
-#+unix (= (os:uid) (os:euid)) T
-#+unix (= (os:gid) (os:egid)) T
-#+unix (multiple-value-list (os:setreuid (os:uid) (os:euid))) NIL
-#+unix (multiple-value-list (os:setregid (os:gid) (os:egid))) NIL
-#+unix (multiple-value-list (os:setreuid -1 -1)) NIL
-#+unix (multiple-value-list (os:setregid -1 -1)) NIL
+                         (:eperm 1)))
+#+unix T
+#+unix (= (os:uid) (os:euid))
+#+unix T
+#+unix (= (os:gid) (os:egid))
+#+unix T
+#+unix (multiple-value-list (os:setreuid (os:uid) (os:euid)))
+#+unix NIL
+#+unix (multiple-value-list (os:setregid (os:gid) (os:egid)))
+#+unix NIL
+#+unix (multiple-value-list (os:setreuid -1 -1))
+#+unix NIL
+#+unix (multiple-value-list (os:setregid -1 -1))
+#+unix NIL
 #+unix (listp (show (if (fboundp 'os:groups) (os:groups)
-                        '(no os:groups)) :pretty t)) T
+                        '(no os:groups)) :pretty t))
+#+unix T
 #+unix (if (and (fboundp 'os:groups) (fboundp 'os::%setgroups))
            (let ((g (os:groups))) ; setgroups may fail with EPERM
-	     (eq g (or (ignore-errors (setf (os:groups) g)) g)))
-           t) T
+             (eq g (or (ignore-errors (setf (os:groups) g)) g)))
+           t)
+#+unix T
 
 #+unix (listp (show (if (fboundp 'os:sysconf)
-                        (os:sysconf) '(no os:sysconf)) :pretty t)) T
+                        (os:sysconf) '(no os:sysconf)) :pretty t))
+#+unix T
 #+unix (listp (show (if (fboundp 'os:confstr)
-                        (os:confstr) '(no os:confstr)) :pretty t)) T
+                        (os:confstr) '(no os:confstr)) :pretty t))
+#+unix T
 
 #+unix (listp (show (if (fboundp 'os:pathconf)
-                        (os:pathconf "/") '(no os:pathconf)) :pretty t)) T
+                        (os:pathconf "/") '(no os:pathconf)) :pretty t))
+#+unix T
 #+unix (listp (show (if (fboundp 'os:pathconf)
-                        (os:pathconf *tmp1*) '(no os:pathconf)) :pretty t)) T
+                        (os:pathconf *tmp1*) '(no os:pathconf)) :pretty t))
+#+unix T
 
 #+unix
 (listp (show (if (fboundp 'os:usage) (os:usage) '(no os:usage)) :pretty t))
-T
+#+unix T
 #+unix
 (listp (show (if (fboundp 'os:rlimit) (os:rlimit) '(no os:rlimit)) :pretty t))
-T
+#+unix T
 
 (os:uname-p (show (os:uname) :pretty t)) T
 
-#+unix (listp (show (os:user-info) :pretty t)) T
+#+unix (listp (show (os:user-info) :pretty t))
+#+unix T
 ;; (os:user-info :default) calls getlogin which may fail in cron
 #+unix (os:user-info-p
         (handler-case (show (os:user-info :default) :pretty t)
           (:error (c) (princ-error c)
-                  (use-value (os:make-user-info "" "" 0 0 "" "" ""))))) T
+                  (use-value (os:make-user-info "" "" 0 0 "" "" "")))))
+#+unix T
 ;; some SF CF hosts (solaris, openbsd) are misconfigured:
 ;; user GID is 100, but there is no group with GID 100
 #+unix (os:group-info-p
         (show
          (handler-bind ((error (lambda (c) (princ-error c) (use-value 0))))
            (os:group-info (os:user-info-gid (os:user-info (os:uid)))))
-         :pretty t)) T
-#+unix (listp (show (os:group-info) :pretty t)) T
-#+unix (= (os:uid) (os:user-info-uid (os:user-info (os:uid)))) T
-#+unix (= (os:gid) (os:user-info-gid (os:user-info (os:uid)))) T
+         :pretty t))
+#+unix T
+#+unix (listp (show (os:group-info) :pretty t))
+#+unix T
+#+unix (= (os:uid) (os:user-info-uid (os:user-info (os:uid))))
+#+unix T
+#+unix (= (os:gid) (os:user-info-gid (os:user-info (os:uid))))
+#+unix T
 
 (and (fboundp 'os:user-shells)
      (notevery #'stringp (show (os:user-shells)))) NIL
@@ -322,17 +352,17 @@ T
 (os:file-stat-p (show (os:file-stat *tmp1*) :pretty t)) T
 (os:file-stat-p (show (os:file-stat (pathname *tmp1*)) :pretty t)) T
 
-#-:win32 (= (posix:file-stat-ino (os:file-stat *tmp1*))
-            (posix:file-stat-ino (os:file-stat *tmp2*)))
-#-:win32 NIL
+#-win32 (= (posix:file-stat-ino (os:file-stat *tmp1*))
+           (posix:file-stat-ino (os:file-stat *tmp2*)))
+#-win32 NIL
 
-#+:unix
+#+unix
 (or (null (ext:probe-directory "/proc/"))
     (null (probe-file "/proc/kcore"))
     ;; On Linux, in a Docker container, /proc/kcore may have size 0.
     (zerop (os:euid))
     (plusp (posix:file-stat-size (show (posix:file-stat "/proc/kcore")))))
-#+:unix T
+#+unix T
 
 (os:convert-mode #o0666)
 (:RUSR :WUSR :RGRP :WGRP :ROTH :WOTH)
@@ -465,9 +495,9 @@ T
                 100)
                (t 1)))))
   (defun flush-clisp (stream)
-    (when #-:win32 (socket:socket-status (cons stream :input) timeout)
+    (when #-win32 (socket:socket-status (cons stream :input) timeout)
           ;; select on win32 does not work with pipes
-          #+:win32 (progn (sleep 1) (listen stream))
+          #+win32 (progn (sleep 1) (listen stream))
       ;; read from the clisp stream until the next prompt
       (setf (fill-pointer buf) 0)
       (loop :with pos-NL = 0 :for ch = (read-char stream)
@@ -626,13 +656,13 @@ T
   :finally (os:errno nil))
 ()
 
-#+(or :win32 :cygwin)
+#+(or win32 cygwin)
 (loop :with all = (os:last-error t)
   :for e :from 0 :to (loop :for p :in all :for e = (car p)
                        :when (< e #.(ash 1 16)) :maximize e)
   :do (print (list e (os:last-error e) (os:format-message)))
   :finally (os:last-error nil))
-#+(or :win32 :cygwin) ()
+#+(or win32 cygwin) ()
 
 (and (fboundp 'os:hostid) (not (integerp (show (os:hostid))))) NIL
 #+unix (and (fboundp 'os::%sethostid)
@@ -705,7 +735,7 @@ RUN-SLEEP
 
 #+unix (posix:wait :pid (run-sleep 1) :nohang t) #+unix 0
 
-#+(and :unix (not :cygwin))
+#+(and unix (not cygwin))
 (let ((pid (run-sleep 1)))
   (posix:kill pid :SIGTERM)
   (multiple-value-bind (pid1 kind status rusage) (posix:wait :pid pid :usage t)
@@ -714,9 +744,9 @@ RUN-SLEEP
     #+macos (when (or (eq status ':SIGKILL) (eq status ':SIGTRAP))
               (setq status ':SIGTERM))
     (list kind status (posix:usage-p (show rusage)))))
-#+(and :unix (not :cygwin)) (:SIGNALED :SIGTERM T)
+#+(and unix (not cygwin)) (:SIGNALED :SIGTERM T)
 
-#+(and :unix (not :cygwin))
+#+(and unix (not cygwin))
 (let ((pid (run-sleep 1)))
   (posix:kill pid :SIGSTOP)
   (multiple-value-bind (pid1 kind status) (posix:wait :pid pid :untraced t)
@@ -728,7 +758,7 @@ RUN-SLEEP
     (assert (= pid pid1) () "pid: ~S<>~S" pid pid1)
     (assert (eq kind :CONTINUED) () "kind=~S <> :CONTINUED" kind)
     (assert (null status) () "status=~S is non-NIL" status)))
-#+(and :unix (not :cygwin)) NIL
+#+(and unix (not cygwin)) NIL
 
 (every #'sys::double-float-p
        (show (handler-case (multiple-value-list (os:loadavg))
