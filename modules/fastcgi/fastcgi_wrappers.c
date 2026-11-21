@@ -57,7 +57,7 @@ char * fcgi_getenv(char * var) {
     if ( ! equ )
       continue;
     /* FIXME implement exact match, not prefix matching */
-    if ( 0 == strncmp(var, *envp, equ - *envp) )
+    if (strncmp(var, *envp, equ - *envp) == 0)
       return equ + 1;
   }
   /* Variable not found in environment */

@@ -1062,7 +1062,7 @@ static void append_oci_error(char *errbuf, void * err, int isenv)
   strcat(errbuf, buf);
 
   /* See if having trouble getting error text */
-  if ( 0 == strncmp(buf, leading, strlen(leading)) ) {
+  if (strncmp(buf, leading, strlen(leading)) == 0) {
     char reason[1000];
     char * home = getenv("ORACLE_HOME");
     if ( ! home )

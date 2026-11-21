@@ -774,7 +774,7 @@ local maygc object object_address (object library, object name,
     pushSTACK(lib_addr);
     var void* name_handle = object_handle(library,name,version);
     lib_addr = popSTACK();
-    if (NULL == name_handle) return nullobj;
+    if (name_handle == NULL) return nullobj;
     result_offset =
       (sintP)name_handle - (sintP)TheFpointer(lib_addr)->fp_pointer;
   } else {
@@ -1579,7 +1579,7 @@ modexp maygc object convert_from_foreign (object fvd, const void* data)
 { /* keep in sync with foreign1.lisp:convert-from-foreign */
   check_SP();
   check_STACK();
-  if (NULL == data) {
+  if (data == NULL) {
     pushSTACK(fvd); pushSTACK(TheSubr(subr_self)->name);
     error(error_condition,GETTEXT("~S: trying to read an object of type ~S from NULL address"));
   }
@@ -2396,7 +2396,7 @@ modexp maygc void convert_to_foreign (object fvd, object obj, void* data,
   /* keep in sync with foreign1.lisp:convert-to-foreign */
   check_SP();
   check_STACK();
-  if (NULL == data) {
+  if (data == NULL) {
     pushSTACK(fvd); pushSTACK(obj); pushSTACK(TheSubr(subr_self)->name);
     error(error_condition,GETTEXT("~S: trying to write object ~S of type ~S into NULL address"));
   }

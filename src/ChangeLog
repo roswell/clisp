@@ -1,5 +1,9 @@
 2026-11-21  Bruno Haible  <bruno@clisp.org>
 
+	Code style: Write <expression> == <const>, not <const> == <expression>.
+
+2026-11-21  Bruno Haible  <bruno@clisp.org>
+
 	modules: Refactor: Reduce scope of local variables.
 
 2026-11-21  Bruno Haible  <bruno@clisp.org>

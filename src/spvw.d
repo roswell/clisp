@@ -581,8 +581,8 @@ modexp uintL* current_thread_alloccount()
      return true;
     #else /* assume fairly recent pthreads implementation */
      var pthread_attr_t attr;
-     if (0 == pthread_getattr_np(pthread_self(), &attr)) {
-       var bool ret = (0 == pthread_attr_getstack(&attr, (void **)base, size));
+     if (pthread_getattr_np(pthread_self(), &attr) == 0) {
+       var bool ret = (pthread_attr_getstack(&attr, (void **)base, size) == 0);
        pthread_attr_destroy(&attr);
        return ret;
      }
@@ -2662,7 +2662,7 @@ local inline int parse_options (int argc, const char* const* argv,
     /* loop and process options, replace processed options with NULL: */
     while (argptr < argptr_limit) {
       var const char* arg = *argptr++; /* next argument */
-      if (0 == strncmp(arg,"--clisp",7)) {
+      if (strncmp(arg,"--clisp",7) == 0) {
         arg += 7; clisp_superarg_used = true;
       } else if (delegating) goto non_option;
       if ((arg[0] == '-') && !(arg[1] == '\0')) {
@@ -4486,7 +4486,7 @@ global void* find_name (void *handle, const char *name)
     HANDLE cur_proc;
     HMODULE *modules;
     DWORD needed, i;
-    if ((EnumProcessModules_t)1 == fEnumProcessModules) {
+    if (fEnumProcessModules == (EnumProcessModules_t)1) {
       /* first call: try to load EnumProcessModules */
       HMODULE psapi = LoadLibrary("psapi.dll");
       if (psapi == NULL)
@@ -5021,7 +5021,7 @@ global bool interrupt_thread(clisp_thread_t *thr)
         if (!mutex->xl_owned) {
           /* thr has released the ownership of the mutex - check that
              pthread_cond_wait has done the same */
-          if (0 == xmutex_raw_trylock(&mutex->xl_mutex)) {
+          if (xmutex_raw_trylock(&mutex->xl_mutex) == 0) {
             xmutex_raw_unlock(&mutex->xl_mutex);
             break;
           }

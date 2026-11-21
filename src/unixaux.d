@@ -601,7 +601,7 @@ global void close_all_fd (void) {
 #elif defined(HAVE_GETRLIMIT) && defined(RLIMIT_NOFILE)
   int fd;
   struct rlimit rl;
-  if (0 == getrlimit(RLIMIT_NOFILE,&rl))
+  if (getrlimit(RLIMIT_NOFILE,&rl) == 0)
     fd = rl.rlim_cur;
   else
     fd = CLISP_OPEN_MAX_FALLBACK;

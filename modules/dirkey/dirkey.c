@@ -109,7 +109,7 @@ static gcv_object_t* dir_key_slots (object obj) {
 static object test_dir_key (object obj, bool check_open) {
  start: {
     gcv_object_t *slots = dir_key_slots(obj);
-    if (NULL == slots) {
+    if (slots == NULL) {
       pushSTACK(NIL); /* no PLACE */
       pushSTACK(obj); /* TYPE-ERROR slot DATUM */
       pushSTACK(`LDAP::DIR-KEY`); /* TYPE-ERROR slot EXPECTED-TYPE */

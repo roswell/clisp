@@ -545,7 +545,7 @@ DEFUN(RAWSOCK:IF-NAME-INDEX, &optional what) {
 #  if defined(HAVE_IF_INDEXTONAME)
     char name[IF_NAMESIZE];
     begin_system_call();
-    if (NULL == if_indextoname(I_to_uint(STACK_0),name)) ANSIC_error();
+    if (if_indextoname(I_to_uint(STACK_0),name) == NULL) ANSIC_error();
     end_system_call();
     VALUES1(asciz_to_string(name,GLO(misc_encoding)));
 #  else
@@ -557,7 +557,7 @@ DEFUN(RAWSOCK:IF-NAME-INDEX, &optional what) {
     unsigned int idx;
     with_string_0(STACK_0,GLO(misc_encoding),namez, {
       begin_system_call();
-      if (0 == (idx = if_nametoindex(namez))) ANSIC_error();
+      if ((idx = if_nametoindex(namez)) == 0) ANSIC_error();
       end_system_call();
     });
     VALUES1(uint_to_I(idx));
@@ -584,7 +584,7 @@ DEFUN(RAWSOCK:IFADDRS,&key FLAGS-AND FLAGS-OR) {
   skipSTACK(1);                 /* drop flags_and */
   begin_system_call();
   struct ifaddrs *ifap;
-  if (-1==getifaddrs(&ifap)) ANSIC_error();
+  if (getifaddrs(&ifap) == -1) ANSIC_error();
   end_system_call();
   int count = 0;
   for (; ifap; ifap=ifap->ifa_next)

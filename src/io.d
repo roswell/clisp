@@ -10221,7 +10221,7 @@ LISPFUN(format_tabulate,seclass_default,3,2,norest,nokey,0,NIL) {
     PPH_TAB_COL_I(tab_spec) = STACK_0;
     var object list = TheStream(STACK_4)->strm_pphelp_strings;
     pushSTACK(tab_spec);
-    if (stringp(Car(list)) && (0==vector_length(Car(list)))) {
+    if (stringp(Car(list)) && (vector_length(Car(list)) == 0)) {
       /* last string is empty -- keep it! */
       var object new_cons = allocate_cons();
       Car(new_cons) = popSTACK();

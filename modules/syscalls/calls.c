@@ -263,7 +263,7 @@ DEFUN(POSIX::STREAM-LOCK, stream lockp &key :BLOCK SHARED :START :LENGTH)
 #  elif defined(HAVE_FSTAT)
     struct stat st;
     begin_blocking_system_call();
-    bool failed_p = (-1 == fstat(fd,&st));
+    bool failed_p = (fstat(fd,&st) == -1);
     end_blocking_system_call();
     if (failed_p) goto stream_lock_error;
     length = st.st_size;
@@ -283,7 +283,7 @@ DEFUN(POSIX::STREAM-LOCK, stream lockp &key :BLOCK SHARED :START :LENGTH)
     failed_p = !(*UnlockFileExFunc)(fd,0,length,0,&ol);
 #else
   fl.l_len = length;
-  if ((failed_p = (-1 == fcntl(fd,cmd,&fl)))
+  if ((failed_p = (fcntl(fd,cmd,&fl) == -1))
       && lock_p && (cmd == F_SETLK) && (errno == EACCES || errno == EAGAIN))
     failed_p = lock_p = false; /* failed to lock, :BLOCK NIL */
 #endif
@@ -319,13 +319,13 @@ DEFUN(POSIX::STREAM-OPTIONS, stream cmd &optional value)
     begin_blocking_system_call();
     value = fcntl(fd,cmd,value);
     end_blocking_system_call();
-    if (-1 == value) error_OS_stream(STACK_2);
+    if (value == -1) error_OS_stream(STACK_2);
     VALUES0;
   } else {                      /* GET */
     begin_blocking_system_call();
     int value = fcntl(fd,cmd);
     end_blocking_system_call();
-    if (-1 == value) error_OS_stream(STACK_2);
+    if (value == -1) error_OS_stream(STACK_2);
     switch (cmd) {
       case F_GETFD: value1 = check_fd_flags_to_list(value); break;
       case F_GETFL:
@@ -889,7 +889,7 @@ DEFUN(POSIX:SYNC, &optional file) {
     begin_blocking_system_call();
     bool failed_p;
 #  if defined(HAVE_FSYNC)
-    failed_p = (-1 == fsync(fd));
+    failed_p = (fsync(fd) == -1);
 #  elif defined(WIN32_NATIVE)
     failed_p = (!FlushFileBuffers(fd));
 #  endif
@@ -1692,7 +1692,7 @@ DEFUN(POSIX::GROUP-INFO, &optional group)
   bool failed_p = (errno != 0);
   end_system_call();
 
-  if (NULL == gr) {
+  if (gr == NULL) {
     if (!failed_p) {
       pushSTACK(NIL);           /* no PLACE */
       pushSTACK(group); pushSTACK(TheSubr(subr_self)->name);
@@ -1774,7 +1774,7 @@ DEFUN(POSIX::USER-INFO, &optional user)
   bool failed_p = (errno != 0);
   end_system_call();
 
-  if (NULL == pwd) {
+  if (pwd == NULL) {
     if (!failed_p) {
       pushSTACK(NIL);           /* no PLACE */
       pushSTACK(user); pushSTACK(TheSubr(subr_self)->name);
@@ -2304,7 +2304,7 @@ DEFUN(POSIX:MKDTEMP, template) {
     ENSURE_6X(namez,c_template);
     c_template = mkdtemp(c_template);
     end_blocking_system_call();
-    if (NULL == c_template) ANSIC_error();
+    if (c_template == NULL) ANSIC_error();
     fname = asciz_to_string(c_template,GLO(pathname_encoding));
   });
   pushSTACK(fname);
@@ -2834,7 +2834,7 @@ static inline int my_link (const char* source, const char* destination) {
 #  define MAXPATHLEN  4096      /* see <sys/param.h> */
 # endif
   char path_buffer[MAXPATHLEN];
-  if (NULL == realpath(source,path_buffer)) OS_file_error(STACK_3);
+  if (realpath(source,path_buffer) == NULL) OS_file_error(STACK_3);
   return link(path_buffer,destination);
 }
 #else

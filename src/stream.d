@@ -14408,14 +14408,14 @@ local void sock_opt_bool (SOCKET handle, int option, object value)
   var int val;
   var socklen_t len = sizeof(val);
   #ifdef HAVE_GETSOCKOPT
-  if (-1 == getsockopt(handle,SOL_SOCKET,option,(char*)&val,&len))
+  if (getsockopt(handle,SOL_SOCKET,option,(char*)&val,&len) == -1)
     OS_error();
   pushSTACK(val ? T : NIL);
   if (!(eq(value,nullobj)))
   #endif
   {
     val = !nullp(value);
-    if (-1 == setsockopt(handle,SOL_SOCKET,option,(char*)&val,len))
+    if (setsockopt(handle,SOL_SOCKET,option,(char*)&val,len) == -1)
       OS_error();
   }
 }
@@ -14427,14 +14427,14 @@ local maygc void sock_opt_int (SOCKET handle, int option, object value)
   var unsigned int val;
   var socklen_t len = sizeof(val);
   #ifdef HAVE_GETSOCKOPT
-  if (-1 == getsockopt(handle,SOL_SOCKET,option,(char*)&val,&len))
+  if (getsockopt(handle,SOL_SOCKET,option,(char*)&val,&len) == -1)
     OS_error();
   pushSTACK(uint_to_I(val));
   if (!(eq(value,nullobj)))
   #endif
   {
     val = I_to_uint(check_uint(value));
-    if (-1 == setsockopt(handle,SOL_SOCKET,option,(char*)&val,len))
+    if (setsockopt(handle,SOL_SOCKET,option,(char*)&val,len) == -1)
       OS_error();
   }
 }
@@ -14446,7 +14446,8 @@ local maygc void sock_opt_time (SOCKET handle, int option, object value)
   var struct timeval val;
   var socklen_t len = sizeof(val);
   #ifdef HAVE_GETSOCKOPT
-  if (-1 == getsockopt(handle,SOL_SOCKET,option,(char *)&val,&len)) OS_error();
+  if (getsockopt(handle,SOL_SOCKET,option,(char *)&val,&len) == -1)
+    OS_error();
   if (val.tv_usec) {
     var double x = val.tv_sec + val.tv_sec*0.000001;
     var dfloatjanus t = *(dfloatjanus*)&x;
@@ -14457,7 +14458,7 @@ local maygc void sock_opt_time (SOCKET handle, int option, object value)
   #endif
   {
     sec_usec(value,unbound,&val);
-    if (-1 == setsockopt(handle,SOL_SOCKET,option,(char*)&val,len))
+    if (setsockopt(handle,SOL_SOCKET,option,(char*)&val,len) == -1)
       OS_error();
   }
 }
@@ -14522,7 +14523,7 @@ LISPFUN(socket_options,seclass_default,1,0,rest,nokey,0,NIL) {
       struct linger val;
       var socklen_t len = sizeof(val);
       #ifdef HAVE_GETSOCKOPT
-      if (-1 == getsockopt(handle,SOL_SOCKET,SO_LINGER,(char*)&val,&len))
+      if (getsockopt(handle,SOL_SOCKET,SO_LINGER,(char*)&val,&len) == -1)
         OS_error();
       if (val.l_onoff)
         pushSTACK(fixnum(val.l_linger));
@@ -14539,7 +14540,7 @@ LISPFUN(socket_options,seclass_default,1,0,rest,nokey,0,NIL) {
           val.l_onoff = 1;
           val.l_linger = I_to_uint(check_uint(arg));
         }
-        if (-1 == setsockopt(handle,SOL_SOCKET,SO_LINGER,(char*)&val,len))
+        if (setsockopt(handle,SOL_SOCKET,SO_LINGER,(char*)&val,len) == -1)
           OS_error();
       }
     }

@@ -499,10 +499,10 @@ local sintL seconds_west (time_t *now, int *isdst) {
       if (now_ == NULL) OS_error(); else *result = *now_; } while (0)
   #else
     #define LOCALTIME_R(timer,result) do {               \
-      if (NULL == localtime_r(timer,result)) OS_error(); \
+      if (localtime_r(timer,result) == NULL) OS_error(); \
     } while(0)
     #define GMTIME_R(timer,result) do {             \
-      if (NULL == gmtime_r(timer,result)) OS_error(); \
+      if (gmtime_r(timer,result) == NULL) OS_error(); \
     } while(0);
   #endif
   var struct tm now_local;
