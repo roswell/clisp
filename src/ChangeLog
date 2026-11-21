@@ -1,5 +1,10 @@
 2026-11-21  Bruno Haible  <bruno@clisp.org>
 
+	syscalls tests: Fix a test execution problem on native Windows.
+	* modules/syscalls/test.tst: Disable a test on native Windows.
+
+2026-11-21  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Make more maintainable.
 	* modules/syscalls/test.tst: Remove anti-patterns with use of #+.
 
