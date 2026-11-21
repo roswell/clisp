@@ -491,12 +491,12 @@ DEFUN(RAWSOCK:NETWORK, &optional network type)
      http://www.opengroup.org/onlinepubs/9699919799/functions/getnetent.html */
   unsigned int type = check_uint_defaulted(popSTACK(),(unsigned int)-1);
   object net = popSTACK();
-  struct netent *ne = NULL;
   if (missingp(net)) {          /* get all networks */
     int count = 0;
 #  if defined(HAVE_SETNETENT) && defined(HAVE_GETNETENT) && defined(HAVE_ENDNETENT)
     begin_system_call();
     setnetent(1);
+    struct netent *ne;
     while ((ne = getnetent())) {
       end_system_call();
       if (type==(unsigned int)-1 || type==ne->n_addrtype) {
@@ -508,27 +508,36 @@ DEFUN(RAWSOCK:NETWORK, &optional network type)
     end_system_call();
 #  endif
     VALUES1(listof(count));
-    return;
   } else if (uint_p(net)) {
+    struct netent *ne = NULL;
 #  if defined(HAVE_GETNETBYADDR)
     begin_system_call();
     ne = getnetbyaddr(I_to_uint(net),type);
     end_system_call();
 #  endif
+    if (ne)
+      netent_to_network(ne);
+    else
+      VALUES1(NIL);
   } else if (stringp(net)) {
 #  if defined(HAVE_GETNETBYNAME)
+    object result = nullobj;
     with_string_0(net,GLO(misc_encoding),netz, {
       begin_system_call();
-      ne = getnetbyname(netz);
+      struct netent *ne = getnetbyname(netz);
       end_system_call();
+      if (ne)
+        netent_to_network(ne);
+      else
+        VALUES1(NIL);
+      result = value1;
     });
+    VALUES1(result);
+#  else
+    VALUES1(NIL);
 #  endif
   } else
     error_string_integer(net);
-  if (ne)
-    netent_to_network(ne);
-  else
-    VALUES1(NIL);
 }
 #endif  /* HAVE_NETDB_H */
 /* ================== net/if.h interface ================== */
