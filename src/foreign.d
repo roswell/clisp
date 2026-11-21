@@ -992,7 +992,7 @@ local object parse_foreign_inttype (uintL size, bool signed_p) {
  register_foreign_type (const char * name_asciz, uintL size, uintL alignment)
  > name_asciz: C type name
  > size : sizeof(name_asciz)
- > alignment : alignof(name_asciz)
+ > signed_p : signed?
  can trigger GC */
 modexp maygc void register_foreign_inttype (const char * name_asciz, uintL size,
                                             bool signed_p) {
