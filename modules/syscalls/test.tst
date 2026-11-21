@@ -16,8 +16,8 @@ T
 T
 (> (length (show (os:service) :pretty t)) (length (os:service nil "tcp")))
 T
-(let ((se1 (os:service "www" "tcp"))
-      (se2 (os:service "http" "tcp")))
+(let ((se1 (show (os:service "www" "tcp")))
+      (se2 (show (os:service "http" "tcp"))))
   (and (equal (service-proto se1) (service-proto se2))
        (eql (service-port se1) (service-port se2))
        (equal (sort (cons (service-name se1) (copy-list (service-aliases se1)))
