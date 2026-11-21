@@ -372,7 +372,7 @@ DEFUN(LDAP::DIR-KEY-OPEN, key path &key DIRECTION IF-DOES-NOT-EXIST) {
   /* create the key handle */
 # if defined(WIN32_REGISTRY)
   if (eq(type,`:WIN32`)) {
-    if (NULL != slots) {
+    if (slots != NULL) {
       root = test_dir_key(root,true);
       slots = dir_key_slots(root);
       with_string_0(path,GLO(misc_encoding),pathz,{
@@ -390,7 +390,7 @@ DEFUN(LDAP::DIR-KEY-OPEN, key path &key DIRECTION IF-DOES-NOT-EXIST) {
 # endif
 # if defined(ACCESS_LDAP)
   if (eq(type,`:LDAP`)) {
-    if (NULL != slots) {
+    if (slots != NULL) {
       root = test_dir_key(root,true);
       begin_blocking_system_call();
       with_string_0(path,GLO(misc_encoding),pathz,{
@@ -440,7 +440,7 @@ DEFUN(LDAP::DIR-KEY-OPEN, key path &key DIRECTION IF-DOES-NOT-EXIST) {
   /* create the DIR-KEY */
   pushSTACK(type);
   pushSTACK(STACK_(1+1)); /* direction */
-  if (NULL != slots) {
+  if (slots != NULL) {
     pushSTACK(slots[DK_PATH]);
 #  if defined(WIN32_NATIVE)
     if (eq(slots[DK_TYPE],`:WIN32`))

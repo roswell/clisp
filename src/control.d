@@ -383,14 +383,14 @@ local maygc Values compile_eval_form (object closure_name)
   pushSTACK(form); /* as first argument */
   aktenv_to_stack();
   var uintC argcount = 6;
-  if (NULL != closure_name_) {
+  if (closure_name_ != NULL) {
     pushSTACK(*closure_name_);
     argcount = 7;
   }
   funcall(S(compile_form),argcount);
   /* call the freshly compiled closure with 0 arguments: */
   funcall(value1,0);
-  if (NULL != closure_name_) skipSTACK(1); /* drop closure_name_ */
+  if (closure_name_ != NULL) skipSTACK(1); /* drop closure_name_ */
 }
 
 /* signal a correctable error for a broken LET variable spec

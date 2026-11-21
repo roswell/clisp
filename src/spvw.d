@@ -4494,7 +4494,7 @@ global void* find_name (void *handle, const char *name)
       else
         fEnumProcessModules = (EnumProcessModules_t)GetProcAddress(psapi,"EnumProcessModules");
     }
-    if (NULL != fEnumProcessModules) {
+    if (fEnumProcessModules != NULL) {
       cur_proc = GetCurrentProcess();
       if (!fEnumProcessModules(cur_proc,NULL,0,&needed)) OS_error();
       var DYNAMIC_ARRAY(modules_mem,char,needed);

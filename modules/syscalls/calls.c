@@ -946,7 +946,7 @@ DEFUN(OS::%SET-PRIORITY, value pid which) {
   bool failed_p = true;
 #if defined(HAVE_SETPRIORITY)
   begin_system_call();
-  failed_p = (0 != setpriority(which,pid,value));
+  failed_p = (setpriority(which,pid,value) != 0);
   end_system_call();
 #elif defined(WIN32_NATIVE)
   {

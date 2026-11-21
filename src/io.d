@@ -5491,7 +5491,7 @@ global maygc object cons_ssstring (const gcv_object_t* stream_, object nl_type)
 #define PPH_TAB_COL_I(tab_spec) TheSvector(tab_spec)->data[3]
 #ifdef IO_DEBUG
 #define PPH_FORMAT_TAB(out,spec)                                \
-  (!vectorp(spec) || 4 != vector_length(spec) ? NOTREACHED,0 :  \
+  (!vectorp(spec) || vector_length(spec) != 4 ? NOTREACHED,0 :  \
    format_tab(out,PPH_TAB_COLON(spec),PPH_TAB_ATSIG(spec),      \
               PPH_TAB_COL_N(spec),PPH_TAB_COL_I(spec)))
 #else

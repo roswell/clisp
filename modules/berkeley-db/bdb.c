@@ -704,7 +704,7 @@ DEFUN(BDB:DBE-SET-OPTIONS, dbe &key                                     \
     uintL dims[2];
    restart_LK_CONFLICTS:        /* check arguments */
     STACK_0 = check_array(STACK_0);
-    if (2 != array_rank(STACK_0)
+    if (array_rank(STACK_0) != 2
         || (get_array_dimensions(STACK_0,2,dims), dims[0] != dims[1])
         || (array_atype(STACK_0) != Atype_8Bit)) {
       pushSTACK(NIL);           /* no PLACE */
