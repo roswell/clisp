@@ -429,14 +429,12 @@ T
                                                :defaults *lib-directory*)))
       (liv (show (lisp-implementation-version))))
   (show filever :pretty t)
-  (and (string= (format nil "~D.~D~[~;+~]~[~;+~]"
-                        (os:file-version-major filever)
-                        (os:file-version-minor filever)
-                        (os:file-version-build filever)
-                        (os:file-version-revision filever))
-                liv :end2 (position #\Space liv))
-       (string= (os:file-version-product-version filever)
-                liv :end2 (length (os:file-version-product-version filever)))))
+  (and (let ((short-version (format nil "~D.~D"
+                                    (os:file-version-major filever)
+                                    (os:file-version-minor filever))))
+         (string= short-version liv :end2 (length short-version)))
+       (let ((long-version (os:file-version-product-version filever)))
+         (string= long-version liv :end2 (length long-version)))))
 #+win32 T
 
 #+(or win32 cygwin) (stringp (os:get-user-sid))
