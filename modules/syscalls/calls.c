@@ -643,6 +643,7 @@ DEFUN(POSIX:GETDATE, timespec &optional timezone)
     STACK_1 = value1;
     goto getdate_restart;
   }
+  tm_to_lisp(tm,STACK_0);
   skipSTACK(2);
 }
 #endif  /* HAVE_GETDATE & HAVE_DECL_GETDATE_ERR */
