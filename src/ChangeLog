@@ -166,7 +166,7 @@
 
 	syscalls: Don't define the POSIX:GETDATE function on musl libc.
 	musl's getdate() is broken: it returns invalid dates.
-	Reported at <https://www.openwall.com/lists/musl/2011/11/21/>.
+	Reported at <https://www.openwall.com/lists/musl/2026/11/20/6>.
 	* modules/syscalls/configure.in: Invoke gl_MUSL_LIBC.
 	* modules/syscalls/config*: Regenerated.
 	* modules/syscalls/calls.c (POSIX:GETDATE): Don't define on musl libc.
