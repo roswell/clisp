@@ -44,13 +44,12 @@ WITH-C-TIME
 
 ;; for this to work, datum must specify _all_ fields in struct tm
 (defun check-time-date (fmt datum)
-  (and (fboundp 'os:getdate)
-       (with-C-time
-           (let ((gd (os:getdate datum))
-                 (st (os:string-time fmt datum)))
-             (show (list fmt datum gd (os:string-time "%Y-%m-%d %a %H:%M:%S" gd)))
-             (unless (= gd st)
-               (show (list st (os:string-time "%Y-%m-%d %a %H:%M:%S" st))))))))
+  (with-C-time
+      (let ((gd (os:getdate datum))
+            (st (os:string-time fmt datum)))
+        (show (list fmt datum gd (os:string-time "%Y-%m-%d %a %H:%M:%S" gd)))
+        (unless (= gd st)
+          (show (list st (os:string-time "%Y-%m-%d %a %H:%M:%S" st)))))))
 CHECK-TIME-DATE
 
 (check-time-date "%m/%d/%y %I %p" "10/1/87 4 PM") NIL
@@ -59,10 +58,9 @@ CHECK-TIME-DATE
 
 (defun check-time-date (fmt datum)
   (declare (ignore fmt))
-  (and (fboundp 'os:getdate)
-       (null (show (with-C-time
-                       (os:string-time "%Y-%m-%d %a %H:%M:%S"
-                                       (os:getdate datum)))))))
+  (null (show (with-C-time
+                  (os:string-time "%Y-%m-%d %a %H:%M:%S"
+                                  (os:getdate datum))))))
 CHECK-TIME-DATE
 
 (check-time-date "%m/%d/%y" "11/27/86") NIL

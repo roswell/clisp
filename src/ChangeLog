@@ -1,3 +1,20 @@
+2026-11-23  Bruno Haible  <bruno@clisp.org>
+
+	syscalls: Fix test failures on Solaris 11 OmniOS.
+	* Makefile.devel (GNULIB_SYSCALLS): Use strptime-gnu instead of
+	strptime. Add getdate.
+	* modules/syscalls/configure.in: Don't test for getdate, getdate_err.
+	* modules/syscalls/calls.c (POSIX:GETDATE): Define always.
+	* modules/syscalls/test.tst: Assume OS:GETDATE is always defined.
+	Then update to the newest gnulib.
+	Ran "make -f Makefile.devel gnulib-imported \
+	&& make -f Makefile.devel build-prerequisites".
+	* gllib/*: Update from gnulib.
+	* glm4/*: Likewise.
+	* aclocal.m4, src/configure, src/config.h.in: Regenerated.
+	* modules/*/configure: Regenerated.
+	* src/makemake.in (clisp.h): Link getclisph with libgnu.a.
+
 2026-11-22  Bruno Haible  <bruno@clisp.org>
 
 	syscalls: Fix a mistake (regression yesterday).

@@ -1713,28 +1713,49 @@ else case e in #(
 
 /* System header to define __stub macros and hopefully few prototypes,
    which can conflict with char $2 (void); below.  */
-
 #include <limits.h>
 #undef $2
+
+/* Tell Clang to allow disagreement with declaration of builtin $2.  */
+#if defined __clang__ && 4 <= __clang_major__
+# pragma clang diagnostic ignored "-Wincompatible-library-redeclaration"
+#endif
+
+#ifdef _MSC_VER
+
+/* Tell MSVC to link the function without checking its type.  */
+# ifdef _M_IX86 /* x86 */
+#  pragma comment (linker, "/include:_$2")
+# else /* x86_64, arm, arm64 */
+#  pragma comment (linker, "/include:$2")
+# endif
+
+#else
 
 /* Override any GCC internal prototype to avoid an error.
    Use char because int might match the return type of a GCC
    builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
+# ifdef __cplusplus
 extern "C"
-#endif
+# endif
 char $2 (void);
 /* The GNU C library defines this for functions which it implements
     to always fail with ENOSYS.  Some functions are actually named
     something starting with __ and the normal name is an alias.  */
-#if defined __stub_$2 || defined __stub___$2
+# if defined __stub_$2 || defined __stub___$2
 choke me
+# endif
+
 #endif
 
 int
 main (void)
 {
+
+#ifndef _MSC_VER
 return $2 ();
+#endif
+
   ;
   return 0;
 }

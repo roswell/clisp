@@ -53,6 +53,7 @@
 #  errno-h \
 #  fd-hook \
 #  fnmatch-gnu \
+#  getdate \
 #  getdomainname \
 #  getloadavg \
 #  getpagesize \
@@ -103,7 +104,7 @@
 #  streq-opt \
 #  strerror_r-posix \
 #  strftime \
-#  strptime \
+#  strptime-gnu \
 #  strverscmp \
 #  sys_select-h \
 #  sys_time-h \
@@ -136,6 +137,7 @@ gl_MODULES([
   errno-h
   fd-hook
   fnmatch-gnu
+  getdate
   getdomainname
   getloadavg
   getpagesize
@@ -186,7 +188,7 @@ gl_MODULES([
   streq-opt
   strerror_r-posix
   strftime
-  strptime
+  strptime-gnu
   strverscmp
   sys_select-h
   sys_time-h

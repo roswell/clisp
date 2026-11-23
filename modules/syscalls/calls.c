@@ -621,9 +621,6 @@ DEFUN(POSIX:STRING-TIME, format &optional datum timezone)
     error_string_integer(STACK_1);
 }
 
-#if defined(HAVE_GETDATE) && defined(HAVE_DECL_GETDATE_ERR) \
-    /* Except on musl libc, macOS, NetBSD.  */ \
-    && !(defined(MUSL_LIBC) || (defined(__APPLE__) && defined(__MACH__)) || defined(__NetBSD__))
 DEFUN(POSIX:GETDATE, timespec &optional timezone)
 { /* https://pubs.opengroup.org/onlinepubs/9799919799/functions/getdate.html */
  getdate_restart:
@@ -646,7 +643,6 @@ DEFUN(POSIX:GETDATE, timespec &optional timezone)
   tm_to_lisp(tm,STACK_0);
   skipSTACK(2);
 }
-#endif  /* HAVE_GETDATE & HAVE_DECL_GETDATE_ERR */
 
 /* ========================== string comparison ========================== */
 /* call strverscmp() on STACK_0 & STACK_1 and remove them from STACK */

@@ -104,14 +104,20 @@ AC_DEFUN([gl_EARLY],
   # Code from module fnmatch:
   # Code from module fnmatch-gnu:
   # Code from module fnmatch-h:
+  # Code from module fopen:
+  # Code from module fopen-gnu:
   # Code from module fpieee:
   AC_REQUIRE([gl_FP_IEEE])
   # Code from module free-posix:
+  # Code from module fseterr:
   # Code from module fstat:
   # Code from module gen-header:
+  # Code from module getdate:
+  # Code from module getdelim:
   # Code from module getdomainname:
   # Code from module getdtablesize:
   # Code from module gethostname:
+  # Code from module getline:
   # Code from module getloadavg:
   # Code from module getpagesize:
   # Code from module getpeername:
@@ -232,6 +238,9 @@ AC_DEFUN([gl_EARLY],
   # Code from module stdcountof-h:
   # Code from module stddef-h:
   # Code from module stdint-h:
+  # Code from module stdio-h:
+  gl_STDIO_H_EARLY
+  # Code from module stdio-windows:
   # Code from module stdlib-h:
   # Code from module streq:
   # Code from module streq-opt:
@@ -241,10 +250,12 @@ AC_DEFUN([gl_EARLY],
   # Code from module strings-h:
   # Code from module strncasecmp:
   # Code from module strncpy:
+  # Code from module strndup:
   # Code from module strnlen:
   # Code from module strnlen1:
   # Code from module strnul:
-  # Code from module strptime:
+  # Code from module strptime-gnu:
+  # Code from module strptime-posix:
   # Code from module strtod:
   # Code from module strverscmp:
   # Code from module sys_ioctl-h:
@@ -530,12 +541,27 @@ AC_DEFUN([gl_INIT],
   gl_FNMATCH_H_REQUIRE_DEFAULTS
   gl_CONDITIONAL_HEADER([fnmatch.h])
   AC_PROG_MKDIR_P
+  gl_FUNC_FOPEN
+  if test $REPLACE_FOPEN = 1; then
+    AC_LIBOBJ([fopen])
+    gl_PREREQ_FOPEN
+  fi
+  gl_STDIO_MODULE_INDICATOR([fopen])
+  gl_FUNC_FOPEN_GNU
+  if test $REPLACE_FOPEN_FOR_FOPEN_GNU = 1; then
+    AC_LIBOBJ([fopen])
+    gl_PREREQ_FOPEN
+  fi
+  gl_MODULE_INDICATOR([fopen-gnu])
+  gl_STDIO_MODULE_INDICATOR([fopen-gnu])
   gl_FUNC_FREE
   gl_CONDITIONAL([GL_COND_OBJ_FREE], [test $REPLACE_FREE = 1])
   AM_COND_IF([GL_COND_OBJ_FREE], [
     gl_PREREQ_FREE
   ])
   gl_STDLIB_MODULE_INDICATOR([free-posix])
+  gl_FUNC_FSETERR
+  gl_CONDITIONAL([GL_COND_OBJ_FSETERR], [test $ac_cv_func___fseterr = no])
   gl_FUNC_FSTAT
   gl_CONDITIONAL([GL_COND_OBJ_FSTAT], [test $REPLACE_FSTAT = 1])
   AM_COND_IF([GL_COND_OBJ_FSTAT], [
@@ -548,6 +574,20 @@ AC_DEFUN([gl_INIT],
   ])
   gl_SYS_STAT_MODULE_INDICATOR([fstat])
   gl_MODULE_INDICATOR([fstat])
+  gl_FUNC_GETDATE
+  gl_CONDITIONAL([GL_COND_OBJ_GETDATE],
+                 [test $HAVE_GETDATE = 0 || test $REPLACE_GETDATE = 1])
+  AM_COND_IF([GL_COND_OBJ_GETDATE], [
+    gl_PREREQ_GETDATE
+  ])
+  gl_TIME_MODULE_INDICATOR([getdate])
+  gl_FUNC_GETDELIM
+  gl_CONDITIONAL([GL_COND_OBJ_GETDELIM],
+                 [test $HAVE_GETDELIM = 0 || test $REPLACE_GETDELIM = 1])
+  AM_COND_IF([GL_COND_OBJ_GETDELIM], [
+    gl_PREREQ_GETDELIM
+  ])
+  gl_STDIO_MODULE_INDICATOR([getdelim])
   gl_FUNC_GETDOMAINNAME
   gl_CONDITIONAL([GL_COND_OBJ_GETDOMAINNAME],
                  [test $HAVE_DECL_GETDOMAINNAME = 0 || test $REPLACE_GETDOMAINNAME = 1])
@@ -570,6 +610,12 @@ AC_DEFUN([gl_INIT],
   ])
   gl_UNISTD_MODULE_INDICATOR([gethostname])
   gl_MODULE_INDICATOR([gethostname])
+  gl_FUNC_GETLINE
+  gl_CONDITIONAL([GL_COND_OBJ_GETLINE], [test $REPLACE_GETLINE = 1])
+  AM_COND_IF([GL_COND_OBJ_GETLINE], [
+    gl_PREREQ_GETLINE
+  ])
+  gl_STDIO_MODULE_INDICATOR([getline])
   AC_REQUIRE([AC_CANONICAL_HOST])
   gl_GETLOADAVG
   gl_CONDITIONAL([GL_COND_OBJ_GETLOADAVG],
@@ -998,6 +1044,49 @@ AC_DEFUN([gl_INIT],
   dnl Because of gl_REPLACE_LIMITS_H:
   gl_CONDITIONAL_HEADER([limits.h])
   AC_PROG_MKDIR_P
+  gl_STDIO_H
+  gl_STDIO_H_REQUIRE_DEFAULTS
+  AC_PROG_MKDIR_P
+  gl_CONDITIONAL([GL_COND_OBJ_STDIO_READ], [test $REPLACE_STDIO_READ_FUNCS = 1])
+  gl_CONDITIONAL([GL_COND_OBJ_STDIO_WRITE], [test $REPLACE_STDIO_WRITE_FUNCS = 1])
+  dnl No need to create extra modules for these functions. Everyone who uses
+  dnl <stdio.h> likely needs them.
+  gl_STDIO_MODULE_INDICATOR([fscanf])
+  gl_MODULE_INDICATOR([fscanf])
+  gl_STDIO_MODULE_INDICATOR([scanf])
+  gl_MODULE_INDICATOR([scanf])
+  gl_STDIO_MODULE_INDICATOR([fgetc])
+  gl_STDIO_MODULE_INDICATOR([getc])
+  gl_STDIO_MODULE_INDICATOR([getchar])
+  gl_STDIO_MODULE_INDICATOR([fgets])
+  gl_STDIO_MODULE_INDICATOR([fread])
+  dnl No need to create extra modules for these functions. Everyone who uses
+  dnl <stdio.h> likely needs them.
+  gl_STDIO_MODULE_INDICATOR([fprintf])
+  gl_STDIO_MODULE_INDICATOR([printf])
+  gl_STDIO_MODULE_INDICATOR([vfprintf])
+  gl_STDIO_MODULE_INDICATOR([vprintf])
+  gl_STDIO_MODULE_INDICATOR([fputc])
+  gl_STDIO_MODULE_INDICATOR([putc])
+  gl_STDIO_MODULE_INDICATOR([putchar])
+  gl_STDIO_MODULE_INDICATOR([fputs])
+  gl_STDIO_MODULE_INDICATOR([puts])
+  gl_STDIO_MODULE_INDICATOR([fwrite])
+  AC_REQUIRE([AC_CANONICAL_HOST])
+  USES_MSVCRT=0
+  case "$host_os" in
+    mingw* | windows*)
+      AC_EGREP_CPP([Special], [
+  #include <stdio.h>
+  #ifndef _UCRT
+   Special
+  #endif
+        ],
+        [USES_MSVCRT=1])
+      ;;
+  esac
+  gl_CONDITIONAL([GL_COND_OBJ_STDIO_CONSOLESAFE], [test $USES_MSVCRT = 1])
+  AC_CHECK_FUNCS_ONCE([vasprintf])
   gl_STDLIB_H
   gl_STDLIB_H_REQUIRE_DEFAULTS
   AC_PROG_MKDIR_P
@@ -1037,6 +1126,10 @@ AC_DEFUN([gl_INIT],
     gl_PREREQ_STRNCPY
   ])
   gl_STRING_MODULE_INDICATOR([strncpy])
+  gl_FUNC_STRNDUP
+  gl_CONDITIONAL([GL_COND_OBJ_STRNDUP],
+                 [test $HAVE_STRNDUP = 0 || test $REPLACE_STRNDUP = 1])
+  gl_STRING_MODULE_INDICATOR([strndup])
   gl_FUNC_STRNLEN
   gl_CONDITIONAL([GL_COND_OBJ_STRNLEN],
                  [test $HAVE_DECL_STRNLEN = 0 || test $REPLACE_STRNLEN = 1])
@@ -1045,12 +1138,14 @@ AC_DEFUN([gl_INIT],
   ])
   gl_STRING_MODULE_INDICATOR([strnlen])
   gl_STRING_MODULE_INDICATOR([strnul])
-  gl_FUNC_STRPTIME
-  gl_CONDITIONAL([GL_COND_OBJ_STRPTIME], [test $HAVE_STRPTIME = 0])
+  gl_FUNC_STRPTIME_GNU
+  gl_FUNC_STRPTIME_POSIX
+  gl_CONDITIONAL([GL_COND_OBJ_STRPTIME],
+                 [test $HAVE_STRPTIME = 0 || test $REPLACE_STRPTIME = 1])
   AM_COND_IF([GL_COND_OBJ_STRPTIME], [
     gl_PREREQ_STRPTIME
   ])
-  gl_TIME_MODULE_INDICATOR([strptime])
+  gl_TIME_MODULE_INDICATOR([strptime-posix])
   gl_FUNC_STRTOD
   gl_CONDITIONAL([GL_COND_OBJ_STRTOD],
                  [test $HAVE_STRTOD = 0 || test $REPLACE_STRTOD = 1])
@@ -1124,39 +1219,39 @@ AC_DEFUN([gl_INIT],
   gl_UNICASE_H
   gl_UNICASE_H_REQUIRE_DEFAULTS
   AC_PROG_MKDIR_P
-  gl_LIBUNISTRING_MODULE([1.4], [unicase/tolower])
-  gl_LIBUNISTRING_MODULE([1.4], [unicase/toupper])
+  gl_LIBUNISTRING_MODULE([1.5], [unicase/tolower])
+  gl_LIBUNISTRING_MODULE([1.5], [unicase/toupper])
   gl_LIBUNISTRING_LIBHEADER([1.4], [unictype.h])
   gl_UNICTYPE_H
   gl_UNICTYPE_H_REQUIRE_DEFAULTS
   AC_PROG_MKDIR_P
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-alnum])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-alnum])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-alpha])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-alpha])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-blank])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-blank])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-cntrl])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-cntrl])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-digit])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-digit])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-graph])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-graph])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-lower])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-lower])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-print])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-print])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-punct])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-punct])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-space])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-space])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-upper])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-upper])
   AC_REQUIRE([AC_C_INLINE])
-  gl_LIBUNISTRING_MODULE([1.4], [unictype/ctype-xdigit])
+  gl_LIBUNISTRING_MODULE([1.5], [unictype/ctype-xdigit])
   gl_LIBUNISTRING_LIBHEADER([0.9.5], [uniname.h])
   AC_PROG_MKDIR_P
-  gl_LIBUNISTRING_MODULE([1.4], [uniname/uniname])
+  gl_LIBUNISTRING_MODULE([1.5], [uniname/uniname])
   gl_LIBUNISTRING_LIBHEADER([1.2], [uninorm.h])
   gl_UNINORM_H
   gl_UNINORM_H_REQUIRE_DEFAULTS
@@ -1176,7 +1271,7 @@ AC_DEFUN([gl_INIT],
   gl_UNITYPES_H
   gl_LIBUNISTRING_LIBHEADER([0.9.11], [uniwidth.h])
   AC_PROG_MKDIR_P
-  gl_LIBUNISTRING_MODULE([1.4], [uniwidth/width])
+  gl_LIBUNISTRING_MODULE([1.6], [uniwidth/width])
   gl_FUNC_UNSETENV
   gl_CONDITIONAL([GL_COND_OBJ_UNSETENV],
                  [test $HAVE_UNSETENV = 0 || test $REPLACE_UNSETENV = 1])
@@ -1475,11 +1570,17 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/fnmatch.c
   lib/fnmatch.in.h
   lib/fnmatch_loop.c
+  lib/fopen.c
   lib/free.c
+  lib/fseterr.c
+  lib/fseterr.h
   lib/fstat.c
+  lib/getdate.c
+  lib/getdelim.c
   lib/getdomainname.c
   lib/getdtablesize.c
   lib/gethostname.c
+  lib/getline.c
   lib/getloadavg.c
   lib/getpagesize.c
   lib/getpeername.c
@@ -1627,6 +1728,11 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stdcountof.in.h
   lib/stddef.in.h
   lib/stdint.in.h
+  lib/stdio-consolesafe.c
+  lib/stdio-impl.h
+  lib/stdio-read.c
+  lib/stdio-write.c
+  lib/stdio.in.h
   lib/stdlib.c
   lib/stdlib.in.h
   lib/streq-opt.h
@@ -1639,6 +1745,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/stripslash.c
   lib/strncasecmp.c
   lib/strncpy.c
+  lib/strndup.c
   lib/strnlen.c
   lib/strnlen1.c
   lib/strnlen1.h
@@ -1774,19 +1881,26 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/extensions-aix.m4
   m4/extensions.m4
   m4/extern-inline.m4
+  m4/fclose.m4
   m4/fcntl-o.m4
   m4/fcntl.m4
   m4/fcntl_h.m4
+  m4/fflush.m4
   m4/flexmember.m4
   m4/float_h.m4
   m4/fnmatch.m4
   m4/fnmatch_h.m4
+  m4/fopen.m4
   m4/fpieee.m4
   m4/free.m4
+  m4/fseterr.m4
   m4/fstat.m4
+  m4/getdate.m4
+  m4/getdelim.m4
   m4/getdomainname.m4
   m4/getdtablesize.m4
   m4/gethostname.m4
+  m4/getline.m4
   m4/getloadavg.m4
   m4/getpagesize.m4
   m4/getrandom.m4
@@ -1908,6 +2022,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/stdcountof_h.m4
   m4/stddef_h.m4
   m4/stdint.m4
+  m4/stdio_h.m4
   m4/stdlib_h.m4
   m4/strcasecmp.m4
   m4/streq.m4
@@ -1917,6 +2032,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/strings_h.m4
   m4/strncasecmp.m4
   m4/strncpy.m4
+  m4/strndup.m4
   m4/strnlen.m4
   m4/strptime.m4
   m4/strtod.m4

@@ -411,21 +411,74 @@ _GL_CXXALIASWARN (gmtime);
 /* Parse BUF as a timestamp, assuming FORMAT specifies its layout, and store
    the resulting broken-down time into TM.  See
    <https://pubs.opengroup.org/onlinepubs/9699919799/functions/strptime.html>.  */
-# if @GNULIB_STRPTIME@
-#  if ! @HAVE_STRPTIME@
+# if @GNULIB_STRPTIME_POSIX@
+#  if @REPLACE_STRPTIME@
+#   if !(defined __cplusplus && defined GNULIB_NAMESPACE)
+#    define strptime rpl_strptime
+#   endif
+_GL_FUNCDECL_RPL (strptime, char *, (char const *restrict __buf,
+                                     char const *restrict __format,
+                                     struct tm *restrict __tm),
+                                    _GL_ARG_NONNULL ((1, 2, 3)));
+_GL_CXXALIAS_RPL (strptime, char *, (char const *restrict __buf,
+                                     char const *restrict __format,
+                                     struct tm *restrict __tm));
+#  else
+#   if ! @HAVE_STRPTIME@
 _GL_FUNCDECL_SYS (strptime, char *, (char const *restrict __buf,
                                      char const *restrict __format,
                                      struct tm *restrict __tm),
                                     _GL_ARG_NONNULL ((1, 2, 3)));
-#  endif
+#   endif
 _GL_CXXALIAS_SYS (strptime, char *, (char const *restrict __buf,
                                      char const *restrict __format,
                                      struct tm *restrict __tm));
+#  endif
+#  if __GLIBC__ >= 2
 _GL_CXXALIASWARN (strptime);
+#  endif
 # elif defined GNULIB_POSIXCHECK
 #  if HAVE_RAW_DECL_STRPTIME
 _GL_WARN_ON_USE (strptime, "strptime is unportable - "
                  "use gnulib module strptime for portability");
+#  endif
+# endif
+
+/* Parse STRING as a timestamp, assuming its layout matches one of the patterns
+   contained in the file named by getenv ("DATEMSK"), and store the resulting
+   broken-down time into TM.  See
+   <https://pubs.opengroup.org/onlinepubs/9799919799/functions/getdate.html>.  */
+# if @GNULIB_GETDATE@
+#  if @REPLACE_GETDATE@
+#   if !(defined __cplusplus && defined GNULIB_NAMESPACE)
+#    define getdate rpl_getdate
+#   endif
+_GL_FUNCDECL_RPL (getdate, struct tm *, (const char *__string),
+                                        _GL_ARG_NONNULL ((1)));
+_GL_CXXALIAS_RPL (getdate, struct tm *, (const char *__string));
+#  else
+#   if ! @HAVE_GETDATE@
+_GL_FUNCDECL_SYS (getdate, struct tm *, (const char *__string),
+                                        _GL_ARG_NONNULL ((1)));
+#   endif
+_GL_CXXALIAS_SYS (getdate, struct tm *, (const char *__string));
+#  endif
+#  if __GLIBC__ >= 2
+_GL_CXXALIASWARN (getdate);
+#  endif
+/* Define getdate_err through a function macro, to avoid problems with
+   shared libraries on Windows.  */
+#  if ! @HAVE_GETDATE@
+#   if !GNULIB_defined_getdate_err
+_GL_EXTERN_C int *_gl_getdate_location (void);
+#    define getdate_err (* _gl_getdate_location ())
+#    define GNULIB_defined_getdate_err 1
+#   endif
+#  endif
+# elif defined GNULIB_POSIXCHECK
+#  if HAVE_RAW_DECL_GETDATE
+_GL_WARN_ON_USE (getdate, "getdate is unportable - "
+                 "use gnulib module getdate for portability");
 #  endif
 # endif
 

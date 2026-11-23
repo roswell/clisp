@@ -18,10 +18,6 @@
 /* Define to 1 if you have the 'confstr' function. */
 #undef HAVE_CONFSTR
 
-/* Define to 1 if you have the declaration of 'getdate_err', and to 0 if you
-   don't. */
-#undef HAVE_DECL_GETDATE_ERR
-
 /* Define to 1 if you have the declaration of 'setdomainname', and to 0 if you
    don't. */
 #undef HAVE_DECL_SETDOMAINNAME
@@ -80,9 +76,6 @@
 
 /* Define to 1 if you have the <ftw.h> header file. */
 #undef HAVE_FTW_H
-
-/* Define to 1 if you have the 'getdate' function. */
-#undef HAVE_GETDATE
 
 /* Define to 1 if you have the 'getegid' function. */
 #undef HAVE_GETEGID

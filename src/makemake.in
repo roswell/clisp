@@ -3272,7 +3272,7 @@ if [ $CC_GCC = true -o $HSYS = win32msvc ] ; then
 fi
 
 echol "clisp.h clisp-test.c${CLISP_DEF} : genclisph.${OBJEXT} config.h ${PARAMS_H} ${GLLIB_A}"
-echotab_to_HEXE "\$(CC) \$(A_CFLAGS) \$(CFLAGS) \$(Z_CFLAGS) \$(A_LDFLAGS) \$(LDFLAGS) \$(Z_LDFLAGS)" "genclisph.${OBJEXT}" "genclisph"
+echotab_to_HEXE "\$(CC) \$(A_CFLAGS) \$(CFLAGS) \$(Z_CFLAGS) \$(A_LDFLAGS) \$(LDFLAGS) \$(Z_LDFLAGS)" "genclisph.${OBJEXT} ${GLLIB_A}" "genclisph"
 if test -z "${CLISP_DEF}"; then
   echotab "${HERE}genclisph clisp.h.tmp clisp-test.c"
 else

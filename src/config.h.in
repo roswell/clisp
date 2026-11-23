@@ -224,6 +224,13 @@
 /* Define as the word index where to find the sign of 'float'. */
 #undef FLT_SIGNBIT_WORD
 
+/* Define to 1 if fopen() fails to recognize a trailing slash. */
+#undef FOPEN_TRAILING_SLASH_BUG
+
+/* Define to 1 if fflush is known to work on stdin as per POSIX.1-2008 or
+   later, 0 if fflush is known to not work, -1 if unknown. */
+#undef FUNC_FFLUSH_STDIN
+
 /* Define to 1 if mkdir mistakenly creates a directory given with a trailing
    dot component. */
 #undef FUNC_MKDIR_DOT_BUG
@@ -251,6 +258,14 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module fnmatch-gnu shall be considered present. */
 #undef GNULIB_FNMATCH_GNU
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module fopen-gnu shall be considered present. */
+#undef GNULIB_FOPEN_GNU
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module fscanf shall be considered present. */
+#undef GNULIB_FSCANF
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module fstat shall be considered present. */
@@ -308,6 +323,10 @@
    whether the gnulib module msvc-nothrow shall be considered present. */
 #undef GNULIB_MSVC_NOTHROW
 
+/* Define to 1 if printf and friends should be labeled with attribute
+   "__gnu_printf__" instead of "__printf__" */
+#undef GNULIB_PRINTF_ATTRIBUTE_FLAVOR_GNU
+
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module recv shall be considered present. */
 #undef GNULIB_RECV
@@ -315,6 +334,10 @@
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module recvfrom shall be considered present. */
 #undef GNULIB_RECVFROM
+
+/* Define to a C preprocessor expression that evaluates to 1 or 0, depending
+   whether the gnulib module scanf shall be considered present. */
+#undef GNULIB_SCANF
 
 /* Define to a C preprocessor expression that evaluates to 1 or 0, depending
    whether the gnulib module select shall be considered present. */
@@ -433,14 +456,56 @@
 /* Define to 1 when the gnulib module fcntl should be tested. */
 #undef GNULIB_TEST_FCNTL
 
+/* Define to 1 when the gnulib module fgetc should be tested. */
+#undef GNULIB_TEST_FGETC
+
+/* Define to 1 when the gnulib module fgets should be tested. */
+#undef GNULIB_TEST_FGETS
+
 /* Define to 1 when the gnulib module fnmatch should be tested. */
 #undef GNULIB_TEST_FNMATCH
+
+/* Define to 1 when the gnulib module fopen should be tested. */
+#undef GNULIB_TEST_FOPEN
+
+/* Define to 1 when the gnulib module fopen-gnu should be tested. */
+#undef GNULIB_TEST_FOPEN_GNU
+
+/* Define to 1 when the gnulib module fprintf should be tested. */
+#undef GNULIB_TEST_FPRINTF
+
+/* Define to 1 when the gnulib module fputc should be tested. */
+#undef GNULIB_TEST_FPUTC
+
+/* Define to 1 when the gnulib module fputs should be tested. */
+#undef GNULIB_TEST_FPUTS
+
+/* Define to 1 when the gnulib module fread should be tested. */
+#undef GNULIB_TEST_FREAD
 
 /* Define to 1 when the gnulib module free-posix should be tested. */
 #undef GNULIB_TEST_FREE_POSIX
 
+/* Define to 1 when the gnulib module fscanf should be tested. */
+#undef GNULIB_TEST_FSCANF
+
 /* Define to 1 when the gnulib module fstat should be tested. */
 #undef GNULIB_TEST_FSTAT
+
+/* Define to 1 when the gnulib module fwrite should be tested. */
+#undef GNULIB_TEST_FWRITE
+
+/* Define to 1 when the gnulib module getc should be tested. */
+#undef GNULIB_TEST_GETC
+
+/* Define to 1 when the gnulib module getchar should be tested. */
+#undef GNULIB_TEST_GETCHAR
+
+/* Define to 1 when the gnulib module getdate should be tested. */
+#undef GNULIB_TEST_GETDATE
+
+/* Define to 1 when the gnulib module getdelim should be tested. */
+#undef GNULIB_TEST_GETDELIM
 
 /* Define to 1 when the gnulib module getdomainname should be tested. */
 #undef GNULIB_TEST_GETDOMAINNAME
@@ -450,6 +515,9 @@
 
 /* Define to 1 when the gnulib module gethostname should be tested. */
 #undef GNULIB_TEST_GETHOSTNAME
+
+/* Define to 1 when the gnulib module getline should be tested. */
+#undef GNULIB_TEST_GETLINE
 
 /* Define to 1 when the gnulib module getloadavg should be tested. */
 #undef GNULIB_TEST_GETLOADAVG
@@ -565,8 +633,20 @@
 /* Define to 1 when the gnulib module open should be tested. */
 #undef GNULIB_TEST_OPEN
 
+/* Define to 1 when the gnulib module printf should be tested. */
+#undef GNULIB_TEST_PRINTF
+
 /* Define to 1 when the gnulib module pthread-once should be tested. */
 #undef GNULIB_TEST_PTHREAD_ONCE
+
+/* Define to 1 when the gnulib module putc should be tested. */
+#undef GNULIB_TEST_PUTC
+
+/* Define to 1 when the gnulib module putchar should be tested. */
+#undef GNULIB_TEST_PUTCHAR
+
+/* Define to 1 when the gnulib module puts should be tested. */
+#undef GNULIB_TEST_PUTS
 
 /* Define to 1 when the gnulib module readlink should be tested. */
 #undef GNULIB_TEST_READLINK
@@ -576,6 +656,9 @@
 
 /* Define to 1 when the gnulib module recvfrom should be tested. */
 #undef GNULIB_TEST_RECVFROM
+
+/* Define to 1 when the gnulib module scanf should be tested. */
+#undef GNULIB_TEST_SCANF
 
 /* Define to 1 when the gnulib module select should be tested. */
 #undef GNULIB_TEST_SELECT
@@ -619,14 +702,17 @@
 /* Define to 1 when the gnulib module strncpy should be tested. */
 #undef GNULIB_TEST_STRNCPY
 
+/* Define to 1 when the gnulib module strndup should be tested. */
+#undef GNULIB_TEST_STRNDUP
+
 /* Define to 1 when the gnulib module strnlen should be tested. */
 #undef GNULIB_TEST_STRNLEN
 
 /* Define to 1 when the gnulib module strnul should be tested. */
 #undef GNULIB_TEST_STRNUL
 
-/* Define to 1 when the gnulib module strptime should be tested. */
-#undef GNULIB_TEST_STRPTIME
+/* Define to 1 when the gnulib module strptime-posix should be tested. */
+#undef GNULIB_TEST_STRPTIME_POSIX
 
 /* Define to 1 when the gnulib module strtod should be tested. */
 #undef GNULIB_TEST_STRTOD
@@ -639,6 +725,12 @@
 
 /* Define to 1 when the gnulib module unsetenv should be tested. */
 #undef GNULIB_TEST_UNSETENV
+
+/* Define to 1 when the gnulib module vfprintf should be tested. */
+#undef GNULIB_TEST_VFPRINTF
+
+/* Define to 1 when the gnulib module vprintf should be tested. */
+#undef GNULIB_TEST_VPRINTF
 
 /* Define to 1 when the gnulib module wcrtomb should be tested. */
 #undef GNULIB_TEST_WCRTOMB
@@ -757,6 +849,10 @@
    don't. */
 #undef HAVE_DECL_EXECVPE
 
+/* Define to 1 if you have the declaration of 'fcloseall', and to 0 if you
+   don't. */
+#undef HAVE_DECL_FCLOSEALL
+
 /* Define to 1 if you have the declaration of 'fcvt', and to 0 if you don't.
    */
 #undef HAVE_DECL_FCVT
@@ -765,6 +861,14 @@
    */
 #undef HAVE_DECL_GCVT
 
+/* Define to 1 if you have the declaration of 'getc_unlocked', and to 0 if you
+   don't. */
+#undef HAVE_DECL_GETC_UNLOCKED
+
+/* Define to 1 if you have the declaration of 'getdelim', and to 0 if you
+   don't. */
+#undef HAVE_DECL_GETDELIM
+
 /* Define to 1 if you have the declaration of 'getdomainname', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETDOMAINNAME
@@ -772,6 +876,14 @@
 /* Define to 1 if you have the declaration of 'getdtablesize', and to 0 if you
    don't. */
 #undef HAVE_DECL_GETDTABLESIZE
+
+/* Define to 1 if you have the declaration of 'getline', and to 0 if you
+   don't. */
+#undef HAVE_DECL_GETLINE
+
+/* Define to 1 if you have the declaration of 'getw', and to 0 if you don't.
+   */
+#undef HAVE_DECL_GETW
 
 /* Define to 1 if you have the declaration of 'inet_ntop', and to 0 if you
    don't. */
@@ -813,6 +925,10 @@
    */
 #undef HAVE_DECL_MEMEQ
 
+/* Define to 1 if you have the declaration of 'putw', and to 0 if you don't.
+   */
+#undef HAVE_DECL_PUTW
+
 /* Define to 1 if you have the declaration of 'rl_already_prompted', and to 0
    if you don't. */
 #undef HAVE_DECL_RL_ALREADY_PROMPTED
@@ -848,6 +964,10 @@
 /* Define to 1 if you have the declaration of 'strncasecmp', and to 0 if you
    don't. */
 #undef HAVE_DECL_STRNCASECMP
+
+/* Define to 1 if you have the declaration of 'strndup', and to 0 if you
+   don't. */
+#undef HAVE_DECL_STRNDUP
 
 /* Define to 1 if you have the declaration of 'strnlen', and to 0 if you
    don't. */
@@ -912,6 +1032,9 @@
 /* Define to 1 if you have the 'flock' function. */
 #undef HAVE_FLOCK
 
+/* Define to 1 if you have the 'flockfile' function. */
+#undef HAVE_FLOCKFILE
+
 /* Define to 1 if you have the 'fnmatch' function. */
 #undef HAVE_FNMATCH
 
@@ -930,8 +1053,17 @@
 /* Define to 1 if you have the 'ftime' function. */
 #undef HAVE_FTIME
 
+/* Define to 1 if you have the 'funlockfile' function. */
+#undef HAVE_FUNLOCKFILE
+
 /* Define to 1 if you have the 'getcwd' function. */
 #undef HAVE_GETCWD
+
+/* Define to 1 if you have the 'getdate' function. */
+#undef HAVE_GETDATE
+
+/* Define to 1 if you have the `getdelim' function. */
+#undef HAVE_GETDELIM
 
 /* Define if the getdomainname() function is present and can be used. */
 #undef HAVE_GETDOMAINNAME
@@ -947,6 +1079,9 @@
 
 /* Define to 1 if you have the 'gethostname' function. */
 #undef HAVE_GETHOSTNAME
+
+/* Define to 1 if you have the `getline' function. */
+#undef HAVE_GETLINE
 
 /* Define to 1 if you have the `getloadavg' function. */
 #undef HAVE_GETLOADAVG
@@ -1355,6 +1490,9 @@
 /* Define to 1 if you have the 'strncasecmp' function. */
 #undef HAVE_STRNCASECMP
 
+/* Define to 1 if you have the 'strndup' function. */
+#undef HAVE_STRNDUP
+
 /* Define to 1 if you have the 'strptime' function. */
 #undef HAVE_STRPTIME
 
@@ -1524,6 +1662,9 @@
 /* have <sys/vadvise.h> and the vadvise() system call */
 #undef HAVE_VADVISE
 
+/* Define to 1 if you have the 'vasprintf' function. */
+#undef HAVE_VASPRINTF
+
 /* Define to 1 if you have the 'vfork' function. */
 #undef HAVE_VFORK
 
@@ -1607,6 +1748,9 @@
 # include <builtins.h>
 #endif
 
+
+/* Define to 1 if you have the `__fseterr' function. */
+#undef HAVE___FSETERR
 
 /* Define to 1 if ctype.h defines __header_inline. */
 #undef HAVE___HEADER_INLINE
@@ -1810,6 +1954,12 @@
 /* Define if the mbrtowc function stores a wide character when reporting
    incomplete input. */
 #undef MBRTOWC_STORES_INCOMPLETE_BUG
+
+/* Use GNU style printf and scanf.  */
+#ifndef __USE_MINGW_ANSI_STDIO
+# undef __USE_MINGW_ANSI_STDIO
+#endif
+
 
 /* Define to 1 if mkfifo does not reject trailing slash */
 #undef MKFIFO_TRAILING_SLASH_BUG
@@ -2314,6 +2464,7 @@
 /* The following lines list the first GCC version that supports the attribute.
    Although the lines are not used in GCC 5 and later (as GCC 5 introduced
    __has_attribute support), list GCC versions 5+ anyway for completeness.  */
+#  define _GL_ATTR_access _GL_GNUC_PREREQ (10, 1)
 #  define _GL_ATTR_alloc_size _GL_GNUC_PREREQ (4, 3)
 #  define _GL_ATTR_always_inline _GL_GNUC_PREREQ (3, 2)
 #  define _GL_ATTR_artificial _GL_GNUC_PREREQ (4, 3)
@@ -2557,6 +2708,59 @@
        - In C, before the 'extern' keyword.
        - In C++, between the 'extern "C"' and the variable's type.
  */
+
+/* _GL_ATTRIBUTE_ACCESS_READ_ONLY ((N, S)) declares that the Nth argument of
+   the function is used to read the referenced object but not to write to it.
+   _GL_ATTRIBUTE_ACCESS_WRITE_ONLY ((N, S)) declares that the Nth argument of
+   the function is used to write the referenced object but not to read from it.
+   _GL_ATTRIBUTE_ACCESS_READ_WRITE ((N, S)) declares that the Nth argument of
+   the function is used to both read from and write to the referenced object.
+   _GL_ATTRIBUTE_ACCESS_NONE ((N, S)) declares that the Nth argument of the
+   function is not used to access the referenced object at all.
+
+   Each of the _GL_ATTRIBUTE_ACCESS_* macros accepts an optional size index S,
+   which specifies the position of the argument indicating the maximum size of
+   the access, in elements.  The size of each element is determined by the type
+   of the Nth argument, or is 1 if that argument is a void pointer.  The memory
+   pointed to by the sized object is not required to be initialized.  These
+   macros specify how the object being pointed to can be accessed, not that the
+   access will happen.  They also do not imply whether or not the pointer is or
+   can be NULL.  This information can be specified by combining the
+   _GL_ATTRIBUTE_ACCESS_* macros with _GL_ATTRIBUTE_NONNULL or
+   _GL_ATTRIBUTE_NONNULL_IF_NONZERO.
+ */
+/* Applies to: functions.  */
+/* Clang does not support these attributes.  */
+#ifndef _GL_ATTRIBUTE_ACCESS_READ_ONLY
+# define _GL_ATTRIBUTE_ACCESS_READ_ONLY(args) \
+    _GL_ATTRIBUTE_ACCESS_READ_ONLY_AUX args
+# define _GL_ATTRIBUTE_ACCESS_WRITE_ONLY(args) \
+    _GL_ATTRIBUTE_ACCESS_WRITE_ONLY_AUX args
+# define _GL_ATTRIBUTE_ACCESS_READ_WRITE(args) \
+    _GL_ATTRIBUTE_ACCESS_READ_WRITE_AUX args
+# define _GL_ATTRIBUTE_ACCESS_NONE(args) \
+    _GL_ATTRIBUTE_ACCESS_NONE_AUX args
+# if _GL_HAS_ATTRIBUTE (access) && ! defined __clang__
+#  define _GL_ATTRIBUTE_ACCESS_READ_ONLY_AUX(...) \
+     __attribute__ ((__access__ (__read_only__, __VA_ARGS__)))
+#  define _GL_ATTRIBUTE_ACCESS_WRITE_ONLY_AUX(...) \
+     __attribute__ ((__access__ (__write_only__, __VA_ARGS__)))
+#  define _GL_ATTRIBUTE_ACCESS_READ_WRITE_AUX(...) \
+     __attribute__ ((__access__ (__read_write__, __VA_ARGS__)))
+#  if _GL_GNUC_PREREQ (11, 1)
+#   define _GL_ATTRIBUTE_ACCESS_NONE_AUX(...) \
+      __attribute__ ((__access__ (__none__, __VA_ARGS__)))
+#  else
+#   define _GL_ATTRIBUTE_ACCESS_NONE_AUX(...)
+#  endif
+# else
+#  define _GL_ATTRIBUTE_ACCESS_READ_ONLY_AUX(...)
+#  define _GL_ATTRIBUTE_ACCESS_WRITE_ONLY_AUX(...)
+#  define _GL_ATTRIBUTE_ACCESS_READ_WRITE_AUX(...)
+#  define _GL_ATTRIBUTE_ACCESS_NONE_AUX(...)
+# endif
+#endif
+
 
 /* _GL_ATTRIBUTE_ALLOC_SIZE ((N)) declares that the Nth argument of the function
    is the size of the returned memory block.
@@ -3111,7 +3315,7 @@
    -Wthread-safety is enabled.  For usage, see
    <https://clang.llvm.org/docs/ThreadSafetyAnalysis.html>.  */
 #ifndef _GL_ATTRIBUTE_CAPABILITY_TYPE
-# if __clang_major__ >= 15
+# if defined __clang__ && __clang_major__ >= 15
 #  define _GL_ATTRIBUTE_CAPABILITY_TYPE(concept) \
      __attribute__ ((__capability__ (concept)))
 # else
@@ -3119,7 +3323,7 @@
 # endif
 #endif
 #ifndef _GL_ATTRIBUTE_ACQUIRE_CAPABILITY
-# if __clang_major__ >= 15
+# if defined __clang__ && __clang_major__ >= 15
 #  define _GL_ATTRIBUTE_ACQUIRE_CAPABILITY(resource) \
      __attribute__ ((__acquire_capability__ (resource)))
 # else
@@ -3127,7 +3331,7 @@
 # endif
 #endif
 #ifndef _GL_ATTRIBUTE_RELEASE_CAPABILITY
-# if __clang_major__ >= 15
+# if defined __clang__ && __clang_major__ >= 15
 #  define _GL_ATTRIBUTE_RELEASE_CAPABILITY(resource) \
      __attribute__ ((__release_capability__ (resource)))
 # else
