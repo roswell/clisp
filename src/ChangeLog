@@ -1,5 +1,11 @@
 2026-11-24  Bruno Haible  <bruno@clisp.org>
 
+	syscalls tests: Avoid some test failures on AIX.
+	* modules/syscalls/test.tst: Use FLOAT~ instead of FLOAT= for some more
+	POSIX:ERFC values.
+
+2026-11-24  Bruno Haible  <bruno@clisp.org>
+
 	regexp tests: Avoid a test failure on AIX.
 	* modules/regexp/test.tst: Don't expect a specific return value from
 	I18N:SET-LOCALE. While on most systems it is "C", on AIX it is
