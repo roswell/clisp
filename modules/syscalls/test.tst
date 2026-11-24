@@ -18,7 +18,11 @@ T
 T
 (let ((se1 (show (os:service "www" "tcp")))
       (se2 (show (os:service "http" "tcp"))))
-  (equalp se1 se2))
+  (if (equal (ext:operating-system-type) "AIX")
+    ; AIX /etc/services really defines the services www and http on different
+    ; lines, thus they are not considered aliases.
+    (equal (service-port se1) (service-port se2))
+    (equalp se1 se2)))
 T
 
 ;; same as "%F %T" on GNU, but more portable

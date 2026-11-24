@@ -1,5 +1,10 @@
 2026-11-24  Bruno Haible  <bruno@clisp.org>
 
+	syscalls tests: Avoid a test failure on AIX.
+	* modules/syscalls/test.tst: Loosen the OS:SERVICE test on AIX.
+
+2026-11-24  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Avoid some test failures on AIX.
 	* modules/syscalls/test.tst: Use FLOAT~ instead of FLOAT= for some more
 	POSIX:ERFC values.
