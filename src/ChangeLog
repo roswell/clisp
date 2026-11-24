@@ -1,5 +1,13 @@
 2026-11-24  Bruno Haible  <bruno@clisp.org>
 
+	regexp: Fix a link error on AIX.
+	* modules/regexp/configure.in: Invoke gl_FUNC_MBRTOWC, gl_UCHAR_H_C23,
+	gl_THREADLIB, and collect the library dependencies in LIBS.
+	* modules/regexp/link.sh.in (NEW_LIBS): Add these library dependencies.
+	* modules/regexp/config*: Regenerated.
+
+2026-11-24  Bruno Haible  <bruno@clisp.org>
+
 	syscalls: Fix test failures on Alpine Linux.
 	* Makefile.devel (GNULIB_SYSCALLS): Add servent.
 	* modules/syscalls/configure.in: Don't test for getservbyname,

@@ -1,5 +1,5 @@
 dnl AUTOCONF configuration for regex
-dnl Bruno Haible 18.4.1995
+dnl Bruno Haible 18.4.1995, 2026
 dnl Sam Steingold 2003-2009, 2011
 
 AC_PREREQ([2.64])
@@ -11,7 +11,18 @@ RSE_BOLD
 BOLD_MSG([Regexp (Common)])
 CL_MODULE_COMMON_CHECKS()
 AM_INIT_AUTOMAKE([no-define])
+
 AC_C_RESTRICT
+
+dnl Invoke the Autoconf macros of the Gnulib modules that 'regex' depends on
+dnl and that contribute to its link dependencies.
+gl_FUNC_MBRTOWC
+gl_UCHAR_H_C23
+gl_THREADLIB
+AC_LIB_APPENDTOVAR([LIBS], [$MBRTOWC_LIB])
+AC_LIB_APPENDTOVAR([LIBS], [$LIBC32CONV])
+AC_LIB_APPENDTOVAR([LIBS], [$LIBTHREAD])
+
 BOLD_MSG([Regexp (Output)])
 AC_CONFIG_FILES([Makefile link.sh])
 AC_OUTPUT
