@@ -100,6 +100,7 @@
 #  select \
 #  send \
 #  sendto \
+#  servent \
 #  setenv \
 #  setsockopt \
 #  shutdown \
@@ -274,42 +275,43 @@ host_triplet = @host@
 @GL_COND_OBJ_SELECT_TRUE@am__append_64 = select.c
 @GL_COND_OBJ_SEND_TRUE@am__append_65 = send.c
 @GL_COND_OBJ_SENDTO_TRUE@am__append_66 = sendto.c
-@GL_COND_OBJ_SETENV_TRUE@am__append_67 = setenv.c
-@GL_COND_OBJ_SETLOCALE_LOCK_TRUE@am__append_68 = setlocale-lock.c
-@GL_COND_OBJ_SETSOCKOPT_TRUE@am__append_69 = setsockopt.c
-@GL_COND_OBJ_SHUTDOWN_TRUE@am__append_70 = shutdown.c
-@GL_COND_OBJ_SIGNBIT3_TRUE@am__append_71 = signbitf.c signbitd.c signbitl.c
-@GL_COND_OBJ_SOCKET_TRUE@am__append_72 = socket.c
-@GL_COND_OBJ_STAT_TRUE@am__append_73 = stat.c
-@GL_GENERATE_STDBIT_H_TRUE@am__append_74 = stdc_memreverse8u.c
-@GL_COND_OBJ_STDIO_READ_TRUE@am__append_75 = stdio-read.c
-@GL_COND_OBJ_STDIO_WRITE_TRUE@am__append_76 = stdio-write.c
-@GL_COND_OBJ_STDIO_CONSOLESAFE_TRUE@am__append_77 = stdio-consolesafe.c
-@GL_COND_OBJ_STRERROR_OVERRIDE_TRUE@am__append_78 = strerror-override.c
-@GL_COND_OBJ_STRNCASECMP_TRUE@am__append_79 = strncasecmp.c
-@GL_COND_OBJ_STRNCPY_TRUE@am__append_80 = strncpy.c
-@GL_COND_OBJ_STRNDUP_TRUE@am__append_81 = strndup.c
-@GL_COND_OBJ_STRNLEN_TRUE@am__append_82 = strnlen.c
-@GL_COND_OBJ_STRPTIME_TRUE@am__append_83 = strptime.c
-@GL_COND_OBJ_STRTOD_TRUE@am__append_84 = strtod.c
-@GL_COND_OBJ_STRVERSCMP_TRUE@am__append_85 = strverscmp.c
-@GL_COND_OBJ_TIME_R_TRUE@am__append_86 = time_r.c
-@GL_COND_OBJ_TZSANITIZE_TRUE@am__append_87 = tzsanitize.c
-@GL_COND_OBJ_UNAME_TRUE@am__append_88 = uname.c
-@LIBUNISTRING_COMPILE_UNICASE_TOLOWER_TRUE@am__append_89 = unicase/tolower.c
-@LIBUNISTRING_COMPILE_UNICASE_TOUPPER_TRUE@am__append_90 = unicase/toupper.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_ALNUM_TRUE@am__append_91 = unictype/ctype_alnum.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_ALPHA_TRUE@am__append_92 = unictype/ctype_alpha.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_BLANK_TRUE@am__append_93 = unictype/ctype_blank.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_CNTRL_TRUE@am__append_94 = unictype/ctype_cntrl.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_DIGIT_TRUE@am__append_95 = unictype/ctype_digit.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_GRAPH_TRUE@am__append_96 = unictype/ctype_graph.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_LOWER_TRUE@am__append_97 = unictype/ctype_lower.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_PRINT_TRUE@am__append_98 = unictype/ctype_print.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_PUNCT_TRUE@am__append_99 = unictype/ctype_punct.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_SPACE_TRUE@am__append_100 = unictype/ctype_space.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_UPPER_TRUE@am__append_101 = unictype/ctype_upper.c
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_XDIGIT_TRUE@am__append_102 = unictype/ctype_xdigit.c
+@GL_COND_OBJ_SERVENT_TRUE@am__append_67 = servent.c
+@GL_COND_OBJ_SETENV_TRUE@am__append_68 = setenv.c
+@GL_COND_OBJ_SETLOCALE_LOCK_TRUE@am__append_69 = setlocale-lock.c
+@GL_COND_OBJ_SETSOCKOPT_TRUE@am__append_70 = setsockopt.c
+@GL_COND_OBJ_SHUTDOWN_TRUE@am__append_71 = shutdown.c
+@GL_COND_OBJ_SIGNBIT3_TRUE@am__append_72 = signbitf.c signbitd.c signbitl.c
+@GL_COND_OBJ_SOCKET_TRUE@am__append_73 = socket.c
+@GL_COND_OBJ_STAT_TRUE@am__append_74 = stat.c
+@GL_GENERATE_STDBIT_H_TRUE@am__append_75 = stdc_memreverse8u.c
+@GL_COND_OBJ_STDIO_READ_TRUE@am__append_76 = stdio-read.c
+@GL_COND_OBJ_STDIO_WRITE_TRUE@am__append_77 = stdio-write.c
+@GL_COND_OBJ_STDIO_CONSOLESAFE_TRUE@am__append_78 = stdio-consolesafe.c
+@GL_COND_OBJ_STRERROR_OVERRIDE_TRUE@am__append_79 = strerror-override.c
+@GL_COND_OBJ_STRNCASECMP_TRUE@am__append_80 = strncasecmp.c
+@GL_COND_OBJ_STRNCPY_TRUE@am__append_81 = strncpy.c
+@GL_COND_OBJ_STRNDUP_TRUE@am__append_82 = strndup.c
+@GL_COND_OBJ_STRNLEN_TRUE@am__append_83 = strnlen.c
+@GL_COND_OBJ_STRPTIME_TRUE@am__append_84 = strptime.c
+@GL_COND_OBJ_STRTOD_TRUE@am__append_85 = strtod.c
+@GL_COND_OBJ_STRVERSCMP_TRUE@am__append_86 = strverscmp.c
+@GL_COND_OBJ_TIME_R_TRUE@am__append_87 = time_r.c
+@GL_COND_OBJ_TZSANITIZE_TRUE@am__append_88 = tzsanitize.c
+@GL_COND_OBJ_UNAME_TRUE@am__append_89 = uname.c
+@LIBUNISTRING_COMPILE_UNICASE_TOLOWER_TRUE@am__append_90 = unicase/tolower.c
+@LIBUNISTRING_COMPILE_UNICASE_TOUPPER_TRUE@am__append_91 = unicase/toupper.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_ALNUM_TRUE@am__append_92 = unictype/ctype_alnum.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_ALPHA_TRUE@am__append_93 = unictype/ctype_alpha.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_BLANK_TRUE@am__append_94 = unictype/ctype_blank.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_CNTRL_TRUE@am__append_95 = unictype/ctype_cntrl.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_DIGIT_TRUE@am__append_96 = unictype/ctype_digit.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_GRAPH_TRUE@am__append_97 = unictype/ctype_graph.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_LOWER_TRUE@am__append_98 = unictype/ctype_lower.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_PRINT_TRUE@am__append_99 = unictype/ctype_print.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_PUNCT_TRUE@am__append_100 = unictype/ctype_punct.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_SPACE_TRUE@am__append_101 = unictype/ctype_space.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_UPPER_TRUE@am__append_102 = unictype/ctype_upper.c
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_XDIGIT_TRUE@am__append_103 = unictype/ctype_xdigit.c
 
 # Note: Compilation of this file takes a long time with gcc ≥ 11, ≤ 13.2 and
 # option -fanalyzer. See <https://gcc.gnu.org/PR110112>.
@@ -318,22 +320,22 @@ host_triplet = @host@
 # An alternative workaround would be to pass the option -fno-analyzer, using
 # the technique from
 # https://www.gnu.org/software/automake/manual/html_node/Per_002dObject-Flags.html
-@LIBUNISTRING_COMPILE_UNINAME_UNINAME_TRUE@am__append_103 = uniname/uniname.c
-@LIBUNISTRING_COMPILE_UNISTR_U32_CHR_TRUE@am__append_104 = unistr/u32-chr.c
-@LIBUNISTRING_COMPILE_UNISTR_U32_CPY_TRUE@am__append_105 = unistr/u32-cpy.c
-@LIBUNISTRING_COMPILE_UNISTR_U32_PCPY_TRUE@am__append_106 = unistr/u32-pcpy.c
-@LIBUNISTRING_COMPILE_UNISTR_U32_STRCAT_TRUE@am__append_107 = unistr/u32-strcat.c
-@LIBUNISTRING_COMPILE_UNISTR_U32_STRLEN_TRUE@am__append_108 = unistr/u32-strlen.c
-@LIBUNISTRING_COMPILE_UNIWIDTH_WIDTH_TRUE@am__append_109 = uniwidth/width.c
-@GL_COND_OBJ_UNSETENV_TRUE@am__append_110 = unsetenv.c
-@GL_COND_OBJ_WCRTOMB_TRUE@am__append_111 = wcrtomb.c
-@GL_COND_OBJ_WCTYPE_TRUE@am__append_112 = wctype.c
-@GL_COND_OBJ_WINDOWS_MUTEX_TRUE@am__append_113 = windows-mutex.c
-@GL_COND_OBJ_WINDOWS_ONCE_TRUE@am__append_114 = windows-once.c
-@GL_COND_OBJ_WINDOWS_RECMUTEX_TRUE@am__append_115 = windows-recmutex.c
-@GL_COND_OBJ_WINDOWS_RWLOCK_TRUE@am__append_116 = windows-rwlock.c
-@GL_COND_OBJ_WMEMCHR_TRUE@am__append_117 = wmemchr.c
-@GL_COND_OBJ_WMEMPCPY_TRUE@am__append_118 = wmempcpy.c
+@LIBUNISTRING_COMPILE_UNINAME_UNINAME_TRUE@am__append_104 = uniname/uniname.c
+@LIBUNISTRING_COMPILE_UNISTR_U32_CHR_TRUE@am__append_105 = unistr/u32-chr.c
+@LIBUNISTRING_COMPILE_UNISTR_U32_CPY_TRUE@am__append_106 = unistr/u32-cpy.c
+@LIBUNISTRING_COMPILE_UNISTR_U32_PCPY_TRUE@am__append_107 = unistr/u32-pcpy.c
+@LIBUNISTRING_COMPILE_UNISTR_U32_STRCAT_TRUE@am__append_108 = unistr/u32-strcat.c
+@LIBUNISTRING_COMPILE_UNISTR_U32_STRLEN_TRUE@am__append_109 = unistr/u32-strlen.c
+@LIBUNISTRING_COMPILE_UNIWIDTH_WIDTH_TRUE@am__append_110 = uniwidth/width.c
+@GL_COND_OBJ_UNSETENV_TRUE@am__append_111 = unsetenv.c
+@GL_COND_OBJ_WCRTOMB_TRUE@am__append_112 = wcrtomb.c
+@GL_COND_OBJ_WCTYPE_TRUE@am__append_113 = wctype.c
+@GL_COND_OBJ_WINDOWS_MUTEX_TRUE@am__append_114 = windows-mutex.c
+@GL_COND_OBJ_WINDOWS_ONCE_TRUE@am__append_115 = windows-once.c
+@GL_COND_OBJ_WINDOWS_RECMUTEX_TRUE@am__append_116 = windows-recmutex.c
+@GL_COND_OBJ_WINDOWS_RWLOCK_TRUE@am__append_117 = windows-rwlock.c
+@GL_COND_OBJ_WMEMCHR_TRUE@am__append_118 = wmemchr.c
+@GL_COND_OBJ_WMEMPCPY_TRUE@am__append_119 = wmempcpy.c
 subdir = gllib
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/glm4/00gnulib.m4 \
@@ -437,7 +439,7 @@ am__aclocal_m4_deps = $(top_srcdir)/glm4/00gnulib.m4 \
 	$(top_srcdir)/glm4/pthread_rwlock_rdlock.m4 \
 	$(top_srcdir)/glm4/readlink.m4 $(top_srcdir)/glm4/regex.m4 \
 	$(top_srcdir)/glm4/sched_h.m4 $(top_srcdir)/glm4/select.m4 \
-	$(top_srcdir)/glm4/setenv.m4 \
+	$(top_srcdir)/glm4/servent.m4 $(top_srcdir)/glm4/setenv.m4 \
 	$(top_srcdir)/glm4/setlocale_null.m4 \
 	$(top_srcdir)/glm4/sha1.m4 $(top_srcdir)/glm4/signal_h.m4 \
 	$(top_srcdir)/glm4/signbit.m4 $(top_srcdir)/glm4/socketlib.m4 \
@@ -545,7 +547,7 @@ am__libgnu_a_SOURCES_DIST = accept.c arpa_inet.c basename-lgpl.c \
 	msvc-nothrow.c nl_langinfo.c nl_langinfo-lock.c \
 	glthread/once.h glthread/once.c open.c pthread-once.c \
 	readlink.c recv.c recvfrom.c regex.c select.c send.c sendto.c \
-	setenv.c setlocale_null.c setlocale-lock.c \
+	servent.c setenv.c setlocale_null.c setlocale-lock.c \
 	setlocale_null-unlocked.c setsockopt.c shutdown.c signbitf.c \
 	signbitd.c signbitl.c socket.c sockets.h sockets.c stat.c \
 	stat-time.c stdc_memreverse8u.c stdio-read.c stdio-write.c \
@@ -657,72 +659,73 @@ am__dirstamp = $(am__leading_dot)dirstamp
 @GL_COND_OBJ_SELECT_TRUE@am__objects_64 = libgnu_a-select.$(OBJEXT)
 @GL_COND_OBJ_SEND_TRUE@am__objects_65 = libgnu_a-send.$(OBJEXT)
 @GL_COND_OBJ_SENDTO_TRUE@am__objects_66 = libgnu_a-sendto.$(OBJEXT)
-@GL_COND_OBJ_SETENV_TRUE@am__objects_67 = libgnu_a-setenv.$(OBJEXT)
-@GL_COND_OBJ_SETLOCALE_LOCK_TRUE@am__objects_68 = libgnu_a-setlocale-lock.$(OBJEXT)
-@GL_COND_OBJ_SETSOCKOPT_TRUE@am__objects_69 =  \
+@GL_COND_OBJ_SERVENT_TRUE@am__objects_67 = libgnu_a-servent.$(OBJEXT)
+@GL_COND_OBJ_SETENV_TRUE@am__objects_68 = libgnu_a-setenv.$(OBJEXT)
+@GL_COND_OBJ_SETLOCALE_LOCK_TRUE@am__objects_69 = libgnu_a-setlocale-lock.$(OBJEXT)
+@GL_COND_OBJ_SETSOCKOPT_TRUE@am__objects_70 =  \
 @GL_COND_OBJ_SETSOCKOPT_TRUE@	libgnu_a-setsockopt.$(OBJEXT)
-@GL_COND_OBJ_SHUTDOWN_TRUE@am__objects_70 =  \
+@GL_COND_OBJ_SHUTDOWN_TRUE@am__objects_71 =  \
 @GL_COND_OBJ_SHUTDOWN_TRUE@	libgnu_a-shutdown.$(OBJEXT)
-@GL_COND_OBJ_SIGNBIT3_TRUE@am__objects_71 =  \
+@GL_COND_OBJ_SIGNBIT3_TRUE@am__objects_72 =  \
 @GL_COND_OBJ_SIGNBIT3_TRUE@	libgnu_a-signbitf.$(OBJEXT) \
 @GL_COND_OBJ_SIGNBIT3_TRUE@	libgnu_a-signbitd.$(OBJEXT) \
 @GL_COND_OBJ_SIGNBIT3_TRUE@	libgnu_a-signbitl.$(OBJEXT)
-@GL_COND_OBJ_SOCKET_TRUE@am__objects_72 = libgnu_a-socket.$(OBJEXT)
-@GL_COND_OBJ_STAT_TRUE@am__objects_73 = libgnu_a-stat.$(OBJEXT)
-@GL_GENERATE_STDBIT_H_TRUE@am__objects_74 = libgnu_a-stdc_memreverse8u.$(OBJEXT)
-@GL_COND_OBJ_STDIO_READ_TRUE@am__objects_75 =  \
+@GL_COND_OBJ_SOCKET_TRUE@am__objects_73 = libgnu_a-socket.$(OBJEXT)
+@GL_COND_OBJ_STAT_TRUE@am__objects_74 = libgnu_a-stat.$(OBJEXT)
+@GL_GENERATE_STDBIT_H_TRUE@am__objects_75 = libgnu_a-stdc_memreverse8u.$(OBJEXT)
+@GL_COND_OBJ_STDIO_READ_TRUE@am__objects_76 =  \
 @GL_COND_OBJ_STDIO_READ_TRUE@	libgnu_a-stdio-read.$(OBJEXT)
-@GL_COND_OBJ_STDIO_WRITE_TRUE@am__objects_76 =  \
+@GL_COND_OBJ_STDIO_WRITE_TRUE@am__objects_77 =  \
 @GL_COND_OBJ_STDIO_WRITE_TRUE@	libgnu_a-stdio-write.$(OBJEXT)
-@GL_COND_OBJ_STDIO_CONSOLESAFE_TRUE@am__objects_77 = libgnu_a-stdio-consolesafe.$(OBJEXT)
-@GL_COND_OBJ_STRERROR_OVERRIDE_TRUE@am__objects_78 = libgnu_a-strerror-override.$(OBJEXT)
-@GL_COND_OBJ_STRNCASECMP_TRUE@am__objects_79 =  \
+@GL_COND_OBJ_STDIO_CONSOLESAFE_TRUE@am__objects_78 = libgnu_a-stdio-consolesafe.$(OBJEXT)
+@GL_COND_OBJ_STRERROR_OVERRIDE_TRUE@am__objects_79 = libgnu_a-strerror-override.$(OBJEXT)
+@GL_COND_OBJ_STRNCASECMP_TRUE@am__objects_80 =  \
 @GL_COND_OBJ_STRNCASECMP_TRUE@	libgnu_a-strncasecmp.$(OBJEXT)
-@GL_COND_OBJ_STRNCPY_TRUE@am__objects_80 = libgnu_a-strncpy.$(OBJEXT)
-@GL_COND_OBJ_STRNDUP_TRUE@am__objects_81 = libgnu_a-strndup.$(OBJEXT)
-@GL_COND_OBJ_STRNLEN_TRUE@am__objects_82 = libgnu_a-strnlen.$(OBJEXT)
-@GL_COND_OBJ_STRPTIME_TRUE@am__objects_83 =  \
+@GL_COND_OBJ_STRNCPY_TRUE@am__objects_81 = libgnu_a-strncpy.$(OBJEXT)
+@GL_COND_OBJ_STRNDUP_TRUE@am__objects_82 = libgnu_a-strndup.$(OBJEXT)
+@GL_COND_OBJ_STRNLEN_TRUE@am__objects_83 = libgnu_a-strnlen.$(OBJEXT)
+@GL_COND_OBJ_STRPTIME_TRUE@am__objects_84 =  \
 @GL_COND_OBJ_STRPTIME_TRUE@	libgnu_a-strptime.$(OBJEXT)
-@GL_COND_OBJ_STRTOD_TRUE@am__objects_84 = libgnu_a-strtod.$(OBJEXT)
-@GL_COND_OBJ_STRVERSCMP_TRUE@am__objects_85 =  \
+@GL_COND_OBJ_STRTOD_TRUE@am__objects_85 = libgnu_a-strtod.$(OBJEXT)
+@GL_COND_OBJ_STRVERSCMP_TRUE@am__objects_86 =  \
 @GL_COND_OBJ_STRVERSCMP_TRUE@	libgnu_a-strverscmp.$(OBJEXT)
-@GL_COND_OBJ_TIME_R_TRUE@am__objects_86 = libgnu_a-time_r.$(OBJEXT)
-@GL_COND_OBJ_TZSANITIZE_TRUE@am__objects_87 =  \
+@GL_COND_OBJ_TIME_R_TRUE@am__objects_87 = libgnu_a-time_r.$(OBJEXT)
+@GL_COND_OBJ_TZSANITIZE_TRUE@am__objects_88 =  \
 @GL_COND_OBJ_TZSANITIZE_TRUE@	libgnu_a-tzsanitize.$(OBJEXT)
-@GL_COND_OBJ_UNAME_TRUE@am__objects_88 = libgnu_a-uname.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICASE_TOLOWER_TRUE@am__objects_89 = unicase/libgnu_a-tolower.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICASE_TOUPPER_TRUE@am__objects_90 = unicase/libgnu_a-toupper.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_ALNUM_TRUE@am__objects_91 = unictype/libgnu_a-ctype_alnum.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_ALPHA_TRUE@am__objects_92 = unictype/libgnu_a-ctype_alpha.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_BLANK_TRUE@am__objects_93 = unictype/libgnu_a-ctype_blank.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_CNTRL_TRUE@am__objects_94 = unictype/libgnu_a-ctype_cntrl.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_DIGIT_TRUE@am__objects_95 = unictype/libgnu_a-ctype_digit.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_GRAPH_TRUE@am__objects_96 = unictype/libgnu_a-ctype_graph.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_LOWER_TRUE@am__objects_97 = unictype/libgnu_a-ctype_lower.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_PRINT_TRUE@am__objects_98 = unictype/libgnu_a-ctype_print.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_PUNCT_TRUE@am__objects_99 = unictype/libgnu_a-ctype_punct.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_SPACE_TRUE@am__objects_100 = unictype/libgnu_a-ctype_space.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_UPPER_TRUE@am__objects_101 = unictype/libgnu_a-ctype_upper.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_XDIGIT_TRUE@am__objects_102 = unictype/libgnu_a-ctype_xdigit.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNINAME_UNINAME_TRUE@am__objects_103 = uniname/libgnu_a-uniname.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNISTR_U32_CHR_TRUE@am__objects_104 = unistr/libgnu_a-u32-chr.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNISTR_U32_CPY_TRUE@am__objects_105 = unistr/libgnu_a-u32-cpy.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNISTR_U32_PCPY_TRUE@am__objects_106 = unistr/libgnu_a-u32-pcpy.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNISTR_U32_STRCAT_TRUE@am__objects_107 = unistr/libgnu_a-u32-strcat.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNISTR_U32_STRLEN_TRUE@am__objects_108 = unistr/libgnu_a-u32-strlen.$(OBJEXT)
-@LIBUNISTRING_COMPILE_UNIWIDTH_WIDTH_TRUE@am__objects_109 = uniwidth/libgnu_a-width.$(OBJEXT)
-@GL_COND_OBJ_UNSETENV_TRUE@am__objects_110 =  \
+@GL_COND_OBJ_UNAME_TRUE@am__objects_89 = libgnu_a-uname.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICASE_TOLOWER_TRUE@am__objects_90 = unicase/libgnu_a-tolower.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICASE_TOUPPER_TRUE@am__objects_91 = unicase/libgnu_a-toupper.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_ALNUM_TRUE@am__objects_92 = unictype/libgnu_a-ctype_alnum.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_ALPHA_TRUE@am__objects_93 = unictype/libgnu_a-ctype_alpha.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_BLANK_TRUE@am__objects_94 = unictype/libgnu_a-ctype_blank.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_CNTRL_TRUE@am__objects_95 = unictype/libgnu_a-ctype_cntrl.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_DIGIT_TRUE@am__objects_96 = unictype/libgnu_a-ctype_digit.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_GRAPH_TRUE@am__objects_97 = unictype/libgnu_a-ctype_graph.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_LOWER_TRUE@am__objects_98 = unictype/libgnu_a-ctype_lower.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_PRINT_TRUE@am__objects_99 = unictype/libgnu_a-ctype_print.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_PUNCT_TRUE@am__objects_100 = unictype/libgnu_a-ctype_punct.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_SPACE_TRUE@am__objects_101 = unictype/libgnu_a-ctype_space.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_UPPER_TRUE@am__objects_102 = unictype/libgnu_a-ctype_upper.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNICTYPE_CTYPE_XDIGIT_TRUE@am__objects_103 = unictype/libgnu_a-ctype_xdigit.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNINAME_UNINAME_TRUE@am__objects_104 = uniname/libgnu_a-uniname.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNISTR_U32_CHR_TRUE@am__objects_105 = unistr/libgnu_a-u32-chr.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNISTR_U32_CPY_TRUE@am__objects_106 = unistr/libgnu_a-u32-cpy.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNISTR_U32_PCPY_TRUE@am__objects_107 = unistr/libgnu_a-u32-pcpy.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNISTR_U32_STRCAT_TRUE@am__objects_108 = unistr/libgnu_a-u32-strcat.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNISTR_U32_STRLEN_TRUE@am__objects_109 = unistr/libgnu_a-u32-strlen.$(OBJEXT)
+@LIBUNISTRING_COMPILE_UNIWIDTH_WIDTH_TRUE@am__objects_110 = uniwidth/libgnu_a-width.$(OBJEXT)
+@GL_COND_OBJ_UNSETENV_TRUE@am__objects_111 =  \
 @GL_COND_OBJ_UNSETENV_TRUE@	libgnu_a-unsetenv.$(OBJEXT)
-@GL_COND_OBJ_WCRTOMB_TRUE@am__objects_111 =  \
+@GL_COND_OBJ_WCRTOMB_TRUE@am__objects_112 =  \
 @GL_COND_OBJ_WCRTOMB_TRUE@	libgnu_a-wcrtomb.$(OBJEXT)
-@GL_COND_OBJ_WCTYPE_TRUE@am__objects_112 = libgnu_a-wctype.$(OBJEXT)
-@GL_COND_OBJ_WINDOWS_MUTEX_TRUE@am__objects_113 = libgnu_a-windows-mutex.$(OBJEXT)
-@GL_COND_OBJ_WINDOWS_ONCE_TRUE@am__objects_114 = libgnu_a-windows-once.$(OBJEXT)
-@GL_COND_OBJ_WINDOWS_RECMUTEX_TRUE@am__objects_115 = libgnu_a-windows-recmutex.$(OBJEXT)
-@GL_COND_OBJ_WINDOWS_RWLOCK_TRUE@am__objects_116 = libgnu_a-windows-rwlock.$(OBJEXT)
-@GL_COND_OBJ_WMEMCHR_TRUE@am__objects_117 =  \
+@GL_COND_OBJ_WCTYPE_TRUE@am__objects_113 = libgnu_a-wctype.$(OBJEXT)
+@GL_COND_OBJ_WINDOWS_MUTEX_TRUE@am__objects_114 = libgnu_a-windows-mutex.$(OBJEXT)
+@GL_COND_OBJ_WINDOWS_ONCE_TRUE@am__objects_115 = libgnu_a-windows-once.$(OBJEXT)
+@GL_COND_OBJ_WINDOWS_RECMUTEX_TRUE@am__objects_116 = libgnu_a-windows-recmutex.$(OBJEXT)
+@GL_COND_OBJ_WINDOWS_RWLOCK_TRUE@am__objects_117 = libgnu_a-windows-rwlock.$(OBJEXT)
+@GL_COND_OBJ_WMEMCHR_TRUE@am__objects_118 =  \
 @GL_COND_OBJ_WMEMCHR_TRUE@	libgnu_a-wmemchr.$(OBJEXT)
-@GL_COND_OBJ_WMEMPCPY_TRUE@am__objects_118 =  \
+@GL_COND_OBJ_WMEMPCPY_TRUE@am__objects_119 =  \
 @GL_COND_OBJ_WMEMPCPY_TRUE@	libgnu_a-wmempcpy.$(OBJEXT)
 am_libgnu_a_OBJECTS = $(am__objects_1) libgnu_a-arpa_inet.$(OBJEXT) \
 	libgnu_a-basename-lgpl.$(OBJEXT) $(am__objects_2) \
@@ -772,32 +775,32 @@ am_libgnu_a_OBJECTS = $(am__objects_1) libgnu_a-arpa_inet.$(OBJEXT) \
 	$(am__objects_59) $(am__objects_60) $(am__objects_61) \
 	$(am__objects_62) $(am__objects_63) $(am__objects_64) \
 	$(am__objects_65) $(am__objects_66) $(am__objects_67) \
-	libgnu_a-setlocale_null.$(OBJEXT) $(am__objects_68) \
-	libgnu_a-setlocale_null-unlocked.$(OBJEXT) $(am__objects_69) \
+	$(am__objects_68) libgnu_a-setlocale_null.$(OBJEXT) \
+	$(am__objects_69) libgnu_a-setlocale_null-unlocked.$(OBJEXT) \
 	$(am__objects_70) $(am__objects_71) $(am__objects_72) \
-	libgnu_a-sockets.$(OBJEXT) $(am__objects_73) \
-	libgnu_a-stat-time.$(OBJEXT) $(am__objects_74) \
-	$(am__objects_75) $(am__objects_76) $(am__objects_77) \
+	$(am__objects_73) libgnu_a-sockets.$(OBJEXT) $(am__objects_74) \
+	libgnu_a-stat-time.$(OBJEXT) $(am__objects_75) \
+	$(am__objects_76) $(am__objects_77) $(am__objects_78) \
 	libgnu_a-stdlib.$(OBJEXT) libgnu_a-streq.$(OBJEXT) \
-	$(am__objects_78) $(am__objects_79) $(am__objects_80) \
-	$(am__objects_81) $(am__objects_82) \
+	$(am__objects_79) $(am__objects_80) $(am__objects_81) \
+	$(am__objects_82) $(am__objects_83) \
 	libgnu_a-strnlen1.$(OBJEXT) libgnu_a-strnul.$(OBJEXT) \
-	$(am__objects_83) $(am__objects_84) $(am__objects_85) \
+	$(am__objects_84) $(am__objects_85) $(am__objects_86) \
 	libgnu_a-sys_socket.$(OBJEXT) libgnu_a-tempname.$(OBJEXT) \
-	glthread/libgnu_a-threadlib.$(OBJEXT) $(am__objects_86) \
-	$(am__objects_87) $(am__objects_88) $(am__objects_89) \
-	$(am__objects_90) $(am__objects_91) $(am__objects_92) \
-	$(am__objects_93) $(am__objects_94) $(am__objects_95) \
-	$(am__objects_96) $(am__objects_97) $(am__objects_98) \
-	$(am__objects_99) $(am__objects_100) $(am__objects_101) \
-	$(am__objects_102) $(am__objects_103) \
-	libgnu_a-unistd.$(OBJEXT) $(am__objects_104) \
-	$(am__objects_105) $(am__objects_106) $(am__objects_107) \
-	$(am__objects_108) $(am__objects_109) $(am__objects_110) \
-	libgnu_a-vma-iter.$(OBJEXT) $(am__objects_111) \
-	$(am__objects_112) libgnu_a-wctype-h.$(OBJEXT) \
-	$(am__objects_113) $(am__objects_114) $(am__objects_115) \
-	$(am__objects_116) $(am__objects_117) $(am__objects_118)
+	glthread/libgnu_a-threadlib.$(OBJEXT) $(am__objects_87) \
+	$(am__objects_88) $(am__objects_89) $(am__objects_90) \
+	$(am__objects_91) $(am__objects_92) $(am__objects_93) \
+	$(am__objects_94) $(am__objects_95) $(am__objects_96) \
+	$(am__objects_97) $(am__objects_98) $(am__objects_99) \
+	$(am__objects_100) $(am__objects_101) $(am__objects_102) \
+	$(am__objects_103) $(am__objects_104) \
+	libgnu_a-unistd.$(OBJEXT) $(am__objects_105) \
+	$(am__objects_106) $(am__objects_107) $(am__objects_108) \
+	$(am__objects_109) $(am__objects_110) $(am__objects_111) \
+	libgnu_a-vma-iter.$(OBJEXT) $(am__objects_112) \
+	$(am__objects_113) libgnu_a-wctype-h.$(OBJEXT) \
+	$(am__objects_114) $(am__objects_115) $(am__objects_116) \
+	$(am__objects_117) $(am__objects_118) $(am__objects_119)
 libgnu_a_OBJECTS = $(am_libgnu_a_OBJECTS)
 am__DEPENDENCIES_1 =
 AM_V_P = $(am__v_P_@AM_V@)
@@ -909,7 +912,7 @@ am__depfiles_remade = ./$(DEPDIR)/alloca.Po \
 	./$(DEPDIR)/libgnu_a-regex_internal.Po \
 	./$(DEPDIR)/libgnu_a-regexec.Po ./$(DEPDIR)/libgnu_a-select.Po \
 	./$(DEPDIR)/libgnu_a-send.Po ./$(DEPDIR)/libgnu_a-sendto.Po \
-	./$(DEPDIR)/libgnu_a-setenv.Po \
+	./$(DEPDIR)/libgnu_a-servent.Po ./$(DEPDIR)/libgnu_a-setenv.Po \
 	./$(DEPDIR)/libgnu_a-setlocale-lock.Po \
 	./$(DEPDIR)/libgnu_a-setlocale_null-unlocked.Po \
 	./$(DEPDIR)/libgnu_a-setlocale_null.Po \
@@ -1594,6 +1597,7 @@ GL_GNULIB_SECURE_GETENV = @GL_GNULIB_SECURE_GETENV@
 GL_GNULIB_SELECT = @GL_GNULIB_SELECT@
 GL_GNULIB_SEND = @GL_GNULIB_SEND@
 GL_GNULIB_SENDTO = @GL_GNULIB_SENDTO@
+GL_GNULIB_SERVENT = @GL_GNULIB_SERVENT@
 GL_GNULIB_SETENV = @GL_GNULIB_SETENV@
 GL_GNULIB_SETHOSTNAME = @GL_GNULIB_SETHOSTNAME@
 GL_GNULIB_SETLOCALE = @GL_GNULIB_SETLOCALE@
@@ -2758,6 +2762,8 @@ REPLACE_GETPAYLOADF = @REPLACE_GETPAYLOADF@
 REPLACE_GETPAYLOADL = @REPLACE_GETPAYLOADL@
 REPLACE_GETPROGNAME = @REPLACE_GETPROGNAME@
 REPLACE_GETRANDOM = @REPLACE_GETRANDOM@
+REPLACE_GETSERVBYNAME = @REPLACE_GETSERVBYNAME@
+REPLACE_GETSERVBYPORT = @REPLACE_GETSERVBYPORT@
 REPLACE_GETSUBOPT = @REPLACE_GETSUBOPT@
 REPLACE_GETTIMEOFDAY = @REPLACE_GETTIMEOFDAY@
 REPLACE_GETUSERSHELL = @REPLACE_GETUSERSHELL@
@@ -3044,6 +3050,7 @@ REPLACE__EXIT = @REPLACE__EXIT@
 SCHED_YIELD_LIB = @SCHED_YIELD_LIB@
 SED = @SED@
 SELECT_LIB = @SELECT_LIB@
+SERVENT_LIB = @SERVENT_LIB@
 SETLOCALE_NULL_LIB = @SETLOCALE_NULL_LIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
@@ -3316,26 +3323,26 @@ libgnu_a_SOURCES = $(am__append_1) arpa_inet.c basename-lgpl.c \
 	$(am__append_59) $(am__append_60) $(am__append_61) \
 	$(am__append_62) $(am__append_63) $(am__append_64) \
 	$(am__append_65) $(am__append_66) $(am__append_67) \
-	setlocale_null.c $(am__append_68) setlocale_null-unlocked.c \
-	$(am__append_69) $(am__append_70) $(am__append_71) \
-	$(am__append_72) sockets.h sockets.c $(am__append_73) \
-	stat-time.c $(am__append_74) $(am__append_75) $(am__append_76) \
-	$(am__append_77) stdlib.c streq.c $(am__append_78) \
+	$(am__append_68) setlocale_null.c $(am__append_69) \
+	setlocale_null-unlocked.c $(am__append_70) $(am__append_71) \
+	$(am__append_72) $(am__append_73) sockets.h sockets.c \
+	$(am__append_74) stat-time.c $(am__append_75) $(am__append_76) \
+	$(am__append_77) $(am__append_78) stdlib.c streq.c \
 	$(am__append_79) $(am__append_80) $(am__append_81) \
-	$(am__append_82) strnlen1.h strnlen1.c strnul.c \
-	$(am__append_83) $(am__append_84) $(am__append_85) \
-	sys_socket.c tempname.c glthread/threadlib.c $(am__append_86) \
-	$(am__append_87) $(am__append_88) $(am__append_89) \
-	$(am__append_90) $(am__append_91) $(am__append_92) \
-	$(am__append_93) $(am__append_94) $(am__append_95) \
-	$(am__append_96) $(am__append_97) $(am__append_98) \
-	$(am__append_99) $(am__append_100) $(am__append_101) \
-	$(am__append_102) $(am__append_103) unistd.c $(am__append_104) \
-	$(am__append_105) $(am__append_106) $(am__append_107) \
-	$(am__append_108) $(am__append_109) $(am__append_110) \
-	vma-iter.c $(am__append_111) $(am__append_112) wctype-h.c \
-	$(am__append_113) $(am__append_114) $(am__append_115) \
-	$(am__append_116) $(am__append_117) $(am__append_118)
+	$(am__append_82) $(am__append_83) strnlen1.h strnlen1.c \
+	strnul.c $(am__append_84) $(am__append_85) $(am__append_86) \
+	sys_socket.c tempname.c glthread/threadlib.c $(am__append_87) \
+	$(am__append_88) $(am__append_89) $(am__append_90) \
+	$(am__append_91) $(am__append_92) $(am__append_93) \
+	$(am__append_94) $(am__append_95) $(am__append_96) \
+	$(am__append_97) $(am__append_98) $(am__append_99) \
+	$(am__append_100) $(am__append_101) $(am__append_102) \
+	$(am__append_103) $(am__append_104) unistd.c $(am__append_105) \
+	$(am__append_106) $(am__append_107) $(am__append_108) \
+	$(am__append_109) $(am__append_110) $(am__append_111) \
+	vma-iter.c $(am__append_112) $(am__append_113) wctype-h.c \
+	$(am__append_114) $(am__append_115) $(am__append_116) \
+	$(am__append_117) $(am__append_118) $(am__append_119)
 libgnu_a_CFLAGS = $(AM_CFLAGS) $(GL_CFLAG_GNULIB_WARNINGS) $(GL_CFLAG_ALLOW_WARNINGS)
 libgnu_a_LIBADD = $(gl_libgnu_LIBOBJS) @ALLOCA@
 libgnu_a_DEPENDENCIES = $(gl_libgnu_LIBOBJS) @ALLOCA@
@@ -3669,6 +3676,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgnu_a-select.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgnu_a-send.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgnu_a-sendto.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgnu_a-servent.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgnu_a-setenv.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgnu_a-setlocale-lock.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgnu_a-setlocale_null-unlocked.Po@am__quote@ # am--include-marker
@@ -5292,6 +5300,20 @@ libgnu_a-sendto.obj: sendto.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_JOBSERVER)$(AM_V_CC)source='sendto.c' object='libgnu_a-sendto.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_JOBSERVER@am__nodep@)$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgnu_a_CFLAGS) $(CFLAGS) -c -o libgnu_a-sendto.obj `if test -f 'sendto.c'; then $(CYGPATH_W) 'sendto.c'; else $(CYGPATH_W) '$(srcdir)/sendto.c'; fi`
+
+libgnu_a-servent.o: servent.c
+@am__fastdepCC_TRUE@	$(AM_JOBSERVER)$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgnu_a_CFLAGS) $(CFLAGS) -MT libgnu_a-servent.o -MD -MP -MF $(DEPDIR)/libgnu_a-servent.Tpo -c -o libgnu_a-servent.o `test -f 'servent.c' || echo '$(srcdir)/'`servent.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libgnu_a-servent.Tpo $(DEPDIR)/libgnu_a-servent.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_JOBSERVER)$(AM_V_CC)source='servent.c' object='libgnu_a-servent.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_JOBSERVER@am__nodep@)$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgnu_a_CFLAGS) $(CFLAGS) -c -o libgnu_a-servent.o `test -f 'servent.c' || echo '$(srcdir)/'`servent.c
+
+libgnu_a-servent.obj: servent.c
+@am__fastdepCC_TRUE@	$(AM_JOBSERVER)$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgnu_a_CFLAGS) $(CFLAGS) -MT libgnu_a-servent.obj -MD -MP -MF $(DEPDIR)/libgnu_a-servent.Tpo -c -o libgnu_a-servent.obj `if test -f 'servent.c'; then $(CYGPATH_W) 'servent.c'; else $(CYGPATH_W) '$(srcdir)/servent.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libgnu_a-servent.Tpo $(DEPDIR)/libgnu_a-servent.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_JOBSERVER)$(AM_V_CC)source='servent.c' object='libgnu_a-servent.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_JOBSERVER@am__nodep@)$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgnu_a_CFLAGS) $(CFLAGS) -c -o libgnu_a-servent.obj `if test -f 'servent.c'; then $(CYGPATH_W) 'servent.c'; else $(CYGPATH_W) '$(srcdir)/servent.c'; fi`
 
 libgnu_a-setenv.o: setenv.c
 @am__fastdepCC_TRUE@	$(AM_JOBSERVER)$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgnu_a_CFLAGS) $(CFLAGS) -MT libgnu_a-setenv.o -MD -MP -MF $(DEPDIR)/libgnu_a-setenv.Tpo -c -o libgnu_a-setenv.o `test -f 'setenv.c' || echo '$(srcdir)/'`setenv.c
@@ -6946,6 +6968,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libgnu_a-select.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-send.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-sendto.Po
+	-rm -f ./$(DEPDIR)/libgnu_a-servent.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-setenv.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-setlocale-lock.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-setlocale_null-unlocked.Po
@@ -7188,6 +7211,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libgnu_a-select.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-send.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-sendto.Po
+	-rm -f ./$(DEPDIR)/libgnu_a-servent.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-setenv.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-setlocale-lock.Po
 	-rm -f ./$(DEPDIR)/libgnu_a-setlocale_null-unlocked.Po
@@ -7993,6 +8017,7 @@ netdb.h: netdb.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) 
 	      -e 's|@''NEXT_NETDB_H''@|$(NEXT_NETDB_H)|g' \
 	      -e 's|@''HAVE_NETDB_H''@|$(HAVE_NETDB_H)|g' \
 	      -e 's/@''GNULIB_GETADDRINFO''@/$(GL_GNULIB_GETADDRINFO)/g' \
+	      -e 's/@''GNULIB_SERVENT''@/$(GL_GNULIB_SERVENT)/g' \
 	      -e 's|@''HAVE_STRUCT_ADDRINFO''@|$(HAVE_STRUCT_ADDRINFO)|g' \
 	      -e 's|@''HAVE_DECL_FREEADDRINFO''@|$(HAVE_DECL_FREEADDRINFO)|g' \
 	      -e 's|@''HAVE_DECL_GAI_STRERROR''@|$(HAVE_DECL_GAI_STRERROR)|g' \
@@ -8000,6 +8025,8 @@ netdb.h: netdb.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) 
 	      -e 's|@''HAVE_DECL_GETNAMEINFO''@|$(HAVE_DECL_GETNAMEINFO)|g' \
 	      -e 's|@''REPLACE_GAI_STRERROR''@|$(REPLACE_GAI_STRERROR)|g' \
 	      -e 's|@''REPLACE_GETADDRINFO''@|$(REPLACE_GETADDRINFO)|g' \
+	      -e 's|@''REPLACE_GETSERVBYNAME''@|$(REPLACE_GETSERVBYNAME)|g' \
+	      -e 's|@''REPLACE_GETSERVBYPORT''@|$(REPLACE_GETSERVBYPORT)|g' \
 	      -e '/definitions of _GL_FUNCDECL_RPL/r $(CXXDEFS_H)' \
 	      -e '/definition of _GL_ARG_NONNULL/r $(ARG_NONNULL_H)' \
 	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)' \

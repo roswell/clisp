@@ -91,6 +91,7 @@
 #  select \
 #  send \
 #  sendto \
+#  servent \
 #  setenv \
 #  setsockopt \
 #  shutdown \
@@ -175,6 +176,7 @@ gl_MODULES([
   select
   send
   sendto
+  servent
   setenv
   setsockopt
   shutdown

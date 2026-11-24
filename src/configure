@@ -1090,6 +1090,9 @@ GL_COND_OBJ_SETLOCALE_LOCK_FALSE
 GL_COND_OBJ_SETLOCALE_LOCK_TRUE
 GL_COND_OBJ_SETENV_FALSE
 GL_COND_OBJ_SETENV_TRUE
+GL_COND_OBJ_SERVENT_FALSE
+GL_COND_OBJ_SERVENT_TRUE
+SERVENT_LIB
 GL_COND_OBJ_SENDTO_FALSE
 GL_COND_OBJ_SENDTO_TRUE
 GL_COND_OBJ_SEND_FALSE
@@ -1260,6 +1263,7 @@ NETINET_IN_H
 HAVE_NETINET_IN_H
 NEXT_AS_FIRST_DIRECTIVE_NETINET_IN_H
 NEXT_NETINET_IN_H
+GL_GNULIB_SERVENT
 GL_GNULIB_GETADDRINFO
 GL_COND_OBJ_MSVC_NOTHROW_FALSE
 GL_COND_OBJ_MSVC_NOTHROW_TRUE
@@ -1944,16 +1948,18 @@ GL_COND_OBJ_GETDTABLESIZE_FALSE
 GL_COND_OBJ_GETDTABLESIZE_TRUE
 GL_COND_OBJ_GETDOMAINNAME_FALSE
 GL_COND_OBJ_GETDOMAINNAME_TRUE
+HAVE_STRUCT_ADDRINFO
 HAVE_NETDB_H
 NEXT_AS_FIRST_DIRECTIVE_NETDB_H
 NEXT_NETDB_H
+REPLACE_GETSERVBYPORT
+REPLACE_GETSERVBYNAME
 REPLACE_GETADDRINFO
 REPLACE_GAI_STRERROR
 HAVE_DECL_GETNAMEINFO
 HAVE_DECL_GETADDRINFO
 HAVE_DECL_GAI_STRERROR
 HAVE_DECL_FREEADDRINFO
-HAVE_STRUCT_ADDRINFO
 GL_COND_OBJ_GETDELIM_FALSE
 GL_COND_OBJ_GETDELIM_TRUE
 GL_GNULIB_MDA_TZSET
@@ -9308,6 +9314,7 @@ esac
   # Code from module select:
   # Code from module send:
   # Code from module sendto:
+  # Code from module servent:
   # Code from module setenv:
   # Code from module setlocale-null:
   # Code from module setlocale-null-unlocked:
@@ -25503,13 +25510,14 @@ fi
 printf '%s\n' "#define HAVE_DECL_GETDELIM $ac_have_decl" >>confdefs.h
 
 
-    HAVE_STRUCT_ADDRINFO=1;
-  HAVE_DECL_FREEADDRINFO=1;
+    HAVE_DECL_FREEADDRINFO=1;
   HAVE_DECL_GAI_STRERROR=1;
   HAVE_DECL_GETADDRINFO=1;
   HAVE_DECL_GETNAMEINFO=1;
   REPLACE_GAI_STRERROR=0;
   REPLACE_GETADDRINFO=0;
+  REPLACE_GETSERVBYNAME=0;
+  REPLACE_GETSERVBYPORT=0;
 
 
 
@@ -25603,6 +25611,34 @@ printf '%s\n' "$gl_cv_next_netdb_h" >&6; }
 
 
 
+
+
+    ac_fn_c_check_type "$LINENO" "struct addrinfo" "ac_cv_type_struct_addrinfo" "
+#include <sys/types.h>
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
+#ifdef HAVE_WS2TCPIP_H
+#include <ws2tcpip.h>
+#endif
+
+"
+if test "x$ac_cv_type_struct_addrinfo" = xyes
+then :
+
+printf '%s\n' "#define HAVE_STRUCT_ADDRINFO 1" >>confdefs.h
+
+
+fi
+
+  if test $ac_cv_type_struct_addrinfo = yes; then
+    HAVE_STRUCT_ADDRINFO=1
+  else
+    HAVE_STRUCT_ADDRINFO=0
+  fi
 
 
 
@@ -25925,8 +25961,8 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
         LIBS="$saved_LIBS"
         test $gl_pthread_api = yes && break
       done
-      echo "$as_me:25928: gl_pthread_api=$gl_pthread_api" >&5
-      echo "$as_me:25929: LIBPTHREAD=$LIBPTHREAD" >&5
+      echo "$as_me:25964: gl_pthread_api=$gl_pthread_api" >&5
+      echo "$as_me:25965: LIBPTHREAD=$LIBPTHREAD" >&5
 
       gl_pthread_in_glibc=no
       # On Linux with glibc >= 2.34, libc contains the fully functional
@@ -25955,7 +25991,7 @@ rm -rf conftest*
   *) :
      ;;
 esac
-      echo "$as_me:25958: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
+      echo "$as_me:25994: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
 
       # Test for libpthread by looking for pthread_kill.
       if test $gl_pthread_api = yes && test -z "$LIBPTHREAD"
@@ -26207,7 +26243,7 @@ fi
 fi
 
 fi
-      echo "$as_me:26210: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
+      echo "$as_me:26246: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
 
 fi
     { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether POSIX threads API is available" >&5
@@ -34458,8 +34494,8 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
         LIBS="$saved_LIBS"
         test $gl_pthread_api = yes && break
       done
-      echo "$as_me:34461: gl_pthread_api=$gl_pthread_api" >&5
-      echo "$as_me:34462: LIBPTHREAD=$LIBPTHREAD" >&5
+      echo "$as_me:34497: gl_pthread_api=$gl_pthread_api" >&5
+      echo "$as_me:34498: LIBPTHREAD=$LIBPTHREAD" >&5
 
       gl_pthread_in_glibc=no
       # On Linux with glibc >= 2.34, libc contains the fully functional
@@ -34488,7 +34524,7 @@ rm -rf conftest*
   *) :
      ;;
 esac
-      echo "$as_me:34491: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
+      echo "$as_me:34527: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
 
       # Test for libpthread by looking for pthread_kill.
       if test $gl_pthread_api = yes && test -z "$LIBPTHREAD"
@@ -34740,7 +34776,7 @@ fi
 fi
 
 fi
-      echo "$as_me:34743: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
+      echo "$as_me:34779: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
 
 fi
     { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether POSIX threads API is available" >&5
@@ -35030,8 +35066,8 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
         LIBS="$saved_LIBS"
         test $gl_pthread_api = yes && break
       done
-      echo "$as_me:35033: gl_pthread_api=$gl_pthread_api" >&5
-      echo "$as_me:35034: LIBPTHREAD=$LIBPTHREAD" >&5
+      echo "$as_me:35069: gl_pthread_api=$gl_pthread_api" >&5
+      echo "$as_me:35070: LIBPTHREAD=$LIBPTHREAD" >&5
 
       gl_pthread_in_glibc=no
       # On Linux with glibc >= 2.34, libc contains the fully functional
@@ -35060,7 +35096,7 @@ rm -rf conftest*
   *) :
      ;;
 esac
-      echo "$as_me:35063: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
+      echo "$as_me:35099: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
 
       # Test for libpthread by looking for pthread_kill.
       if test $gl_pthread_api = yes && test -z "$LIBPTHREAD"
@@ -35312,7 +35348,7 @@ fi
 fi
 
 fi
-      echo "$as_me:35315: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
+      echo "$as_me:35351: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
 
 fi
     { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether POSIX threads API is available" >&5
@@ -36958,6 +36994,10 @@ printf '%s\n' "$gl_cv_func_working_mktime" >&6; }
 
 
   GL_GNULIB_GETADDRINFO=0
+
+
+
+  GL_GNULIB_SERVENT=0
 
 
 
@@ -56547,6 +56587,262 @@ printf '%s\n' "#define GNULIB_TEST_SENDTO 1" >>confdefs.h
 
 
 printf '%s\n' "#define GNULIB_SENDTO 1" >>confdefs.h
+
+
+
+                      SERVENT_LIB=
+  gl_saved_libs="$LIBS"
+  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking for library containing getservbyname" >&5
+printf %s "checking for library containing getservbyname... " >&6; }
+if test ${ac_cv_search_getservbyname+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e) ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.
+   The 'extern "C"' is for builds by C++ compilers;
+   although this is not generally supported in C code supporting it here
+   has little cost and some practical benefit (sr 110532).  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char getservbyname (void);
+int
+main (void)
+{
+return getservbyname ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' socket network net
+do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"
+then :
+  ac_cv_search_getservbyname=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext
+  if test ${ac_cv_search_getservbyname+y}
+then :
+  break
+fi
+done
+if test ${ac_cv_search_getservbyname+y}
+then :
+
+else case e in #(
+  e) ac_cv_search_getservbyname=no ;;
+esac
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS ;;
+esac
+fi
+{ printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_getservbyname" >&5
+printf '%s\n' "$ac_cv_search_getservbyname" >&6; }
+ac_res=$ac_cv_search_getservbyname
+if test "$ac_res" != no
+then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  if test "$ac_cv_search_getservbyname" != "none required"; then
+       SERVENT_LIB="$ac_cv_search_getservbyname"
+     fi
+fi
+
+  LIBS="$gl_saved_libs"
+  if test -z "$SERVENT_LIB"; then
+
+  for ac_func in getservbyname
+do :
+  ac_fn_c_check_func "$LINENO" "getservbyname" "ac_cv_func_getservbyname"
+if test "x$ac_cv_func_getservbyname" = xyes
+then :
+  printf '%s\n' "#define HAVE_GETSERVBYNAME 1" >>confdefs.h
+
+else case e in #(
+  e)
+      { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking for getservbyname in winsock2.h and -lws2_32" >&5
+printf %s "checking for getservbyname in winsock2.h and -lws2_32... " >&6; }
+if test ${gl_cv_w32_getservbyname+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e) gl_cv_w32_getservbyname=no
+         gl_saved_LIBS="$LIBS"
+         LIBS="$LIBS -lws2_32"
+         cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_WINSOCK2_H
+#include <winsock2.h>
+#endif
+#include <stddef.h>
+
+int
+main (void)
+{
+getservbyname(NULL,NULL);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  gl_cv_w32_getservbyname=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+         LIBS="$gl_saved_LIBS"
+         ;;
+esac
+fi
+{ printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: $gl_cv_w32_getservbyname" >&5
+printf '%s\n' "$gl_cv_w32_getservbyname" >&6; }
+      if test "$gl_cv_w32_getservbyname" = "yes"; then
+        SERVENT_LIB="-lws2_32"
+      fi
+     ;;
+esac
+fi
+
+done
+  fi
+
+  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether getservbyname and getservbyport work reasonably" >&5
+printf %s "checking whether getservbyname and getservbyport work reasonably... " >&6; }
+if test ${gl_cv_func_getservbyport_works+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e) case "$host_os" in
+       mingw* | windows*)
+         # On native Windows, the functions return NULL if WSAStartup has not
+         # been called yet.
+         gl_cv_func_getservbyport_works=no
+         ;;
+       *)
+         saved_LIBS="$LIBS"
+         LIBS="$LIBS $SERVENT_LIB"
+         if test "$cross_compiling" = yes
+then :
+  case "$host_os" in
+                                 # Guess no on musl.
+              linux* | midipix*) gl_cv_func_getservbyport_works="guessing no" ;;
+                                 # If we don't know, obey --enable-cross-guesses.
+              *)                 gl_cv_func_getservbyport_works="$gl_cross_guess_normal" ;;
+            esac
+
+else case e in #(
+  e) cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_WINSOCK2_H
+#include <winsock2.h>
+#else
+#include <netdb.h>
+#include <arpa/inet.h>
+#endif
+#include <string.h>
+                static int
+                is_aliases_member (const struct servent *se, const char *name)
+                {
+                  int i;
+                  for (i = 0; se->s_aliases[i] != NULL; i++)
+                    if (strcmp (se->s_aliases[i], name) == 0)
+                      return 1;
+                  return 0;
+                }
+
+int
+main (void)
+{
+int result = 0;
+                /* This test fails on musl libc.  */
+                {
+                  struct servent *se = getservbyport (htons (80), "tcp");
+                  if (!(se != NULL
+                        && se->s_port == htons (80)
+                        && strcmp (se->s_proto, "tcp") == 0
+                        && ((strcmp (se->s_name, "http") == 0
+                             && is_aliases_member (se, "www"))
+                            || (strcmp (se->s_name, "www") == 0
+                                && is_aliases_member (se, "http")))))
+                    result |= 1;
+                }
+                return result;
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"
+then :
+  gl_cv_func_getservbyport_works=yes
+else case e in #(
+  e) gl_cv_func_getservbyport_works=no ;;
+esac
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext ;;
+esac
+fi
+
+         LIBS="$saved_LIBS"
+         ;;
+     esac
+     ;;
+esac
+fi
+{ printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_getservbyport_works" >&5
+printf '%s\n' "$gl_cv_func_getservbyport_works" >&6; }
+  case "$gl_cv_func_getservbyport_works" in
+    *yes) ;;
+    *) REPLACE_GETSERVBYNAME=1; REPLACE_GETSERVBYPORT=1 ;;
+  esac
+
+
+     if test $REPLACE_GETSERVBYNAME = 1 || test $REPLACE_GETSERVBYPORT = 1; then
+  GL_COND_OBJ_SERVENT_TRUE=
+  GL_COND_OBJ_SERVENT_FALSE='#'
+else
+  GL_COND_OBJ_SERVENT_TRUE='#'
+  GL_COND_OBJ_SERVENT_FALSE=
+fi
+:
+    if test -z "${GL_COND_OBJ_SERVENT_TRUE}" && test -z "${GL_COND_OBJ_SERVENT_FALSE}"; then
+    GL_COND_OBJ_SERVENT_TRUE='#'
+    GL_COND_OBJ_SERVENT_FALSE='#'
+  fi
+
+
+
+
+
+
+
+
+
+
+          GL_GNULIB_SERVENT=1
+
+
+
+
+
+printf '%s\n' "#define GNULIB_TEST_SERVENT 1" >>confdefs.h
+
 
 
 

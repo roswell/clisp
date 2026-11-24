@@ -1,3 +1,19 @@
+2026-11-24  Bruno Haible  <bruno@clisp.org>
+
+	syscalls: Fix test failures on Alpine Linux.
+	* Makefile.devel (GNULIB_SYSCALLS): Add servent.
+	* modules/syscalls/configure.in: Don't test for getservbyname,
+	getservbyport.
+	* modules/syscalls/calls.c: Assume getservbyname, getservbyport exist.
+	* modules/syscalls/test.tst: Strengthen OS:SERVICE test again.
+	Then update to the newest gnulib.
+	Ran "make -f Makefile.devel gnulib-imported \
+	&& make -f Makefile.devel build-prerequisites".
+	* gllib/*: Update from gnulib.
+	* glm4/*: Likewise.
+	* aclocal.m4, src/configure, src/config.h.in: Regenerated.
+	* modules/syscalls/config*: Regenerated.
+
 2026-11-23  Bruno Haible  <bruno@clisp.org>
 
 	syscalls: Fix test failures on Solaris 11 OmniOS.

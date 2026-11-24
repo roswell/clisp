@@ -1547,7 +1547,7 @@ DEFUN(POSIX::RESOLVE-HOST-IPADDR,&optional host)
   hostent_to_lisp(he);
 }
 
-#if (defined(HAVE_GETSERVBYPORT) && defined(HAVE_GETSERVBYNAME)) || defined(WIN32_NATIVE)
+#if 1
 /* Lisp interface to getservbyport(3) and getservbyname(3) */
 
 /* C struct servent --> Lisp SERVICE structure
@@ -1578,7 +1578,7 @@ DEFUN(POSIX:SERVICE, &optional service-name protocol) {
   if (missingp(serv)) {
     uintL count = 0;
 #  if defined(HAVE_SETSERVENT) && defined(HAVE_GETSERVENT) && defined(HAVE_ENDSERVENT) \
-      /* In musl libcs, these functions are merely dummies. */ \
+      /* In musl libc, these functions are merely dummies. */ \
       && !defined(MUSL_LIBC)
     begin_system_call();
     setservent(1);

@@ -48,7 +48,7 @@ BOLD_MSG([System Calls (Functions)])
 AC_SEARCH_LIBS(erf, m)
 AC_CHECK_FUNCS(confstr fcntl gethostent sysconf getrlimit setrlimit dnl
 getlogin getpwent getpwnam getpwuid endpwent setpwent dnl
-getservbyport getservbyname getservent setservent endservent dnl
+getservent setservent endservent dnl
 openlog setlogmask syslog closelog chroot dnl
 getppid getpgid getsid setpgid setsid kill pathconf fpathconf realpath dnl
 getpgrp setpgrp getgrgid getgrnam getgrent endgrent setgrent dnl

@@ -138,12 +138,6 @@
    <sys/resource.h> defines RUSAGE_SELF */
 #undef HAVE_GETRUSAGE
 
-/* Define to 1 if you have the 'getservbyname' function. */
-#undef HAVE_GETSERVBYNAME
-
-/* Define to 1 if you have the 'getservbyport' function. */
-#undef HAVE_GETSERVBYPORT
-
 /* Define to 1 if you have the 'getservent' function. */
 #undef HAVE_GETSERVENT
 

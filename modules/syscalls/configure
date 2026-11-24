@@ -7341,18 +7341,6 @@ then :
   printf '%s\n' "#define HAVE_SETPWENT 1" >>confdefs.h
 
 fi
-ac_fn_c_check_func "$LINENO" "getservbyport" "ac_cv_func_getservbyport"
-if test "x$ac_cv_func_getservbyport" = xyes
-then :
-  printf '%s\n' "#define HAVE_GETSERVBYPORT 1" >>confdefs.h
-
-fi
-ac_fn_c_check_func "$LINENO" "getservbyname" "ac_cv_func_getservbyname"
-if test "x$ac_cv_func_getservbyname" = xyes
-then :
-  printf '%s\n' "#define HAVE_GETSERVBYNAME 1" >>confdefs.h
-
-fi
 ac_fn_c_check_func "$LINENO" "getservent" "ac_cv_func_getservent"
 if test "x$ac_cv_func_getservent" = xyes
 then :

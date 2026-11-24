@@ -86,6 +86,7 @@
 #  select \
 #  send \
 #  sendto \
+#  servent \
 #  setenv \
 #  setsockopt \
 #  shutdown \
@@ -1931,6 +1932,7 @@ netdb.h: netdb.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) 
 	      -e 's|@''NEXT_NETDB_H''@|$(NEXT_NETDB_H)|g' \
 	      -e 's|@''HAVE_NETDB_H''@|$(HAVE_NETDB_H)|g' \
 	      -e 's/@''GNULIB_GETADDRINFO''@/$(GL_GNULIB_GETADDRINFO)/g' \
+	      -e 's/@''GNULIB_SERVENT''@/$(GL_GNULIB_SERVENT)/g' \
 	      -e 's|@''HAVE_STRUCT_ADDRINFO''@|$(HAVE_STRUCT_ADDRINFO)|g' \
 	      -e 's|@''HAVE_DECL_FREEADDRINFO''@|$(HAVE_DECL_FREEADDRINFO)|g' \
 	      -e 's|@''HAVE_DECL_GAI_STRERROR''@|$(HAVE_DECL_GAI_STRERROR)|g' \
@@ -1938,6 +1940,8 @@ netdb.h: netdb.in.h $(top_builddir)/config.status $(CXXDEFS_H) $(ARG_NONNULL_H) 
 	      -e 's|@''HAVE_DECL_GETNAMEINFO''@|$(HAVE_DECL_GETNAMEINFO)|g' \
 	      -e 's|@''REPLACE_GAI_STRERROR''@|$(REPLACE_GAI_STRERROR)|g' \
 	      -e 's|@''REPLACE_GETADDRINFO''@|$(REPLACE_GETADDRINFO)|g' \
+	      -e 's|@''REPLACE_GETSERVBYNAME''@|$(REPLACE_GETSERVBYNAME)|g' \
+	      -e 's|@''REPLACE_GETSERVBYPORT''@|$(REPLACE_GETSERVBYPORT)|g' \
 	      -e '/definitions of _GL_FUNCDECL_RPL/r $(CXXDEFS_H)' \
 	      -e '/definition of _GL_ARG_NONNULL/r $(ARG_NONNULL_H)' \
 	      -e '/definition of _GL_WARN_ON_USE/r $(WARN_ON_USE_H)' \
@@ -2272,6 +2276,14 @@ endif
 EXTRA_DIST += w32sock.h
 
 ## end   gnulib module sendto
+
+## begin gnulib module servent
+
+if GL_COND_OBJ_SERVENT
+libgnu_a_SOURCES += servent.c
+endif
+
+## end   gnulib module servent
 
 ## begin gnulib module setenv
 

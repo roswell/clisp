@@ -371,7 +371,7 @@ GNULIB_CORE = no-c++ stdint-h bool attribute havelib gettext localcharset stdlib
 	libunistring-optional \
 	crypto/sha1
 GNULIB_SYSCALLS = mktime strftime strptime-gnu getdate strverscmp uname \
-	fnmatch-gnu
+	fnmatch-gnu servent
 GNULIB_IMPORTS = $(GNULIB_CORE) $(GNULIB_SYSCALLS) regex recvfrom sendto
 GNULIB_IMPORTED_LOG = /tmp/gnulib-imported.log
 

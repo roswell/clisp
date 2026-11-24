@@ -213,6 +213,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module select:
   # Code from module send:
   # Code from module sendto:
+  # Code from module servent:
   # Code from module setenv:
   # Code from module setlocale-null:
   # Code from module setlocale-null-unlocked:
@@ -967,6 +968,10 @@ AC_DEFUN([gl_INIT],
   gl_CONDITIONAL([GL_COND_OBJ_SENDTO], [test "$ac_cv_header_winsock2_h" = yes])
   gl_SYS_SOCKET_MODULE_INDICATOR([sendto])
   gl_MODULE_INDICATOR([sendto])
+  gl_SERVENT
+  gl_CONDITIONAL([GL_COND_OBJ_SERVENT],
+                 [test $REPLACE_GETSERVBYNAME = 1 || test $REPLACE_GETSERVBYPORT = 1])
+  gl_NETDB_MODULE_INDICATOR([servent])
   gl_FUNC_SETENV
   gl_CONDITIONAL([GL_COND_OBJ_SETENV],
                  [test $HAVE_SETENV = 0 || test $REPLACE_SETENV = 1])
@@ -1700,6 +1705,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/select.c
   lib/send.c
   lib/sendto.c
+  lib/servent.c
   lib/setenv.c
   lib/setlocale-lock.c
   lib/setlocale_null-unlocked.c
@@ -2003,6 +2009,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/regex.m4
   m4/sched_h.m4
   m4/select.m4
+  m4/servent.m4
   m4/setenv.m4
   m4/setlocale_null.m4
   m4/sha1.m4
