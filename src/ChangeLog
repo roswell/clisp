@@ -1,5 +1,11 @@
 2026-11-24  Bruno Haible  <bruno@clisp.org>
 
+	Fix a syscalls test error on AIX and Solaris 11.
+	* pathname.d (realpath): Don't use the libc's realpath() on AIX and
+	Solaris 11.
+
+2026-11-24  Bruno Haible  <bruno@clisp.org>
+
 	syscalls tests: Avoid a test failure on AIX.
 	* modules/syscalls/test.tst: Loosen the OS:SERVICE test on AIX.
 

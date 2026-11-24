@@ -235,7 +235,12 @@ local char* my_realpath (const char* path, char* resolved_path) {
   return resolved_path; /* finished */
 }
 
-#if defined(UNIX) && defined(HAVE_REALPATH)
+/* The native realpath() on AIX and Solaris reports an error EACCES for
+   unreadable directories, unlike the realpath() on other platforms. Its
+   effect would be that (DIRECTORY wild-pathname :IF-DOES-NOT-EXIST :KEEP)
+   reports an error where it shouldn't. */
+#if defined(UNIX) && defined(HAVE_REALPATH) \
+    && !(defined(UNIX_AIX) || defined(UNIX_SUNOS5))
   /* We use realpath() from <stdlib.h>. */
   #define realpath_is_my_realpath false
 #else
