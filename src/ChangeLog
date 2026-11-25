@@ -1,3 +1,9 @@
+2026-11-25  Bruno Haible  <bruno@clisp.org>
+
+	tests: Add a comment about a possibly failing unit test.
+	Reported by Don Cohen.
+	* tests/streams.tst: Add comment regarding /dev/fd/0 test.
+
 2026-11-24  Bruno Haible  <bruno@clisp.org>
 
 	Fix a syscalls test error on AIX and Solaris 11.
