@@ -77,7 +77,7 @@
       a_MSDptr++; a_len--;
     }
     # b normalisieren (b_MSDptr erhöhen, b_len erniedrigen):
-    while (1) {
+    while (true) {
       if (b_len==0)
         divide_0();
       if (b_MSDptr[0]==0) {
@@ -164,7 +164,7 @@
       }
       # Nun r = r_MSDptr/a_len+1/r_LSDptr.
       var uintC j = a_len-b_len; # m-n
-      var uintD* r_ptr = &r_LSDptr[-(uintP)j]; # Pointer oberhalb von r[j]
+      var uintD* r_ptr = r_LSDptr-(uintP)j; # Pointer oberhalb von r[j]
       var uintD* q_MSDptr = r_MSDptr;
       var uintC q_len = j = j+1; # q wird m-n+1 Digits haben
       var uintD b_msd = b_MSDptr[0]; # b[n-1]

@@ -195,7 +195,7 @@ modexp bool UI_to_LEbytes (object obj, uintL bitsize, uintB* bufferptr) {
     if (posfixnump(obj)) {      /* obj is a Fixnum >=0 */
       var uintV value = posfixnum_to_V(obj);
       /* check value < 2^bitsize: */
-      if (!((bitsize>=oint_data_len) || (value < vbit(bitsize))))
+      if (!((bitsize>=oint_data_len) || (value < wbit(bitsize))))
         return true;
       /* store value in Bitbuffer: */
       while (value != 0) {
@@ -270,7 +270,7 @@ modexp bool I_to_LEbytes (object obj, uintL bitsize, uintB* bufferptr) {
       var uintV value = fixnum_to_V(obj); /* >=0 or <0, according to sign */
       /* check 0 <= value < 2^(bitsize-1) resp. -2^(bitsize-1) <= value < 0: */
       value = value^sign;
-      if (!((bitsize>oint_data_len) || (value < bit(bitsize-1))))
+      if (!((bitsize>oint_data_len) || (value < wbit(bitsize-1))))
         return true;
       /* store value^sign in Bitbuffer: */
       while (value != 0) {

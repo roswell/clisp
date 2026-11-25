@@ -1,6 +1,6 @@
 /*
  * Auxiliary functions for CLISP on UNIX
- * Bruno Haible 1990-2005, 2008, 2017
+ * Bruno Haible 1990-2005, 2008, 2017, 2024, 2026
  * Sam Steingold 1998-2009, 2011, 2017
  */
 
@@ -53,7 +53,9 @@ global int select (int width, fd_set* readfds, fd_set* writefds,
       }
     }
   }
-  var int poll_timeout = timeout->tv_sec * 1000 + timeout->tv_usec / (1000000/1000);
+  var int poll_timeout =
+    (timeout == NULL ? -1 :
+     timeout->tv_sec * 1000 + timeout->tv_usec / (1000000/1000));
   var int result = poll(&pollfd_bag[0],pollfd_count,poll_timeout);
   if (result>=0) {
     pollfd_ptr = &pollfd_bag[0];
@@ -210,7 +212,7 @@ local inline int fd_read_will_hang_p (int fd)
     }
     /* Now we know that read() will return immediately. */
     return 0;
-  #elif defined(HAVE_SELECT) && !defined(UNIX_BEOS)
+  #elif defined(HAVE_SELECT)
     /* Use select() with readfds = singleton set {fd}
      and timeout = zero interval. */
     var fd_set handle_set;         /* set of handles := {fd} */
@@ -244,8 +246,7 @@ local inline int fd_read_will_hang_p (int fd)
    Return value like read().
    When the return value is 0, it sets errno to indicate whether EOF has been
    seen (ENOENT) or whether it is not yet known (EAGAIN). */
-modexp ssize_t fd_read
-(int fd, void* bufarea, size_t nbyte, perseverance_t persev) {
+modexp ssize_t fd_read (int fd, void* bufarea, size_t nbyte, perseverance_t persev) {
   var char* buf = (char*) bufarea;
   if (nbyte == 0) {
     errno = EAGAIN;
@@ -271,7 +272,7 @@ modexp ssize_t fd_read
       return 0;
     }
     if (will_hang < 0) {
-      #if (defined(HAVE_POLL) && defined(HAVE_RELIABLE_POLL)) || (defined(HAVE_SELECT) && !defined(UNIX_BEOS) && defined(HAVE_RELIABLE_SELECT))
+      #if (defined(HAVE_POLL) && defined(HAVE_RELIABLE_POLL)) || (defined(HAVE_SELECT) && defined(HAVE_RELIABLE_SELECT))
         NOTREACHED;
       #else
         if (persev == persev_bonus) {
@@ -359,7 +360,7 @@ local inline int fd_write_will_hang_p (int fd)
     }
     /* Now we know that write() will return immediately. */
     return 0;
-  #elif defined(HAVE_SELECT) && !defined(UNIX_BEOS)
+  #elif defined(HAVE_SELECT)
     /* Use select() with writefds = singleton set {fd}
      and timeout = zero interval. */
     var fd_set handle_set;         /* set of handles := {fd} */
@@ -393,8 +394,7 @@ local inline int fd_write_will_hang_p (int fd)
    Return value like write().
    When the return value is 0, it sets errno to indicate whether EOWF has been
    seen (ENOENT) or whether it is not yet known (EAGAIN). */
-modexp ssize_t fd_write
-(int fd, const void* bufarea, size_t nbyte, perseverance_t persev) {
+modexp ssize_t fd_write (int fd, const void* bufarea, size_t nbyte, perseverance_t persev) {
   var const char* buf = (const char*) bufarea;
   if (nbyte == 0) {
     errno = EAGAIN;
@@ -412,7 +412,7 @@ modexp ssize_t fd_write
       return 0;
     }
     if (will_hang < 0) {
-      #if (defined(HAVE_POLL) && defined(HAVE_RELIABLE_POLL)) || (defined(HAVE_SELECT) && !defined(UNIX_BEOS) && defined(HAVE_RELIABLE_SELECT))
+      #if (defined(HAVE_POLL) && defined(HAVE_RELIABLE_POLL)) || (defined(HAVE_SELECT) && defined(HAVE_RELIABLE_SELECT))
         NOTREACHED;
       #else
         if (persev == persev_bonus) {
@@ -473,206 +473,13 @@ modexp ssize_t fd_write
   return done;
 }
 
-#ifdef UNIX_BEOS
-
-/* BeOS 5 sockets cannot be used like file descriptors. */
-
-/* Determines whether recv() on a socket will hang.
-   Returns 1 for yes, 0 for no, -1 for unknown. */
-local inline int sock_read_will_hang_p (int fd)
-{
-  /* Use select() with readfds = singleton set {fd}
-   and timeout = zero interval. */
-  var fd_set handle_set;         /* set of handles := {fd} */
-  var struct timeval zero_time;  /* time interval := 0 */
-  FD_ZERO(&handle_set); FD_SET(fd,&handle_set);
- restart_select:
-  zero_time.tv_sec = 0; zero_time.tv_usec = 0;
-  var int result = select(FD_SETSIZE,&handle_set,NULL,NULL,&zero_time);
-  if (result<0) {
-    if (errno==EINTR)
-      goto restart_select;
-    OS_error();
-  } else {
-    /* result = number of handles in handle_set for which read() would
-     return without blocking. */
-    if (result==0)
-      return 1;
-  }
-  /* Now we know that recv() will return immediately. */
-  return 0;
-}
-
-/* A wrapper around recv() that supports different perseverances.
-   Return value like read().
-   When the return value is 0, it sets errno to indicate whether EOF has been
-   seen (ENOENT) or whether it is not yet known (EAGAIN). */
-global ssize_t sock_read (int fd, void* bufarea, size_t nbyte, perseverance_t persev) {
-  var char* buf = (char*) bufarea;
-  if (nbyte == 0) {
-    errno = EAGAIN;
-    return 0;
-  }
-  /* in MT builds the heap protection is managed by pin_varobject() */
- #if defined(GENERATIONAL_GC) && defined(SPVW_MIXED) && !defined(MULTITHREAD)
-  /* Must adjust the memory permissions before calling recv(). */
-  handle_fault_range(PROT_READ_WRITE,(aint)buf,(aint)buf+nbyte);
- #endif
-  if (persev == persev_immediate || persev == persev_bonus) {
-    int will_hang = sock_read_will_hang_p(fd);
-    if (will_hang > 0) {
-      errno = EAGAIN;
-      return 0;
-    }
-    if (will_hang < 0) {
-      #if 1
-        NOTREACHED;
-      #else
-        if (persev == persev_bonus) {
-          errno = EAGAIN;
-          return 0;
-        }
-      #endif
-    }
-  }
-  var ssize_t done = 0;
-  do {
-    var ssize_t retval = recv(fd,buf,nbyte,0);
-    if (retval == 0) {
-      errno = ENOENT;
-      break;
-    } else if (retval < 0) {
-     #ifdef EINTR
-      if (errno != EINTR)
-     #endif
-        return retval; /* -1 */
-    } else {
-      buf += retval; done += (size_t)retval; nbyte -= (size_t)retval;
-      if (persev != persev_full)
-        break;
-    }
-  } while (nbyte != 0);
-  return done;
-}
-
-/* Determines whether send() on a socket will hang.
-   Returns 1 for yes, 0 for no, -1 for unknown. */
-local inline int sock_write_will_hang_p (int fd)
-{
-  #if 0 /* On BeOS, select() supports only readfds, not writefds. */
-    /* Use select() with writefds = singleton set {fd}
-     and timeout = zero interval. */
-    var fd_set handle_set;         /* set of handles := {fd} */
-    var struct timeval zero_time;  /* time interval := 0 */
-    FD_ZERO(&handle_set); FD_SET(fd,&handle_set);
-   restart_select:
-    zero_time.tv_sec = 0; zero_time.tv_usec = 0;
-    var int result = select(FD_SETSIZE,NULL,&handle_set,NULL,&zero_time);
-    if (result<0) {
-      if (errno==EINTR)
-        goto restart_select;
-      OS_error();
-    } else {
-      /* result = number of handles in handle_set for which write() would
-       return without blocking. */
-      if (result==0)
-        return 0;
-    }
-    /* Now we know that send() will return immediately. */
-  #else
-    return -1;
-  #endif
-}
-
-/* A wrapper around send() that supports different perseverances.
-   Return value like write().
-   When the return value is 0, it sets errno to indicate whether EOWF has been
-   seen (ENOENT) or whether it is not yet known (EAGAIN). */
-global ssize_t sock_write (int fd, const void* bufarea, size_t nbyte, perseverance_t persev)
-{
-  var const char* buf = (const char*) bufarea;
-  if (nbyte == 0) {
-    errno = EAGAIN;
-    return 0;
-  }
-  /* in MT builds the heap protection is managed by pin_varobject() */
- #if defined(GENERATIONAL_GC) && defined(SPVW_MIXED) && !defined(MULTITHREAD)
-  /* Must adjust the memory permissions before calling send(). */
-  handle_fault_range(PROT_READ,(aint)buf,(aint)buf+nbyte);
- #endif
-  if (persev == persev_immediate || persev == persev_bonus) {
-    int will_hang = sock_write_will_hang_p(fd);
-    if (will_hang > 0) {
-      errno = EAGAIN;
-      return 0;
-    }
-    if (will_hang < 0) {
-      if (persev == persev_bonus) {
-        /* Non-blocking I/O is not worth it unless absolutely necessary. */
-        errno = EAGAIN;
-        return 0;
-      }
-      /* As a last resort, use non-blocking I/O. */
-      var ssize_t done = 0;
-      NO_BLOCK_DECL();
-      START_NO_BLOCK(fd, OS_error());
-      do {
-        var ssize_t retval = send(fd,buf,nbyte,0);
-        if (retval == 0) {
-          errno = EAGAIN;
-          break;
-        } else if (retval < 0) {
-          if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            errno = EAGAIN;
-            break;
-          }
-         #ifdef EINTR
-          if (errno != EINTR)
-         #endif
-            {
-              done = retval; /* -1 */
-              break;
-            }
-        } else {
-          buf += retval; done += (size_t)retval; nbyte -= (size_t)retval;
-          break;
-        }
-      } while (nbyte != 0);
-      var int saved_errno = errno;
-      END_NO_BLOCK(fd, OS_error());
-      errno = saved_errno;
-      return done;
-    }
-  }
-  var ssize_t done = 0;
-  do {
-    var ssize_t retval = send(fd,buf,nbyte,0);
-    if (retval == 0) {
-      errno = ENOENT;
-      break;
-    } else if (retval < 0) {
-     #ifdef EINTR
-      if (errno != EINTR)
-     #endif
-        return retval; /* -1 */
-    } else {
-      buf += retval; done += (size_t)retval; nbyte -= (size_t)retval;
-      if (persev != persev_full)
-        break;
-    }
-  } while (nbyte != 0);
-  return done;
-}
-
-#endif
-
 /* wait for termination of a child process: */
 global int wait2 (pid_t child) {
   var int status = 0;
   /* WAIT(2V) and #include <sys/wait.h> :
      WIFSTOPPED(status)  ==  ((status & 0xFF) == 0177)
      WEXITSTATUS(status)  == ((status & 0xFF00) >> 8) */
-  while (1) {
+  while (true) {
     var int result = waitpid(child,&status,0);
     if (result != child) {
       if (result<0) {
@@ -746,15 +553,6 @@ global signal_handler_t install_signal_handler (int sig,
 #define ULONG     OS_ULONG
 #undef unused
 
-/* ------------------------------------------------------------------------ */
-
-/* The library's abort() function just makes the program exit.
- But I want to see a backtrace! */
-int abort_dummy;
-global void abort() {
-  abort_dummy = 1/0;
-}
-
 /* ----------------------------------------------------------------------- */
 
 /* Cygwin internal in <src/winsup/cygwin/times.cc>
@@ -762,8 +560,8 @@ global void abort() {
  used by syscalls and dirkey modules */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#define FACTOR LL(0x19db1ded53ea710)
-#define NSPERSEC LL(10000000)
+#define OFFSET_FROM_1601 116444736000000000LL /* number of 100ns between 1601 and 1970 */
+#define NSPERSEC 10000000LL                   /* number of 100ns in a second */
 modexp long time_t_from_filetime (const FILETIME * ptr) {
   /* A file time is the number of 100ns since jan 1 1601
      stuffed into two long words.
@@ -773,19 +571,19 @@ modexp long time_t_from_filetime (const FILETIME * ptr) {
     ((long long) ptr->dwHighDateTime << 32) + ((unsigned) ptr->dwLowDateTime);
   /* pass "no time" as epoch */
   if (x == 0) return 0;
-  x -= FACTOR;               /* number of 100ns between 1601 and 1970 */
+  x -= OFFSET_FROM_1601;
   rem = x % ((long long) NSPERSEC);
   rem += (NSPERSEC/2);
-  x /= (long long) NSPERSEC;    /* number of 100ns in a second */
+  x /= (long long) NSPERSEC;
   x += (long long) (rem/NSPERSEC);
   return x;
 }
 modexp void time_t_to_filetime (time_t time_in, FILETIME *out) {
-  long long x = time_in * NSPERSEC + FACTOR;
+  long long x = time_in * NSPERSEC + OFFSET_FROM_1601;
   out->dwHighDateTime = x >> 32;
   out->dwLowDateTime = x;
 }
-#undef FACTOR
+#undef OFFSET_FROM_1601
 #undef NSPERSEC
 
 #endif
@@ -803,8 +601,10 @@ global void close_all_fd (void) {
 #elif defined(HAVE_GETRLIMIT) && defined(RLIMIT_NOFILE)
   int fd;
   struct rlimit rl;
-  if (0 == getrlimit(RLIMIT_NOFILE,&rl)) fd = rl.rlim_cur;
-  else fd = CLISP_OPEN_MAX_FALLBACK;
+  if (getrlimit(RLIMIT_NOFILE,&rl) == 0)
+    fd = rl.rlim_cur;
+  else
+    fd = CLISP_OPEN_MAX_FALLBACK;
 #elif defined(OPEN_MAX)
   int fd = OPEN_MAX;
 #else

@@ -1,6 +1,6 @@
 /*
  * Include file for WIN32_NATIVE version of CLISP
- * Bruno Haible 1997-2008, 2017
+ * Bruno Haible 1997-2008, 2017, 2026
  * Sam Steingold 1999-2011, 2017
  */
 
@@ -34,11 +34,36 @@
 #include <shellapi.h>
 #define unused unused_void      /* restore the unused declaration */
 
-/* NtQueryInformationFile http://msdn.microsoft.com/en-us/library/ff567052.aspx
-   It uses IO_STATUS_BLOCK http://msdn.microsoft.com/en-us/library/ff567052.aspx
-   which uses NTSTATUS https://msdn.microsoft.com/en-us/library/ff565436.aspx */
-#include <winternl.h>
-#include <ntstatus.h>
+/* NtQueryInformationFile https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile
+   It uses IO_STATUS_BLOCK https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_io_status_block
+   which uses NTSTATUS https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/using-ntstatus-values */
+/* It's more trouble to include the right Microsoft header files
+   than to just declare the types that we actually need. */
+/* https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_io_status_block */
+typedef struct _IO_STATUS_BLOCK
+{
+  union {
+    NTSTATUS Status;
+    PVOID Pointer;
+  } u;
+  ULONG_PTR Information;
+} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+/* https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntqueryinformationfile */
+typedef enum _FILE_INFORMATION_CLASS {
+  FileAccessInformation = 8,
+  FileNameInformation = 9
+} FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
+/* https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_access_information */
+typedef struct _FILE_ACCESS_INFORMATION {
+  ACCESS_MASK AccessFlags;
+} FILE_ACCESS_INFORMATION, *PFILE_ACCESS_INFORMATION;
+/* https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/ns-ntddk-_file_name_information */
+typedef struct _FILE_NAME_INFORMATION {
+  ULONG FileNameLength;
+  WCHAR FileName[1];
+} FILE_NAME_INFORMATION, *PFILE_NAME_INFORMATION;
+/* https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55 */
+#define STATUS_SUCCESS ((NTSTATUS) 0)
 
 /* Table of system error messages */
 #include <winerror.h>
@@ -52,17 +77,6 @@
 
 #define HAVE_STRERROR 1
 /* used by errunix.d */
-
-/* Getting memory. */
-#include <malloc.h>
-extern void* malloc (size_t size);
-extern void free (void* memblock);
-/* used by spvw.d */
-
-/* Abrupt program termination */
-/* win32aux.d overwrites abort() */
-extern _Noreturn void abort (void);
-/* used by spvw.d, debug.d, eval.d, io.d */
 
 /* Type of a file handle */
 #define Handle  HANDLE
@@ -101,10 +115,6 @@ extern void interrupt_handler (void);
    This should be called only once, and only from the main thread. */
 extern void install_sigint_handler (void);
 /* used by spvw.d */
-
-/* Locale definition function */
-extern_C char *setlocale (int category, const char *locale);
-/* used by spvw_ctype.d */
 
 /* Character set conversion
    extern BOOL CharToOem (LPCTSTR Str, LPSTR Dst);
@@ -202,9 +212,6 @@ extern int file_id_eq (struct file_id *fi1, struct file_id *fi2);
 extern BOOL ReadConsoleInput1 (HANDLE ConsoleInput, PINPUT_RECORD Buffer, LPDWORD NumberOfEventsRead);
 /* The following functions deal with all kinds of file/pipe/console handles */
 extern int fd_read_wont_hang_p (HANDLE fd);
-#ifdef MICROSOFT
-typedef long ssize_t;
-#endif
 extern ssize_t fd_read (HANDLE fd, void* buf, size_t nbyte, perseverance_t persev);
 extern ssize_t fd_write (HANDLE fd, const void* buf, size_t nbyte, perseverance_t persev);
 #define safe_read(fd,buf,nbyte)  fd_read(fd,buf,nbyte,persev_partial)
@@ -212,15 +219,13 @@ extern ssize_t fd_write (HANDLE fd, const void* buf, size_t nbyte, perseverance_
 #define safe_write(fd,buf,nbyte)  fd_write(fd,buf,nbyte,persev_partial)
 #define full_write(fd,buf,nbyte)  fd_write(fd,buf,nbyte,persev_full)
 /* Changing the position within a file. */
-/* _off_t is sint32, but the Win32 APIs support 64-bit file offsets. */
-#define off_t  sint64
-#undef SIZEOF_OFF_T  /* on mingw, it was defined in config.h */
+/* _off_t is sint32, but the Win32 APIs support 64-bit file offsets
+   and therefore gnulib's <sys/types.h> override define off_t to sint64. */
+#undef SIZEOF_OFF_T  /* it was defined in config.h */
 #define SIZEOF_OFF_T  8
-#ifdef __MINGW32__
-  #include <io.h>
-  #undef lseek
-  #define lseek clisp_lseek /* avoid collision with prototype in <mingw/io.h> */
-#endif
+#include <io.h>
+#undef lseek
+#define lseek clisp_lseek /* avoid collision with prototype in <mingw/io.h> */
 extern off_t lseek (HANDLE fd, off_t offset, DWORD mode);
 #undef SEEK_SET
 #undef SEEK_CUR
@@ -238,13 +243,15 @@ extern off_t lseek (HANDLE fd, off_t offset, DWORD mode);
   This may cause runtime problems with W32 sockets"
  Bruno said:
  I think this warning means that read(), write() don't work on sockets
- in mingw32.  Like on BeOS.  CLISP already handles this.
+ in mingw32.
  See the #ifs around stream.d:low_write_unbuffered_socket() etc. */
 #define USE_SYS_TYPES_FD_SET
 #endif
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#include <winsock2.h> /* most socket functions */
+#include <ws2tcpip.h> /* inet_ntop, inet_pton */
+#include "sockets.h" /* gl_sockets_startup, gl_sockets_cleanup */
+#include <sys/ioctl.h> /* ioctl */
 
 #ifdef __MINGW32__
 #undef USE_SYS_TYPES_FD_SET
@@ -284,11 +291,7 @@ extern int interruptible_socket_wait (SOCKET socket_handle, socket_wait_event wa
  requires linking with wsock32.lib */
 
 /* Hacking the terminal */
-#ifdef __MINGW32__
-  /* #include <io.h> */
-  #define isatty clisp_isatty /* avoid collision with prototype in <mingw/io.h> */
-#endif
-extern int isatty (HANDLE handle); /* see win32aux.d */
+extern int handle_isatty (HANDLE handle); /* see win32aux.d */
 /* used by stream.d */
 
 /* Date and time
@@ -307,7 +310,9 @@ extern int isatty (HANDLE handle); /* see win32aux.d */
    extern struct tm * gmtime (time_t*);
    extern BOOL FileTimeToLocalFileTime (const FILETIME* FileTime, FILETIME* LocalFileTime);
    extern BOOL FileTimeToSystemTime (const FILETIME* LocalFileTime, SYSTEMTIME* LocalSystemTime);
+   extern BOOL SystemTimeToTzSpecificLocalTime (const TIME_ZONE_INFORMATION* tz, const SYSTEMTIME* UTCSystemTime, SYSTEMTIME* LocalSystemTime);
  used by time.d */
+#include "tzsanitize.h"
 
 /* Pausing
    extern void Sleep (DWORD Milliseconds);
@@ -377,13 +382,18 @@ extern void DumpProcessMemoryMap (FILE* out); /* see win32aux.d */
  used by spvw.d */
 
 #ifdef FIONBIO                  /*  */
-  /* for socket.d: non-blocking I/O a la BSD 4.2 */
+  /* for socket.d: non-blocking I/O a la BSD 4.2.
+     This uses the gnulib ioctl override, which ends up calling ioctlsocket
+     via gllib/sockets.c. */
   #define NO_BLOCK_DECL()  \
-    int non_blocking_io = 1
-  #define START_NO_BLOCK(handle, on_fail)                         \
+    unsigned long non_blocking_io = 1
+  #define START_NO_BLOCK(handle, on_fail)                      \
     if (ioctl(handle,FIONBIO,&non_blocking_io)) { on_fail; }
-  #define END_NO_BLOCK(handle, on_fail)            do {           \
-      non_blocking_io = 0;                                        \
-      if (ioctl(handle,FIONBIO,&non_blocking_io)) { on_fail; }    \
+  #define END_NO_BLOCK(handle, on_fail)            do {        \
+      non_blocking_io = 0;                                     \
+      if (ioctl(handle,FIONBIO,&non_blocking_io)) { on_fail; } \
     } while (0)
 #endif
+
+/* Disable '#define complex _complex' from ucrt/corecrt_math.h. */
+#undef complex

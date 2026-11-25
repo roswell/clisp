@@ -1,6 +1,6 @@
 /*
  * Time measuring functions for CLISP
- * Bruno Haible 1990-2005
+ * Bruno Haible 1990-2005, 2024-2026
  * Sam Steingold 1998-2011
  * German comments and names translated into English: Reini Urban 2007-12
  */
@@ -53,13 +53,13 @@ local internal_time_t realstart_time; /* real time at start of LISP session */
    < obj: optional argument passed
    > thread object (always nullobj w/o threads) */
 local inline object thread_from_arg(object obj) {
-#ifndef MULTITHREAD
+ #ifndef MULTITHREAD
   unused(obj);
   return nullobj;
-#else
+ #else
   return missingp(obj) ? nullobj :
     ((eq(T,obj)) ? (object)current_thread()->_lthread : check_thread(obj));
-#endif
+ #endif
 }
 
 /* UP: gets thread or process real start time */
@@ -68,7 +68,7 @@ local /*maygc*/ bool real_start_time(object thread, internal_time_t *tp) {
   if (eq(thread, nullobj)) /* always true when ! MT*/
     *tp = realstart_time;
   else
-#ifdef MULTITHREAD
+   #ifdef MULTITHREAD
     if (eq(thread, current_thread()->_lthread)) /* we are alive for sure */
       *tp = current_thread()->thr_realstart_time;
     else {
@@ -82,9 +82,9 @@ local /*maygc*/ bool real_start_time(object thread, internal_time_t *tp) {
       });
       skipSTACK(1);
     }
-#else /* ! MT */
+   #else /* ! MT */
     ASSERT(0); /* w/o MT thread == nullobj always */
-#endif
+   #endif
   return ret;
 }
 
@@ -122,21 +122,21 @@ global bool get_thread_run_time (internal_time_t* runtime, object thread)
  #if defined(HAVE_GETRUSAGE)
   var struct rusage rusage;
   var int who = RUSAGE_SELF;
-#ifdef MULTITHREAD
-  if (!eq(thread, nullobj)) {
-  #ifdef RUSAGE_THREAD
-    /* we can obtain info only about current thread */
-    if (!eq(thread, current_thread()->_lthread))
-      return false;
-    who = RUSAGE_THREAD;
+  #ifdef MULTITHREAD
+    if (!eq(thread, nullobj)) {
+    #ifdef RUSAGE_THREAD
+      /* we can obtain info only about current thread */
+      if (!eq(thread, current_thread()->_lthread))
+        return false;
+      who = RUSAGE_THREAD;
+    #else
+      /* TODO: implement for UNIX_MACOSX */
+      return false; /* no RUSAGE_THREAD  */
+    #endif
+    }
   #else
-    /* TODO: implement for UNIX_MACOSX */
-    return false; /* no RUSAGE_THREAD  */
+    unused(thread);
   #endif
-  }
-#else
-  unused(thread);
-#endif
   begin_system_call();
   if (!( getrusage(who,&rusage) ==0)) { OS_error(); }
   end_system_call();
@@ -145,9 +145,9 @@ global bool get_thread_run_time (internal_time_t* runtime, object thread)
  #elif defined(HAVE_SYS_TIMES_H)
   var uintL used_time;     /* consumed time, measured in 1/HZ seconds */
   var struct tms tms;
-#ifdef MULTITHREAD
-  if (!eq(thread, nullobj)) return false;
-#endif
+  #ifdef MULTITHREAD
+    if (!eq(thread, nullobj)) return false;
+  #endif
   begin_system_call();
   if (times(&tms) == (clock_t)(-1))
     used_time = 0;             /* times() failed -> used_time unknown */
@@ -192,7 +192,7 @@ global bool get_thread_run_time (internal_time_t* runtime, object thread)
   var FILETIME kernel_time;
   var FILETIME user_time;
   var BOOL time_obtained;
-#ifdef MULTITHREAD
+ #ifdef MULTITHREAD
   if (!eq(thread, nullobj)) {
     time_obtained = FALSE;
     var HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION , FALSE,
@@ -204,7 +204,7 @@ global bool get_thread_run_time (internal_time_t* runtime, object thread)
     }
     if (!time_obtained) return false;
   } else
-#endif
+ #endif
   {
     begin_system_call();
     time_obtained = GetProcessTimes(GetCurrentProcess(),&creation_time,
@@ -360,16 +360,19 @@ global void convert_time (const time_t* time, decoded_time_t* timepoint)
    timepoint.day, timepoint.month, timepoint.year. All as fixnums */
 global void convert_time (const FILETIME* time, decoded_time_t* timepoint)
 {
-  var FILETIME ltime;
-  var SYSTEMTIME ltm;
-  if (!FileTimeToLocalFileTime(time,&ltime)) { OS_error(); }
-  if (!FileTimeToSystemTime(&ltime,&ltm)) { OS_error(); }
-  timepoint->seconds = fixnum(ltm.wSecond);
-  timepoint->minutes = fixnum(ltm.wMinute);
-  timepoint->hours   = fixnum(ltm.wHour);
-  timepoint->day     = fixnum(ltm.wDay);
-  timepoint->month   = fixnum(ltm.wMonth);
-  timepoint->year    = fixnum(ltm.wYear);
+  /* Convert like
+     <https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-filetimetolocalfiletime>
+     suggests. */
+  var SYSTEMTIME systime;
+  var SYSTEMTIME lsystime;
+  if (!FileTimeToSystemTime(time,&systime)) { OS_error(); }
+  if (!SystemTimeToTzSpecificLocalTime(NULL,&systime,&lsystime)) { OS_error(); }
+  timepoint->seconds = fixnum(lsystime.wSecond);
+  timepoint->minutes = fixnum(lsystime.wMinute);
+  timepoint->hours   = fixnum(lsystime.wHour);
+  timepoint->day     = fixnum(lsystime.wDay);
+  timepoint->month   = fixnum(lsystime.wMonth);
+  timepoint->year    = fixnum(lsystime.wYear);
 }
 #endif
 
@@ -383,11 +386,11 @@ modexp maygc object convert_time_to_universal (const time_t* time)
 {
   /* Since we get the timezone from the OS (sys::default-time-zone),
      we can assume that the OS's timezone and CLISP's timezone agree. */
-  return UL_to_I(UNIX_LISP_TIME_DIFF + (uintL)(*time));
+  return Q_to_I(UNIX_LISP_TIME_DIFF + (sint64)(*time));
 }
 /* the inverse of convert_time_to_universal() */
 modexp void convert_time_from_universal (object universal, time_t* time) {
-  *time = I_to_UL(universal) - UNIX_LISP_TIME_DIFF;
+  *time = I_to_Q(universal) - UNIX_LISP_TIME_DIFF;
 }
 #endif
 
@@ -401,14 +404,10 @@ modexp maygc object convert_time_to_universal (const FILETIME* time) {
   /* Since we get the timezone from the OS (sys::defaul-time-zone),
      we can assume that the OS's timezone and CLISP's timezone agree. */
   var internal_time_t offset = /* difference between 1.1.1601 and 1.1.1900 */
-   #ifdef HAVE_LONG_LONG_INT
     { (ULONG)((ULONGLONG)109207 * (ULONGLONG)86400
               * (ULONGLONG)ticks_per_second),
       (ULONG)(((ULONGLONG)109207 * (ULONGLONG)86400
                * (ULONGLONG)ticks_per_second) >> 32) };
-   #else
-    { 0xFDE04000, 0x14F373B };
-   #endif
   var internal_time_t internal_real_time;
   var uintL uni_high, uni_low, r1;
   sub_internal_time(*time,offset,internal_real_time);
@@ -433,25 +432,21 @@ modexp void convert_time_from_universal (object universal, FILETIME* time) {
  Wall clock time is measured with second resolution only.
 
 Returns the wall clock time in seconds (since session start or 1900-01-01).*/
-local uintL real_time_sec (void)
+local sint64 real_time_sec (void)
 {
  #if defined(TIME_UNIX)
-  var uintL real_time;     /* seconds */
+  var sint64 real_time;     /* seconds */
   var internal_time_t it;
   get_real_time(&it);
-  real_time = UNIX_LISP_TIME_DIFF + it.tv_sec;
+  real_time = UNIX_LISP_TIME_DIFF + (sint64)(it.tv_sec);
  #elif defined(TIME_WIN32)
   var internal_time_t offset = /* difference between 1.1.1601 and 1.1.1900 */
-   #ifdef HAVE_LONG_LONG_INT
     { (ULONG)((ULONGLONG)109207 *
               (ULONGLONG)86400 * (ULONGLONG)ticks_per_second),
       (ULONG)(((ULONGLONG)109207 *
                (ULONGLONG)86400 * (ULONGLONG)ticks_per_second) >> 32)};
-   #else
-    { 0xFDE04000, 0x14F373B };
-   #endif
   var internal_time_t internal_real_time;
-  var uintL real_time;
+  var sint64 real_time;
   get_real_time(&internal_real_time);
   sub_internal_time(internal_real_time,offset,internal_real_time);
   divu_6432_3232(internal_real_time.dwHighDateTime,
@@ -466,24 +461,24 @@ local uintL real_time_sec (void)
 
 LISPFUNNR(get_universal_time,0)
 { /* (get-universal-time), CLTL p. 445 */
-  VALUES1(UL_to_I(real_time_sec()));
+  VALUES1(Q_to_I(real_time_sec()));
 }
 
 /* UP: Initialises the time variables at the LISP session/thread start.
  init_time(); */
 void init_time () {
-#ifdef MULTITHREAD
+ #ifdef MULTITHREAD
   get_real_time(&current_thread()->thr_realstart_time);
   if (!realstart_time_initialized) {
     realstart_time = current_thread()->thr_realstart_time;
     realstart_time_initialized = true;
   }
-#else /* ! MT */
+ #else /* ! MT */
   if (!realstart_time_initialized) {
     get_real_time(&realstart_time);
     realstart_time_initialized = true;
   }
-#endif
+ #endif
 }
 
 /* ------------------------------------------------------------------------
@@ -493,30 +488,30 @@ void init_time () {
 local sintL seconds_west (time_t *now, int *isdst) {
   /* localtime() and gmtime() may return the same location,
      so we have to copy the returned structure contents: */
-#if !defined(MULTITHREAD) || defined(WIN32)
-  /* on win32 localtime() and gmtime() are thread safe
-     (and mingw uses them) */
-  #define LOCALTIME_R(timer,result) do {  \
-    struct tm *now_ = localtime(timer);   \
-    if (now_ == NULL) OS_error(); else *result = *now_; } while (0)
-  #define GMTIME_R(timer,result) do {  \
-    struct tm *now_ = gmtime(timer);   \
-    if (now_ == NULL) OS_error(); else *result = *now_; } while (0)
-#else
-  #define LOCALTIME_R(timer,result) do {               \
-    if (NULL == localtime_r(timer,result)) OS_error(); \
-  } while(0)
-  #define GMTIME_R(timer,result) do {             \
-    if (NULL == gmtime_r(timer,result)) OS_error(); \
-  } while(0);
-#endif
+  #if !defined(MULTITHREAD) || defined(WIN32)
+    /* on win32 localtime() and gmtime() are thread safe
+       (and mingw uses them) */
+    #define LOCALTIME_R(timer,result) do {  \
+      struct tm *now_ = localtime(timer);   \
+      if (now_ == NULL) OS_error(); else *result = *now_; } while (0)
+    #define GMTIME_R(timer,result) do {  \
+      struct tm *now_ = gmtime(timer);   \
+      if (now_ == NULL) OS_error(); else *result = *now_; } while (0)
+  #else
+    #define LOCALTIME_R(timer,result) do {               \
+      if (localtime_r(timer,result) == NULL) OS_error(); \
+    } while(0)
+    #define GMTIME_R(timer,result) do {             \
+      if (gmtime_r(timer,result) == NULL) OS_error(); \
+    } while(0);
+  #endif
   var struct tm now_local;
   var struct tm now_gm;
   begin_system_call();
   LOCALTIME_R(now,&now_local);
   GMTIME_R(now,&now_gm);
   end_system_call();
-#undef LOCATIME_R
+#undef LOCALTIME_R
 #undef GMTIME_R
   /* note that secondswest is NOT the same as
           mktime(&now_gm) - mktime(&now_local);
@@ -591,7 +586,7 @@ LISPFUNN(psleep,2)
   var uintL useconds = posfixnum_to_V(popSTACK());
   var uintL seconds = posfixnum_to_V(popSTACK());
   begin_system_call();
-  while (1) {
+  while (true) {
     var struct timeval start_time;
     var struct timeval end_time;
     if (!( gettimeofday(&start_time,NULL) ==0)) { OS_error(); }
@@ -601,7 +596,11 @@ LISPFUNN(psleep,2)
       var struct timeval timeout; /* Zeitintervall */
       timeout.tv_sec = seconds; timeout.tv_usec = useconds;
       var int result;
+      #ifdef UNIX_HAIKU /* work around https://dev.haiku-os.org/ticket/19220 */
+      result = select(1,NULL,NULL,NULL,&timeout);
+      #else
       result = select(FD_SETSIZE,NULL,NULL,NULL,&timeout);
+      #endif
       if ((result<0) && !(errno==EINTR)) { end_blocking_call(); OS_error(); }
     }
    #else
@@ -714,24 +713,15 @@ LISPFUN(pptime,seclass_read,0,1,norest,nokey,0,NIL)
   {
     var uintM used = used_space(); /* currently used space */
     /* add both: */
-   #ifdef intQsize
     tm.gcfreed += used;
-   #else
-    if ((tm.gcfreed.lo += used) < used) { tm.gcfreed.hi += 1; }
-   #endif
   }
   /* Now tm.gcfreed = so far required space at all */
   #if (oint_data_len<24)
   #error SYSTEM::%%TIME: oint_data_len too small
   #endif
   /* decode into 24 bits pieces: */
- #ifdef intQsize
   pushSTACK(fixnum( (tm.gcfreed>>24) & (bit(24)-1) ));
   pushSTACK(fixnum( tm.gcfreed & (bit(24)-1) ));
- #else
-  pushSTACK(fixnum( ((tm.gcfreed.hi << 8) + (tm.gcfreed.lo >> 24)) & (bit(24)-1) ));
-  pushSTACK(fixnum( tm.gcfreed.lo & (bit(24)-1) ));
- #endif
   /* last value: GC count */
   pushSTACK(fixnum(tm.gccount));
   STACK_to_mv(9);               /* return 9 values */

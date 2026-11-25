@@ -1,6 +1,6 @@
 /*
  * (SPVW = Speicherverwaltung): Memory Management for CLISP
- * Bruno Haible 1990-2011, 2016-2018
+ * Bruno Haible 1990-2011, 2016-2026
  * Sam Steingold 1998-2013, 2016-2017
  * German comments translated into English: Stefan Kain 2002-03-24
 
@@ -267,7 +267,7 @@ local void dump_process_memory_map (FILE* out)
 local int mappable_address_range_check (void)
 {
   var int exitcode = 0;
-#if defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO) || defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM)
+#if defined(HAVE_MMAP_ANON) || defined(HAVE_WIN32_VM)
  #if defined(MAPPABLE_ADDRESS_RANGE_START) && defined(MAPPABLE_ADDRESS_RANGE_END)
   var const uintL count = 256;
   var uintL i;
@@ -581,8 +581,8 @@ modexp uintL* current_thread_alloccount()
      return true;
     #else /* assume fairly recent pthreads implementation */
      var pthread_attr_t attr;
-     if (0 == pthread_getattr_np(pthread_self(), &attr)) {
-       var bool ret = (0 == pthread_attr_getstack(&attr, (void **)base, size));
+     if (pthread_getattr_np(pthread_self(), &attr) == 0) {
+       var bool ret = (pthread_attr_getstack(&attr, (void **)base, size) == 0);
        pthread_attr_destroy(&attr);
        return ret;
      }
@@ -1119,7 +1119,7 @@ modexp uintL asciz_length (const char * asciz) {
  < result: true if both sequences are equal */
 modexp bool asciz_equal (const char * asciz1, const char * asciz2) {
   /* compare bytes until the first nullbyte: */
-  while (1) {
+  while (true) {
     var char ch1 = *asciz1++;
     if (ch1 != *asciz2++) goto no;
     if (ch1 == '\0') goto yes;
@@ -1135,7 +1135,7 @@ modexp bool asciz_equal (const char * asciz1, const char * asciz2) {
  < result: true if both sequences are equal up to the length of the second */
 modexp bool asciz_startswith (const char *asciz, const char *prefix) {
   /* compare bytes until the first nullbyte: */
-  while (1) {
+  while (true) {
     var char ch = *prefix++;
     if (ch == '\0') return true;
     if (ch != *asciz++) return false;
@@ -1170,12 +1170,12 @@ modexp void* clisp_realloc (void* ptr, size_t size)
   error(storage_condition,GETTEXT("~S: realloc() failed"));
 }
 
-#if (int_bitsize < long_bitsize) && !defined(MULTITHREAD)
+#if (int_bitsize < pointer_bitsize) && !defined(MULTITHREAD)
 /* passing value from longjmpl() to setjmpl()  : */
 #if DYNAMIC_TABLES && defined(export_unwind_protect_macros)
 modexp
 #endif
-long jmpl_value;
+intptr_t jmpl_value;
 #endif
 
 #ifdef NEED_OWN_GETSP
@@ -1628,7 +1628,7 @@ local void init_symbol_tab_2 (void) {
       pname_ptr++;
       var uintB this_index = *index_ptr++;
       var gcv_object_t* package_ = /* pointer to the package */
-        &STACK_(package_count-1) STACKop -(uintP)this_index;
+        &STACK_(package_count-1) STACKop -(sintP)this_index;
       pushSTACK(symbol_tab_ptr_as_object(ptr)); /* Symbol */
       import(&STACK_0,package_);                /* import normally */
       switch (this_index) {
@@ -1986,9 +1986,6 @@ local void init_object_tab (void) {
      #ifdef UNIX_CYGWIN
       " :CYGWIN"
      #endif
-     #ifdef UNIX_BEOS
-      " :BEOS"
-     #endif
      #ifdef UNIX_HAIKU
       " :HAIKU"
      #endif
@@ -2041,11 +2038,11 @@ local void initmem (void) {
    finish initialization of subr_tab: */
   init_subr_tab_2();
   /* initialize packages: */
-#ifdef MULTITHREAD
-  /* initialize O(all_mutexes) since every packages creates ones that
-     is added to it */
-  O(all_mutexes) = NIL;
-#endif
+  #ifdef MULTITHREAD
+    /* initialize O(all_mutexes) since every packages creates ones that
+       is added to it */
+    O(all_mutexes) = NIL;
+  #endif
   init_packages();
   init_encodings_1(); /* init some encodings (utf_8 for init_symbol_tab_2) */
   /* finish initialization of symbol_tab: */
@@ -2217,20 +2214,19 @@ local void arg_error (const char *error_message, const char *arg) {
 /* print license */
 local _Noreturn void print_license (void) {
   local const char * const license [] = {
-    PACKAGE_NAME " is free software; you can redistribute and/or modify it\n",
-    "under the terms of the GNU General Public License as published by\n",
-    "the Free Software Foundation; either version 2, or (at your option)\n",
-    "any later version.\n",
+    PACKAGE_NAME " is free software: you can redistribute it and/or modify\n",
+    "it under the terms of the GNU General Public License as published\n",
+    "by the Free Software Foundation; either version 2 of the License,\n",
+    "or (at your option) any later version.\n",
     "\n",
     PACKAGE_NAME " is distributed in the hope that it will be useful,\n",
     "but WITHOUT ANY WARRANTY; without even the implied warranty of\n",
-    "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n",
-    "See the GNU General Public License for more details.\n",
+    "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n",
+    "GNU General Public License for more details.\n",
     "\n",
     "You should have received a copy of the GNU General Public License\n",
-    "along with " PACKAGE_NAME ", see file GNU-GPL.\n",
-    "If not, write to the Free Software Foundation, Inc.,\n",
-    "51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.\n",
+    "along with " PACKAGE_NAME ", in the file GNU-GPL.  If not, see\n",
+    "<https://www.gnu.org/licenses/>.\n",
     "\n",
     "Distribution of Lisp programs meant to run in " PACKAGE_NAME "\n",
     "without sources is possible under certain conditions.\n",
@@ -2391,7 +2387,7 @@ local maygc void install_global_handlers (on_error_t on_error)
       pushSTACK(S(serious_condition));
       pushSTACK(Symbol_function(S(abortonerror)));
       funcall(S(set_global_handler),2);
-    } /*FALLTHROUGH*/
+    } FALLTHROUGH;
     case ON_ERROR_APPEASE: appease: {
       pushSTACK(S(error)); pushSTACK(Symbol_function(S(appease_cerror)));
       funcall(S(set_global_handler),2); return;
@@ -2523,7 +2519,7 @@ local inline int size_arg (const char *arg, const char *docstring, uintM *ret,
   }
   switch (*arg) {
     case 'w': case 'W':            /* in words */
-      val *= sizeof(gcv_object_t); /*FALLTHROUGH*/
+      val *= sizeof(gcv_object_t); FALLTHROUGH;
     case 'b': case 'B':            /* in bytes */
       arg++; break;
   }
@@ -2666,7 +2662,7 @@ local inline int parse_options (int argc, const char* const* argv,
     /* loop and process options, replace processed options with NULL: */
     while (argptr < argptr_limit) {
       var const char* arg = *argptr++; /* next argument */
-      if (0 == strncmp(arg,"--clisp",7)) {
+      if (strncmp(arg,"--clisp",7) == 0) {
         arg += 7; clisp_superarg_used = true;
       } else if (delegating) goto non_option;
       if ((arg[0] == '-') && !(arg[1] == '\0')) {
@@ -2687,8 +2683,10 @@ local inline int parse_options (int argc, const char* const* argv,
               if (arg[2] == '\0') {             \
                 if (argptr < argptr_limit)      \
                   arg = *argptr++;              \
-                else INVALID_ARG(arg);          \
-              } else arg += 2
+                else                            \
+                  INVALID_ARG(arg);             \
+              } else                            \
+                arg += 2
           case 'm':             /* memory size  */
             if (arg[2]=='m' && arg[3]=='\0') { /* "-mm" -> print a memory map */
               #if defined(WIN32_NATIVE)
@@ -3098,7 +3096,7 @@ local inline int init_memory (struct argv_initparams *p) {
   }
   /* fetch memory: */
   begin_system_call();
- #if (defined(SINGLEMAP_MEMORY) || defined(TRIVIALMAP_MEMORY) || defined(MULTITHREAD)) && (defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO) || defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM))
+ #if (defined(SINGLEMAP_MEMORY) || defined(TRIVIALMAP_MEMORY) || defined(MULTITHREAD)) && (defined(HAVE_MMAP_ANON) || defined(HAVE_WIN32_VM))
   mmap_init_pagesize();
  #endif
  #if defined(SINGLEMAP_MEMORY) || defined(TRIVIALMAP_MEMORY)
@@ -3174,7 +3172,7 @@ local inline int init_memory (struct argv_initparams *p) {
     /* No need to call mymalloc at all. */
     memblock = 0;
    #else
-    while (1) {
+    while (true) {
       /* Try to allocate memory. */
       memblock = (aint)mymalloc(memneed);
       VAROUT(memneed); VAROUT(memblock);
@@ -3237,13 +3235,6 @@ local inline int init_memory (struct argv_initparams *p) {
           var Heap* heapptr = &mem.heaps[heapnr];
           var uintP heap_start_addr = (uintP)(type_zero_oint(heapnr)+SINGLEMAP_ADDRESS_BASE);
           var uintP heap_end_addr = (uintP)(type_zero_oint(heapnr+1)+SINGLEMAP_ADDRESS_BASE);
-         #if defined(UNIX_IRIX) && (defined(MIPS) || defined(MIPS64))
-          /* Avoid "Warning: reserving address range 0x5f000000...0x5fffffff that contains memory mappings."
-             and   "Warning: reserving address range 0x5e000000...0x5effffff that contains memory mappings." */
-          if (heap_end_addr == 0x60000000UL || heap_end_addr == 0x5F000000UL) {
-            heap_end_addr -= 0x800000UL;
-          }
-         #endif
           heapptr->heap_limit = heap_start_addr;
           heapptr->heap_hardlimit = heap_end_addr;
           if (mem.heaptype[heapnr] >= -1) {
@@ -3278,12 +3269,12 @@ local inline int init_memory (struct argv_initparams *p) {
       /* Distinguish between ONE_FREE_BIT_HEAPCODES and the other HEAPCODES schemes. */
       if (bit_to_avoid >= 16) {
         /* Modify the range so that its endpoints don't contain bit_to_avoid. */
-        if (start & bit(bit_to_avoid)) {
-          start |= bit(bit_to_avoid)-1;
+        if (start & wbit(bit_to_avoid)) {
+          start |= wbit(bit_to_avoid)-1;
           start++;
         }
-        if (end & bit(bit_to_avoid)) {
-          end &= minus_bit(bit_to_avoid);
+        if (end & wbit(bit_to_avoid)) {
+          end &= minus_wbit(bit_to_avoid);
           end--;
         }
         if (!(start < end)) {
@@ -3297,18 +3288,18 @@ local inline int init_memory (struct argv_initparams *p) {
           if (difference > 0) {
             if (difference == 1) {
               /* Use the larger of the two available intervals. */
-              var uintP length1 = (start | (bit(bit_to_avoid)-1)) - start;
-              var uintP length2 = end - (end & minus_bit(bit_to_avoid));
+              var uintP length1 = (start | (wbit(bit_to_avoid)-1)) - start;
+              var uintP length2 = end - (end & minus_wbit(bit_to_avoid));
               if (length1 >= length2) {
-                end = start | (bit(bit_to_avoid)-1);
+                end = start | (wbit(bit_to_avoid)-1);
               } else {
-                start = end & minus_bit(bit_to_avoid);
+                start = end & minus_wbit(bit_to_avoid);
               }
             } else {
               /* The largest available interval has length 2^bit_to_avoid. */
-              start |= bit(bit_to_avoid+1)-1;
+              start |= wbit(bit_to_avoid+1)-1;
               start++;
-              end = start | (bit(bit_to_avoid)-1);
+              end = start | (wbit(bit_to_avoid)-1);
             }
           }
         }
@@ -3375,11 +3366,12 @@ local inline int init_memory (struct argv_initparams *p) {
        return -1;
      }
      #ifdef TRIVIALMAP_MEMORY_STACK
-      /* Allocate at most 1/8, but at most 100000 words, for the STACK. */
+      /* Allocate at most 1/8, but at most 200000 words, for the STACK.
+         McCLIM reportedly uses more than 100000 words of STACK.  */
       {
         var uintP size_for_STACK = (end - start) / 8;
-        if (size_for_STACK > 100000*sizeof(gcv_object_t)) {
-          size_for_STACK = 100000*sizeof(gcv_object_t);
+        if (size_for_STACK > 200000*sizeof(gcv_object_t)) {
+          size_for_STACK = 200000*sizeof(gcv_object_t);
         }
         size_for_STACK &= ~(uintP)0xFFFF; /* start must remain a multiple of physpagesize */
         var aint low = start;
@@ -3651,8 +3643,9 @@ local inline int init_memory (struct argv_initparams *p) {
     loadmem(p->argv_memfile);   /* load memory file */
   else if (!loadmem_from_executable())
     p->argv_memfile = get_executable_name();
-  else initmem();               /* manual initialization */
-#if defined(MULTITHREAD)
+  else
+    initmem();                  /* manual initialization */
+ #if defined(MULTITHREAD)
   /* clear the list of threads. the one that we have loaded contains
      single thread record which is invalid.*/
   O(all_threads) = NIL;
@@ -3660,7 +3653,7 @@ local inline int init_memory (struct argv_initparams *p) {
      calculated STACK size, since the memory image may change it */
   Symbol_value(S(default_value_stack_size)) =
     uint32_to_I(STACK_item_count(STACK_bound,STACK_start));
-#endif
+ #endif
   /* init O(current_language) */
   O(current_language) = current_language_o();
   /* set current evaluator-environments to the toplevel-value: */
@@ -3741,7 +3734,8 @@ local inline void main_actions (struct argv_actions *p) {
     do { pushSTACK(asciz_to_string(*execute_arg_ptr++,O(misc_encoding))); }
     while (--count);
     Symbol_value(S(args)) = listof(p->argv_execute_arg_count);
-  } else Symbol_value(S(args)) = NIL;
+  } else
+    Symbol_value(S(args)) = NIL;
   if (p->argv_execute_file != NULL && p->argv_compile) {
     push_to_args(p->argv_execute_file); /* compiling: (push exec-file *args*) */
   }
@@ -3849,7 +3843,8 @@ local inline void main_actions (struct argv_actions *p) {
       && nullp(ThePathname(value1)->pathname_type))
     /* ~/.clisp/ exists and is a directory */
     Symbol_value(S(user_lib_directory)) = value1;
-  else Symbol_value(S(user_lib_directory)) = NIL;
+  else
+    Symbol_value(S(user_lib_directory)) = NIL;
   /* load RC file ~/.clisprc */
   if (nullpSv(norc) && !p->argv_norc && p->argv_memfile) {
     var gcv_object_t* top_of_frame = STACK; /* pointer over frame */
@@ -4101,23 +4096,23 @@ global int main (argc_t argc, char* argv[]) {
    print banner.
    jump into the driver.
   This is also described in <doc/impext.xml#cradle-grave>! */
-#if defined(MULTITHREAD)
-/* if on 32 bit machine, no per_thread and asked by the user*/
-  #if USE_CUSTOM_TLS == 2
-  tse __tse_entry;
-  tse *__thread_tse_entry=&__tse_entry;
-  #endif
-  /* initialize main thread */
-  {
-    init_multithread();
-    init_heaps_mt();
-    set_current_thread(create_thread(0));
-    #ifdef DEBUG_GCSAFETY
-      use_dummy_alloccount=false; /* now we have threads */
-      current_thread()->_alloccount=1;
+  #if defined(MULTITHREAD)
+  /* if on 32 bit machine, no per_thread and asked by the user*/
+    #if USE_CUSTOM_TLS == 2
+    tse __tse_entry;
+    tse *__thread_tse_entry=&__tse_entry;
     #endif
-  }
-#endif
+    /* initialize main thread */
+    {
+      init_multithread();
+      init_heaps_mt();
+      set_current_thread(create_thread(0));
+      #ifdef DEBUG_GCSAFETY
+        use_dummy_alloccount=false; /* now we have threads */
+        current_thread()->_alloccount=1;
+      #endif
+    }
+  #endif
   init_lowest_level(argv);
   init_stream_osdeps();
   var struct argv_init_c argv0;
@@ -4135,6 +4130,14 @@ global int main (argc_t argc, char* argv[]) {
    (This must come last, because it may unset environment variable LC_ALL) */
  #ifdef GNU_GETTEXT
   init_language(argv0.argv_language,argv0.argv_localedir,false);
+ #endif
+  /* Deal with TZ.
+     This is needed, so that with a mingw/MSVCRT build in a Cygwin enviroment,
+     in a German locale
+       $ TZ=Europe/Berlin ./lisp -M lispinit.mem -N locale -q -x '(sys::default-time-zone 1111053 t)'
+     returns -2;T (correct), not -1;T (incorrect). */
+ #ifdef WIN32_NATIVE
+  tzsanitize();
  #endif
 
   /* Initialize memory and load a memory image (if specified). */
@@ -4159,32 +4162,32 @@ global int main (argc_t argc, char* argv[]) {
      default: ;
   }
   SP_anchor = (void*)SP(); /* VTZ: in MT current_thread() should be initialized */
-#if defined(MULTITHREAD)
-  /* after heap is initialized - allocate thread record for main thread.
-     no locking is needed here*/
-  {
-    /* VTZ:TODO when we are loaded from mem file - we should restore the
-     threads from there.
-     Currently we just register our main thread and do not care what we have in
-     mem file!!! Threads do not survive mem file save/restore - just create
-     garbage in it :( */
-    /* TODO: give better name :)*/
-    var object thr_name = coerce_imm_ss(ascii_to_string(GETTEXT("main thread")));
-    pushSTACK(thr_name);
-    pushSTACK(allocate_thread(&STACK_0));
-    var object new_cons=allocate_cons();
-    var object lthr;
-    /* add to all_threads global */
-    Car(new_cons) = lthr = popSTACK();
-    Cdr(new_cons) = O(all_threads);
-    O(all_threads) = new_cons;
-    /* initialize the thread references */
-    current_thread()->_lthread=lthr;
-    TheThread(lthr)->xth_globals=current_thread();
-    TheThread(lthr)->xth_system=xthread_self();
-    skipSTACK(1);
-  }
-#endif
+  #if defined(MULTITHREAD)
+    /* after heap is initialized - allocate thread record for main thread.
+       no locking is needed here*/
+    {
+      /* VTZ:TODO when we are loaded from mem file - we should restore the
+       threads from there.
+       Currently we just register our main thread and do not care what we have in
+       mem file!!! Threads do not survive mem file save/restore - just create
+       garbage in it :( */
+      /* TODO: give better name :)*/
+      var object thr_name = coerce_imm_ss(ascii_to_string(GETTEXT("main thread")));
+      pushSTACK(thr_name);
+      pushSTACK(allocate_thread(&STACK_0));
+      var object new_cons=allocate_cons();
+      var object lthr;
+      /* add to all_threads global */
+      Car(new_cons) = lthr = popSTACK();
+      Cdr(new_cons) = O(all_threads);
+      O(all_threads) = new_cons;
+      /* initialize the thread references */
+      current_thread()->_lthread=lthr;
+      TheThread(lthr)->xth_globals=current_thread();
+      TheThread(lthr)->xth_system=xthread_self();
+      skipSTACK(1);
+    }
+  #endif
   /* if the image was read from the executable, argv1.argv_memfile was
      set to exec name and now it has to be propagated to argv2.argv_memfile
      to avoid the beginner warning */
@@ -4203,7 +4206,7 @@ global int main (argc_t argc, char* argv[]) {
 
  #if defined(WIN32_NATIVE)
   /* cannot do it in init_win32 - too early */
-  if (isatty(stdout_handle)) {
+  if (handle_isatty(stdout_handle)) {
     var HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
     if (handle!=INVALID_HANDLE_VALUE) {
       var CONSOLE_SCREEN_BUFFER_INFO info;
@@ -4221,22 +4224,22 @@ global int main (argc_t argc, char* argv[]) {
   update_linelength();
  #endif
   /* handling of async interrupts with single thread */
-#if !defined(MULTITHREAD)
-  /* establish interrupt-handler: */
- #if (defined(HAVE_SIGNALS) && defined(UNIX)) || defined(WIN32_NATIVE)
-  /* install Ctrl-C-Handler: */
-  install_sigint_handler();
+ #if !defined(MULTITHREAD)
+   /* establish interrupt-handler: */
+   #if (defined(HAVE_SIGNALS) && defined(UNIX)) || defined(WIN32_NATIVE)
+    /* install Ctrl-C-Handler: */
+    install_sigint_handler();
+   #endif
+   #ifdef HAVE_SIGNALS
+    install_sigcld_handler();
+    install_sigterm_handler();    /* install SIGTERM &c handlers */
+   #endif
+ #else
+   #ifdef HAVE_SIGNALS
+    install_sigcld_handler();
+   #endif
+    install_async_signal_handlers();
  #endif
- #ifdef HAVE_SIGNALS
-  install_sigcld_handler();
-  install_sigterm_handler();    /* install SIGTERM &c handlers */
- #endif
-#else
- #ifdef HAVE_SIGNALS
-  install_sigcld_handler();
- #endif
-  install_async_signal_handlers();
-#endif
  #if defined(HAVE_SIGNALS) && defined(SIGPIPE)
   install_sigpipe_handler();
  #endif
@@ -4287,40 +4290,40 @@ global int main (argc_t argc, char* argv[]) {
     }
   }
   /* Perform the desired actions (compilations, read-eval-print loop etc.): */
-#if defined(MULTITHREAD)
-  /* may be set it as command line  parameter  - it should be big enough */
-  #define MAIN_THREAD_C_STACK (1024*1024*16)
-  SP_anchor=(void *)&argv2;
-  {
-    var xthread_t thr;
-    var clisp_thread_t *param = current_thread();
-    /* Remove the current thread from threads map */
-  #if USE_CUSTOM_TLS == 3
-    /* Since initial thread stack is growable (at least on linux), the
-       stack range mapped when thread was registered is maximum possible one.
-       Now pthread_attr_getstack will return (most probably) different range
-       (smaller) and if we try to unmap it - there will be some mappings left.
-       This is not a problem in general but it helps for debugging to clear
-       the whole map.*/
-    memset(threads_map, 0, sizeof(threads_map));
-  #elif USE_CUSTOM_TLS == 2
-    /* we can use set_current_thread(NULL) as well but this will leave
-       a dummy bucket in the hash table and may slow down the lookups.
-       better - remove entirely */
-    tsd_remove_specific();
+  #if defined(MULTITHREAD)
+    /* may be set it as command line  parameter  - it should be big enough */
+    #define MAIN_THREAD_C_STACK (1024*1024*16)
+    SP_anchor=(void *)&argv2;
+    {
+      var xthread_t thr;
+      var clisp_thread_t *param = current_thread();
+      /* Remove the current thread from threads map */
+     #if USE_CUSTOM_TLS == 3
+      /* Since initial thread stack is growable (at least on linux), the
+         stack range mapped when thread was registered is maximum possible one.
+         Now pthread_attr_getstack will return (most probably) different range
+         (smaller) and if we try to unmap it - there will be some mappings left.
+         This is not a problem in general but it helps for debugging to clear
+         the whole map.*/
+      memset(threads_map, 0, sizeof(threads_map));
+     #elif USE_CUSTOM_TLS == 2
+      /* we can use set_current_thread(NULL) as well but this will leave
+         a dummy bucket in the hash table and may slow down the lookups.
+         better - remove entirely */
+      tsd_remove_specific();
+     #else
+      set_current_thread(NULL); /* no associated lisp thread */
+     #endif
+      xthread_create(&thr, mt_main_actions, param, MAIN_THREAD_C_STACK);
+    }
+    thr_signal_handler = xthread_self();
+    /* let's handle signals now :)*/
+    signal_handler_thread(0);
+    /* NOTREACHED */
   #else
-    set_current_thread(NULL); /* no associated lisp thread */
+    main_actions(&argv2);
+    quit();
   #endif
-    xthread_create(&thr, mt_main_actions, param, MAIN_THREAD_C_STACK);
-  }
-  thr_signal_handler = xthread_self();
-  /* let's handle signals now :)*/
-  signal_handler_thread(0);
-  /* NOTREACHED */
-#else
-  main_actions(&argv2);
-  quit();
-#endif
   /*NOTREACHED*/
  } /* end var bt */
   /* if the memory does not suffice: */
@@ -4380,12 +4383,15 @@ local _Noreturn void quit_instantly (int exitcode)
 global int final_exitcode = 0;
 global bool quit_on_signal_in_progress = false;
 local int quit_retry = 0;
+local _GL_NORETURN_FUNCPTR void quit_restartf (gcv_object_t* upto_frame) {
+  quit();
+}
 global _GL_NORETURN_FUNC void quit (void) {
   /* first "unwind" the STACK downto STACK-end: */
   VALUES0; /* do not save values for UNWIND-PROTECT-frames */
-  unwind_protect_to_save.fun = (restartf_t)&quit;
+  unwind_protect_to_save.fun = &quit_restartf;
   while (!(eq(STACK_0,nullobj) && eq(STACK_1,nullobj)))
-    if (framecode(STACK_0) & bit(frame_bit_t))
+    if (framecode(STACK_0) & fbit(frame_bit_t))
       /* At STACK_0 a frame starts */
       { unwind(); }             /* unwind frame */
     else
@@ -4480,14 +4486,15 @@ global void* find_name (void *handle, const char *name)
     HANDLE cur_proc;
     HMODULE *modules;
     DWORD needed, i;
-    if ((EnumProcessModules_t)1 == fEnumProcessModules) {
+    if (fEnumProcessModules == (EnumProcessModules_t)1) {
       /* first call: try to load EnumProcessModules */
       HMODULE psapi = LoadLibrary("psapi.dll");
-      if (psapi == NULL) fEnumProcessModules = NULL;
-      else fEnumProcessModules =
-        (EnumProcessModules_t)GetProcAddress(psapi,"EnumProcessModules");
+      if (psapi == NULL)
+        fEnumProcessModules = NULL;
+      else
+        fEnumProcessModules = (EnumProcessModules_t)GetProcAddress(psapi,"EnumProcessModules");
     }
-    if (NULL != fEnumProcessModules) {
+    if (fEnumProcessModules != NULL) {
       cur_proc = GetCurrentProcess();
       if (!fEnumProcessModules(cur_proc,NULL,0,&needed)) OS_error();
       var DYNAMIC_ARRAY(modules_mem,char,needed);
@@ -4498,7 +4505,8 @@ global void* find_name (void *handle, const char *name)
           break;
       FREE_DYNAMIC_ARRAY(modules_mem);
     }
-  } else ret = (void*)GetProcAddress((HMODULE)handle,name);
+  } else
+    ret = (void*)GetProcAddress((HMODULE)handle,name);
  #elif !defined(RTLD_DEFAULT)
   /* FreeBSD 4.0 and AIX 5.1 do not support RTLD_DEFAULT, so we emulate it by
      searching the executable and the libc. */
@@ -4609,7 +4617,6 @@ global maygc void dynload_modules (const char * library, uintC modcount,
         do {
           var const char * modname = *modnameptr;
           var uintL len = asciz_length(modname);
-          var const char * err;
           /* Copy modname into modnamebuf: */
           module->name = modnamebuf;
           {
@@ -4694,7 +4701,7 @@ global maygc void dynload_modules (const char * library, uintC modcount,
    without causing deadlock with the GC in the lisp world. */
 local void lock_heap_from_signal()
 {
-  while (1) {
+  while (true) {
     while (!spinlock_tryacquire(&mem.alloc_lock))
       xthread_yield();
     /* we got the heap lock, let's check that there is no GC in progress */
@@ -5014,7 +5021,7 @@ global bool interrupt_thread(clisp_thread_t *thr)
         if (!mutex->xl_owned) {
           /* thr has released the ownership of the mutex - check that
              pthread_cond_wait has done the same */
-          if (0 == xmutex_raw_trylock(&mutex->xl_mutex)) {
+          if (xmutex_raw_trylock(&mutex->xl_mutex) == 0) {
             xmutex_raw_unlock(&mutex->xl_mutex);
             break;
           }
@@ -5067,7 +5074,7 @@ global bool interrupt_thread(clisp_thread_t *thr)
  > arg: not used. */
 local void *signal_handler_thread(void *arg)
 {
-  while (1) {
+  while (true) {
     var int sig = signal_wait();
     /* before proceeding we have to be sure that there is no GC
        in progress at the moment. This is the only situation in

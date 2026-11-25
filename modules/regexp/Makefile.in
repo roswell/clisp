@@ -15,7 +15,7 @@ MAKE = make
 
 SHELL = /bin/sh
 
-GENERATED = regexp.fas regexi.o preload.lisp
+GENERATED = regexp.fas regexi.@OBJEXT@ preload.lisp
 DISTRIBFILES = link.sh Makefile $(GENERATED) \
 	$(srcdir)/README $(srcdir)/regexp.lisp $(srcdir)/regexp.texinfo
 distribdir =
@@ -26,27 +26,27 @@ clisp-module : $(GENERATED)
 .PHONY : all am--refresh clisp-module clisp-module-distrib clean distclean force
 
 regexp.fas: $(srcdir)/regexp.lisp
-	$(CLISP) -c $(srcdir)/regexp.lisp -o ./
+	$(CLISP) -c @BTHS@$(srcdir)/regexp.lisp@BTHE@ -o ./
 
-regexi.o : regexi.m.c config.h
+regexi.@OBJEXT@ : regexi.m.c config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -I. -I$(CLISP_LINKKIT) \
-		-c regexi.m.c -o regexi.o
+		-c regexi.m.c -o regexi.@OBJEXT@
 
 regexi.m.c : $(srcdir)/regexi.c
-	$(CLISP) -C $(CLISP_LINKKIT)/modprep $(srcdir)/regexi.c ./
+	$(CLISP) -C @BTHS@$(CLISP_LINKKIT)/modprep@BTHE@ @BTHS@$(srcdir)/regexi.c@BTHE@ ./
 
 config.h : $(srcdir)/config.h.in config.status
 	sh config.status --header=config.h
 
 preload.lisp : $(srcdir)/preload.lisp
-	$(LN_S) $(srcdir)/preload.lisp .
+	$(LN) $(srcdir)/preload.lisp .
 
 # Make a module distribution into $(distribdir)
 clisp-module-distrib : clisp-module force
 	$(LN) $(DISTRIBFILES) $(distribdir)
 
 clean : force
-	rm -f core *.o *.a *.m.c *.fas *.lib
+	rm -f core *.@OBJEXT@ *.a *.m.c *.fas *.lib
 
 distclean : clean
 

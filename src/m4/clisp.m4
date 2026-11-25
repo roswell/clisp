@@ -1,5 +1,5 @@
 dnl -*- Autoconf -*-
-dnl Copyright (C) 2008-2011, 2017, 2021 Free Software Foundation, Inc.
+dnl Copyright (C) 2008-2026 Free Software Foundation, Inc.
 dnl This file is free software, distributed under the terms of the GNU
 dnl General Public License.  As a special exception to the GNU General
 dnl Public License, this file may be distributed as part of a program
@@ -12,10 +12,9 @@ AC_PREREQ([2.59])
 
 dnl set variable $1 to the result of evaluating in clisp of $2
 AC_DEFUN([CLISP_SET],
-  [$1=`$cl_cv_clisp -q -norc -x '$2' 2>/dev/null | sed -e 's/^"//' -e 's/"$//'`])
+  [$1=`$cl_cv_clisp -q -norc -x '$2' 2>/dev/null | tr -d '\r' | sed -e 's/^"//' -e 's/"$//'`])
 
 dnl for use with autoconf 2.64 which supports m4_map_args_w
-dnl <http://article.gmane.org/gmane.comp.sysutils.autoconf.general/12077>
 dnl <https://lists.gnu.org/archive/html/autoconf/2009-09/msg00082.html>
 m4_define([_CL_CLISP_REQUIRE_FEATURE_1],
 [_CL_CLISP_REQUIRE_FEATURE_2([$1], m4_toupper([$1]))])
@@ -46,21 +45,21 @@ AC_DEFUN([CL_DECOLONIZE],
        dnl after _AC_INIT_AUX_DIR.
        case `uname -s` in
          CYGWIN*)
-           cl_cv_decolonize='cygpath --unix $x'
+           cl_cv_decolonize='cygpath --unix "$x"'
            ;;
          Windows* | MINGW* | MSYS*)
            if (type cygpath) > /dev/null 2>&1; then
-             cl_cv_decolonize='cygpath --unix $x'
+             cl_cv_decolonize='cygpath --unix "$x"'
            else
-             cl_cv_decolonize="echo \$x | sed -e 's,\\\\,/,g' -e 's,^\\(.\\):,/\1,'"
+             cl_cv_decolonize="echo \"\$x\" | sed -e 's,\\\\,/,g' -e 's,^\\(.\\):,/\1,'"
            fi
            ;;
          *)
-           cl_cv_decolonize='echo $x'
+           cl_cv_decolonize='echo "$x"'
            ;;
        esac
       ])
-    CLISP_DECOLONIZE=$cl_cv_decolonize
+    CLISP_DECOLONIZE="$cl_cv_decolonize"
     AC_SUBST([CLISP_DECOLONIZE])
   ])
 ])
@@ -100,7 +99,7 @@ AC_DEFUN([CL_CLISP],[
         AC_CACHE_CHECK([for CLISP libdir], [cl_cv_clisp_libdir],
           [CLISP_SET([cl_cv_clisp_libdir], [(namestring *lib-directory*)])
            x=$cl_cv_clisp_libdir
-           cl_cv_clisp_libdir=`eval $cl_cv_decolonize`
+           cl_cv_clisp_libdir=`eval "$cl_cv_decolonize"`
            # cf src/clisp-link.in:linkkitdir
            missing=''
            for f in modules.c clisp.h; do
@@ -115,9 +114,13 @@ AC_DEFUN([CL_CLISP],[
            missing=''
            # cf. src/clisp-link.in:check_linkset (we do not need to check for
            # lisp.run because cl_cv_clisp_linkset comes from SYS::PROGRAM-NAME)
-           for f in lisp.a lispinit.mem modules.h modules.o makevars; do
+           for f in lisp.a lispinit.mem modules.h makevars; do
              test -r "${cl_cv_clisp_linkset}/$f" || missing=${missing}' '$f
            done
+           # Test for the presence of modules.o or modules.obj.
+           test -r "${cl_cv_clisp_linkset}/modules.o" \
+             || test -r "${cl_cv_clisp_linkset}/modules.obj" \
+             || missing=${missing}' 'modules.o
            test -n "${missing}" \
              && AC_MSG_ERROR([missing ${missing} in '${cl_cv_clisp_linkset}'])
           ])

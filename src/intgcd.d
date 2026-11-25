@@ -79,7 +79,7 @@
   {
     #ifdef DUMMER_GGT # so macht's ein Mathematiker:
     var uintV bit_j = bit(0);
-    while (1) {
+    while (true) {
       # a,b >0
       if (!((a & bit_j) ==0)) {
         if (!((b & bit_j) ==0))
@@ -104,7 +104,7 @@
     if (!((b & bit_j) ==0))
       goto even_odd;
     #endif
-    while (1) {
+    while (true) {
      odd_odd: # a,b >0, beide ungerade
       # Vergleiche a und b:
       if (a == b) # a=b>0 -> fertig
@@ -223,7 +223,7 @@
       label_3: # a,b >0, beide ungerade, a>b
         # subtrahiere a := a - b
         if (!( subfrom_loop_down(b_LSDptr,a_LSDptr,b_len) ==0))
-          dec_loop_down(&a_LSDptr[-(uintP)b_len],a_len-b_len);
+          dec_loop_down(a_LSDptr-(uintP)b_len,a_len-b_len);
         # normalisieren
         while (a_MSDptr[0] == 0) {
           a_MSDptr++; a_len--;
@@ -347,7 +347,7 @@
         STACK_0 = a; a = b;
       }
     }
-    while (1) { # Hier a > STACK_0 > 0
+    while (true) { # Hier a > STACK_0 > 0
       if (eq(STACK_0,Fixnum_1)) # b=1 -> Ergebnis 1
         return popSTACK();
       I_I_divide_I_I(a,STACK_0); b = STACK_0; skipSTACK(2); # b := Rest der Division a / STACK_0
@@ -416,7 +416,7 @@
         swap(STACK_5,STACK_3); swap(STACK_4,STACK_2);
       }
     }
-    while (1) { # Hier a>b>0
+    while (true) { # Hier a>b>0
       if (eq(b,Fixnum_1)) { # b=1 -> g=b, (u,v) = (ub,vb)
         STACK_5 = STACK_3; STACK_4 = STACK_2; STACK_3 = b;
         skipSTACK(3); return;
@@ -624,7 +624,7 @@
         # Jetzt ist ../c_len/c_LSDptr, ../c_len/d_LSDptr frei.
       }
       begin_arith_call();
-      while (1) {
+      while (true) {
         # Hier a,b>0, beides NUDS.
         # Vergleiche a und b:
         if (a_len > b_len) # a>b ?
@@ -735,11 +735,11 @@
               }
               # c := x1*a-y1*b bilden:
               mulu_loop_down(likobi.x1,a_LSDptr,c_LSDptr,a_len);
-              /* c_LSDptr[-(uintP)a_len-1] -= */
+              /* *(c_LSDptr-(uintP)a_len-1) -= */
                 mulusub_loop_down(likobi.y1,b_LSDptr,c_LSDptr,a_len);
               # d := -x2*a+y2*b bilden:
               mulu_loop_down(likobi.y2,b_LSDptr,d_LSDptr,a_len);
-              /* d_LSDptr[-(uintP)a_len-1] -= */
+              /* *(d_LSDptr-(uintP)a_len-1) -= */
                 mulusub_loop_down(likobi.x2,a_LSDptr,d_LSDptr,a_len);
               # Wir wissen, dass 0 < c < b und 0 < d < a. Daher müssten
               # c_LSDptr[-a_len-1] und d_LSDptr[-a_len-1] =0 sein.
@@ -823,15 +823,15 @@
     var uintC v_len = v->len;
     if (u_len >= v_len) {
       if (!( addto_loop_down(v->LSDptr,u->LSDptr,v_len) ==0)) {
-        if (!( inc_loop_down(&(u->LSDptr)[-(uintP)v_len],u_len-v_len) ==0)) {
+        if (!( inc_loop_down((u->LSDptr)-(uintP)v_len,u_len-v_len) ==0)) {
           *--(u->MSDptr) = 1; u->len++;
         }
       }
     } else { # u_len <= v_len
-      u->MSDptr = copy_loop_down(&(v->LSDptr)[-(uintP)u_len],&(u->LSDptr)[-(uintP)u_len],v_len-u_len);
+      u->MSDptr = copy_loop_down((v->LSDptr)-(uintP)u_len,(u->LSDptr)-(uintP)u_len,v_len-u_len);
       u->len = v_len;
       if (!( addto_loop_down(v->LSDptr,u->LSDptr,u_len) ==0)) {
-        if (!( inc_loop_down(&(u->LSDptr)[-(uintP)u_len],v_len-u_len) ==0)) {
+        if (!( inc_loop_down((u->LSDptr)-(uintP)u_len,v_len-u_len) ==0)) {
           *--(u->MSDptr) = 1; u->len++;
         }
       }
@@ -851,7 +851,7 @@
       } # Nun ist u_len > v_len.
       carry = muluadd_loop_down(q,v->LSDptr,u->LSDptr,v_len);
       if (!(carry==0)) {
-        var uintD* ptr = &(u->LSDptr)[-(uintP)v_len-1];
+        var uintD* ptr = (u->LSDptr)-(uintP)v_len-1;
         if ((ptr[0] += carry) < carry) {
           if (!( inc_loop_down(ptr,u_len-v_len-1) ==0)) {
             *--(u->MSDptr) = 1; u->len++;
@@ -880,10 +880,10 @@
           var uintD carry =
             muluadd_loop_down(q->y1,v->LSDptr,c_LSDptr,v_len);
           if (!(carry==0)) {
-            var uintD* ptr = &c_LSDptr[-(uintP)v_len-1];
+            var uintD* ptr = c_LSDptr-(uintP)v_len-1;
             if ((ptr[0] += carry) < carry) {
               if (!( inc_loop_down(ptr,u_len-v_len) ==0)) {
-                c_len++; c_LSDptr[-(uintP)c_len] = 1;
+                c_len++; *(c_LSDptr-(uintP)c_len) = 1;
               }
             }
           }
@@ -892,10 +892,10 @@
           var uintD carry =
             muluadd_loop_down(q->y2,v->LSDptr,d_LSDptr,v_len);
           if (!(carry==0)) {
-            var uintD* ptr = &d_LSDptr[-(uintP)v_len-1];
+            var uintD* ptr = d_LSDptr-(uintP)v_len-1;
             if ((ptr[0] += carry) < carry) {
               if (!(inc_loop_down(ptr,u_len-v_len) ==0)) {
-                d_len++; d_LSDptr[-(uintP)d_len] = 1;
+                d_len++; *(d_LSDptr-(uintP)d_len) = 1;
               }
             }
           }
@@ -909,10 +909,10 @@
           var uintD carry =
             muluadd_loop_down(q->x1,u->LSDptr,c_LSDptr,u_len);
           if (!(carry==0)) {
-            var uintD* ptr = &c_LSDptr[-(uintP)u_len-1];
+            var uintD* ptr = c_LSDptr-(uintP)u_len-1;
             if ((ptr[0] += carry) < carry) {
               if (!( inc_loop_down(ptr,v_len-u_len) ==0)) {
-                c_len++; c_LSDptr[-(uintP)c_len] = 1;
+                c_len++; *(c_LSDptr-(uintP)c_len) = 1;
               }
             }
           }
@@ -921,10 +921,10 @@
           var uintD carry =
             muluadd_loop_down(q->x2,u->LSDptr,d_LSDptr,u_len);
           if (!(carry==0)) {
-            var uintD* ptr = &d_LSDptr[-(uintP)u_len-1];
+            var uintD* ptr = d_LSDptr-(uintP)u_len-1;
             if ((ptr[0] += carry) < carry) {
               if (!( inc_loop_down(ptr,v_len-u_len) ==0)) {
-                d_len++; d_LSDptr[-(uintP)d_len] = 1;
+                d_len++; *(d_LSDptr-(uintP)d_len) = 1;
               }
             }
           }
@@ -1029,7 +1029,7 @@
         # Jetzt ist ../c_len/c_LSDptr, ../c_len/d_LSDptr frei.
       }
       begin_arith_call();
-      while (1) {
+      while (true) {
         # Hier a,b>0, beides NUDS.
         # Vergleiche a und b:
         if (a_len > b_len) # a>b ?
@@ -1154,11 +1154,11 @@
               }
               # c := x1*a-y1*b bilden:
               mulu_loop_down(likobi.x1,a_LSDptr,c_LSDptr,a_len);
-              /* c_LSDptr[-(uintP)a_len-1] -= */
+              /* *(c_LSDptr-(uintP)a_len-1) -= */
                 mulusub_loop_down(likobi.y1,b_LSDptr,c_LSDptr,a_len);
               # d := -x2*a+y2*b bilden:
               mulu_loop_down(likobi.y2,b_LSDptr,d_LSDptr,a_len);
-              /* d_LSDptr[-(uintP)a_len-1] -= */
+              /* *(d_LSDptr-(uintP)a_len-1) -= */
                 mulusub_loop_down(likobi.x2,a_LSDptr,d_LSDptr,a_len);
               # Wir wissen, dass 0 < c < b und 0 < d < a. Daher müssten
               # c_LSDptr[-a_len-1] und d_LSDptr[-a_len-1] =0 sein.
@@ -1199,7 +1199,7 @@
             mulu_2loop_down(q.LSDptr,q.len,uAb.LSDptr,uAb.len,c_LSDptr); # q * uAb
             var DS c;
             c.LSDptr = c_LSDptr; c.len = q.len + uAb.len;
-            if (c_LSDptr[-(uintP)c.len]==0) { c.len--; } # normalisieren
+            if (*(c_LSDptr-(uintP)c.len)==0) { c.len--; } # normalisieren
             NUDS_likobi0_NUDS(&uAa,&c); # zu uAa addieren
           } # noch uAa,uAb vertauschen (später)
           # (uBa,uBb) := (uBb,uBa+q*uBb) :
@@ -1207,7 +1207,7 @@
             mulu_2loop_down(q.LSDptr,q.len,uBb.LSDptr,uBb.len,c_LSDptr); # q * uBb
             var DS c;
             c.LSDptr = c_LSDptr; c.len = q.len + uBb.len;
-            if (c_LSDptr[-(uintP)c.len]==0) { c.len--; } # normalisieren
+            if (*(c_LSDptr-(uintP)c.len)==0) { c.len--; } # normalisieren
             NUDS_likobi0_NUDS(&uBa,&c); # zu uBa addieren
           } # noch uBa,uBb vertauschen (später)
           goto a_greater_b_swap; # Nun ist a>b>0

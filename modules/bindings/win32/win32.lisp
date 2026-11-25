@@ -110,7 +110,7 @@
   (:arguments (title c-string)))
 
 (def-call-out GetConsoleWindow (:return-type handle) (:arguments)
-  (:documentation "http://msdn.microsoft.com/library/en-us/dllproc/base/getconsolescreenbufferinfo.asp"))
+  (:documentation "https://learn.microsoft.com/en-us/windows/console/getconsolewindow"))
 
 (def-c-struct SMALL_RECT (Left short) (Top short) (Right short) (Bottom short))
 (def-c-struct COORD (X short) (Y short))
@@ -119,7 +119,7 @@
   (wAttributes word) (srWindow SMALL_RECT) (dwMaximumWindowSize COORD))
 
 (def-call-out GetConsoleScreenBufferInfo (:return-type boolean)
-  (:documentation "http://msdn.microsoft.com/library/en-us/dllproc/base/getconsolescreenbufferinfo.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/console/getconsolescreenbufferinfo")
   (:arguments (StdHandle handle)
               (csbiInfo (c-ptr CONSOLE_SCREEN_BUFFER_INFO) :out :alloca)))
 
@@ -138,10 +138,10 @@
 
 ;;; i/o
 (def-call-out GetStdHandle (:return-type handle)
-  (:documentation "http://msdn.microsoft.com/library/en-us/dllproc/base/getstdhandle.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/console/getstdhandle")
   (:arguments (nStdHandle dword)))
 (def-call-out SetStdHandle (:return-type boolean)
-  (:documentation "http://msdn.microsoft.com/library/en-us/dllproc/base/setstdhandle.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/console/setstdhandle")
   (:arguments (nStdHandle dword) (hHandle handle)))
 
 (defconstant STD_INPUT_HANDLE   ; ((DWORD)-10)
@@ -158,7 +158,7 @@ Initially, this is a handle to the active console screen buffer, CONOUT$.")
 Initially, this is a handle to the active console screen buffer, CONOUT$.")
 
 (def-call-out ReadFile (:return-type boolean)
-  (:documentation "http://msdn.microsoft.com/library/en-us/fileio/fs/readfile.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-readfile")
   (:arguments (hFile handle)
               (lpBuffer c-pointer)
 	      (nNumberOfBytesToRead dword)
@@ -166,7 +166,7 @@ Initially, this is a handle to the active console screen buffer, CONOUT$.")
 	      (lpOverlapped c-pointer)))
 
 (def-call-out WriteFile (:return-type boolean)
-  (:documentation "http://msdn.microsoft.com/library/en-us/fileio/fs/writefile.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-writefile")
   (:arguments (hFile handle)
               (lpBuffer c-pointer)
 	      (nNumberOfBytesToWrite dword)
@@ -174,7 +174,7 @@ Initially, this is a handle to the active console screen buffer, CONOUT$.")
 	      (lpOverlapped c-pointer)))
 
 (def-call-out ReadConsoleA (:return-type boolean)
-  (:documentation "http://msdn.microsoft.com/library/en-us/dllproc/base/readconsole.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/console/readconsole")
   (:arguments (hConsoleInput handle)
               (lpBuffer c-pointer)
               (nNumberOfCharsToRead dword)
@@ -182,7 +182,7 @@ Initially, this is a handle to the active console screen buffer, CONOUT$.")
               (lpReserved c-pointer)))
 
 (def-call-out WriteConsoleA (:return-type boolean)
-  (:documentation "http://msdn.microsoft.com/library/en-us/dllproc/base/writeconsole.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/console/writeconsole")
   (:arguments (hConsoleOutput handle)
               (lpBuffer c-pointer)
               (nNumberOfCharsToWrite dword)
@@ -251,14 +251,14 @@ Initially, this is a handle to the active console screen buffer, CONOUT$.")
   (LR_COPYFROMRESOURCE #x4000)
   (LR_SHARED 32768))
 (def-call-out LoadImageA (:return-type handle)
-  (:documentation "http://msdn.microsoft.com/library/en-us/winui/winui/windowsuserinterface/resources/introductiontoresources/resourcereference/resourcefunctions/loadimage.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadimagea")
   (:arguments (application-instance-handle handle)
               (image-name c-string)
               (type uint) (width int) (height int)
               (options int)))   ; load_options
 
 (def-call-out DestroyIcon (:return-type boolean)
-  (:documentation "http://msdn.microsoft.com/library/en-us/winui/winui/windowsuserinterface/resources/icons/iconreference/iconfunctions/destroyicon.asp")
+  (:documentation "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-destroyicon")
   (:arguments (hIcon handle)))
 #| example:
  (setq icon (win32:LoadImageA nil "d:\\gnu\\clisp\\current\\doc\\clisp.ico"
@@ -318,14 +318,14 @@ Initially, this is a handle to the active console screen buffer, CONOUT$.")
 
 (def-call-out MessageBoxA (:return-type int)
   (:arguments (parent handle) (text c-string) (caption c-string) (type uint))
-  (:documentation "http://msdn.microsoft.com/library/en-us/winui/winui/windowsuserinterface/windowing/dialogboxes/dialogboxreference/dialogboxfunctions/messagebox.asp"))
+  (:documentation "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messagebox"))
 #| examples:
  (win32:MessageBoxA nil "welcome to clisp" "message from clisp" win32:MB_OK)
  (win32:MessageBoxA nil "welcome to clisp" "message from clisp"
                     (logior win32:MB_YESNOCANCEL win32:MB_ICONWARNING))
 |#
 
-;; http://msdn.microsoft.com/library/en-us/winui/winui/windowsuserinterface/dataexchange/clipboard/clipboardreference/clipboardfunctions/getclipboarddata.asp
+;; https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getclipboarddata
 (def-call-out OpenClipboard (:return-type boolean)
   (:arguments (hWndNewOwner handle)))
 (def-call-out CloseClipboard (:return-type boolean) (:arguments))
@@ -387,7 +387,7 @@ Initially, this is a handle to the active console screen buffer, CONOUT$.")
 
 ;;;==================================== "shell32.dll"
 (default-foreign-library "shell32.dll")
-;; http://msdn.microsoft.com/library/en-us/shellcc/platform/shell/reference/functions/shellexecute.asp
+;; https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutea
 (def-c-enum SE_ERROR            ; <shellapi.h>
   (SE_ERR_FNF 2)
   (SE_ERR_PNF 3)

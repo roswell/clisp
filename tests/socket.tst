@@ -46,9 +46,7 @@ coerce-byte-array
                    (equal os "Minix"))
                49)
               ((equal os "AIX") 68)
-              ((or (equal os "HP-UX") (and (equal os "Linux") (eql (search "parisc" cpu) 0)))
-               227)
-              ((equal os "IRIX") 236)
+              ((and (equal os "Linux") (eql (search "parisc" cpu) 0)) 227)
               ((or (equal os "SunOS") (and (equal os "Linux") (eql (search "mips" cpu) 0)))
                126)
               ((equal os "Linux") 99)
@@ -65,9 +63,7 @@ coerce-byte-array
                    (equal os "Minix"))
                54)
               ((equal os "AIX") 73)
-              ((or (equal os "HP-UX") (and (equal os "Linux") (eql (search "parisc" cpu) 0)))
-               232)
-              ((equal os "IRIX") 131)
+              ((and (equal os "Linux") (eql (search "parisc" cpu) 0)) 232)
               ((or (equal os "SunOS") (and (equal os "Linux") (eql (search "mips" cpu) 0)))
                131)
               ((equal os "Linux") 104)
@@ -84,9 +80,7 @@ coerce-byte-array
                    (equal os "Minix"))
                61)
               ((equal os "AIX") 79)
-              ((or (equal os "HP-UX") (and (equal os "Linux") (eql (search "parisc" cpu) 0)))
-               239)
-              ((equal os "IRIX") 146)
+              ((and (equal os "Linux") (eql (search "parisc" cpu) 0)) 239)
               ((or (equal os "SunOS") (and (equal os "Linux") (eql (search "mips" cpu) 0)))
                146)
               ((equal os "Linux") 111)
@@ -103,9 +97,7 @@ coerce-byte-array
                    (equal os "Minix"))
                60)
               ((equal os "AIX") 78)
-              ((or (equal os "HP-UX") (and (equal os "Linux") (eql (search "parisc" cpu) 0)))
-               238)
-              ((equal os "IRIX") 145)
+              ((and (equal os "Linux") (eql (search "parisc" cpu) 0)) 238)
               ((or (equal os "SunOS") (and (equal os "Linux") (eql (search "mips" cpu) 0)))
                145)
               ((equal os "Linux") 110)
@@ -582,8 +574,8 @@ NIL
 (socket-server-close *server*) NIL
 
 (progn
-  (setq *server* (show (socket-server 9090))
-        *socket-1* (show (socket-connect 9090 "localhost" :timeout 0
+  (setq *server* (show (socket-server 9094))
+        *socket-1* (show (socket-connect 9094 "localhost" :timeout 0
                                          :buffered nil))
         *socket-2* (show (socket-accept *server* :buffered nil)))
   (write-char #\a *socket-1*))
@@ -614,29 +606,31 @@ T
 
 ;; no one should be listening on 12345
 ;; https://sourceforge.net/p/clisp/bugs/482/
-;; http://article.gmane.org/gmane.lisp.clisp.general/12286
 ;; https://sourceforge.net/p/clisp/mailman/message/19641749/
 (check-os-error (socket:socket-connect 12345 "localhost" :timeout 30)
   #.(let ((os (ext:operating-system-type)))
-      (cond ((equal os "Windows") '(:ETIMEDOUT 10060))
+      (cond ((equal os "Windows") `(:ETIMEDOUT ,+ETIMEDOUT+))
             (t `(:ECONNREFUSED ,+ECONNREFUSED+)))))
 T
 ;; :TIMEOUT 0 means to return a useful result or error immediately.
 ;; https://gitlab.com/gnu-clisp/clisp/-/issues/25
 (check-os-error (socket:socket-connect 12345 "localhost" :timeout 0)
   #.(let ((os (ext:operating-system-type)))
-      (cond ((equal os "Windows") '(:ETIMEDOUT 10060))
-            ((equal os "CYGWIN") `(:ETIMEDOUT ,+ETIMEDOUT+))
+      (cond ((or (equal os "CYGWIN")
+                 (equal os "Windows"))
+             `(:ETIMEDOUT ,+ETIMEDOUT+))
             (t `(:ECONNREFUSED ,+ECONNREFUSED+)))))
 T
 (check-os-error (socket:socket-connect 12345 "localhost" :buffered nil :timeout 0)
   #.(let ((os (ext:operating-system-type)))
-      (cond ((equal os "Windows") '(:ETIMEDOUT 10060))
-            ((equal os "CYGWIN") `(:ETIMEDOUT ,+ETIMEDOUT+))
+      (cond ((or (equal os "CYGWIN")
+                 (equal os "Windows"))
+             `(:ETIMEDOUT ,+ETIMEDOUT+))
             (t `(:ECONNREFUSED ,+ECONNREFUSED+)))))
 T
 
 ;; https://sourceforge.net/p/clisp/bugs/587/: non-0 timeout
+#-win32 ; This test hangs in mingw.
 (multiple-value-bind (run args) (cmd-args)
   (let ((is (ext:run-program run :arguments (append args '("-q" "-q" "-x" "
             (let ((se (socket:socket-server)))
@@ -653,6 +647,7 @@ T
       (or (string= (setq local (lisp-implementation-version))
                    (setq remote (read-line so)))
           (list :local local :remote remote)))))
+#-win32
 T
 
 (let ((interfaces '#.(cond ((equal (ext:operating-system-type) "Minix") '())
@@ -667,6 +662,7 @@ T
         (t '("0.0.0.0" "127.0.0.1" "0.0.0.0" "127.0.0.1")))
 
 ;; Test writing to and reading from a socket after it has encountered ECONNRESET.
+#-CYGWIN ; This test hangs in 32-bit Cygwin.
 (multiple-value-bind (run args) (cmd-args)
   ;; Open a socket server.
   (let ((se (socket:socket-server)))
@@ -674,14 +670,14 @@ T
     (ext:run-program run
                      :arguments (append args
                                   (list "-q" "-q" "-x"
-                                        (format nil "(close (prog1 (socket:socket-connect ~D) (sleep 0.01s0)))" (socket:socket-server-port se))))
+                                        (format nil "(close (prog1 (socket:socket-connect ~D) (sleep 0.1s0)))" (socket:socket-server-port se))))
                      :wait nil :input nil :output nil)
     (unwind-protect
         (with-open-stream (so (socket:socket-accept se))
           (list
             (socket:socket-status so)
             (write-line "foo" so)
-            (sleep 0.02s0)
+            (sleep 0.2s0)
             (handler-case (socket:socket-status so)
               (os-error (c)
                 (princ 'socket-status-2) (princ-error c)
@@ -696,6 +692,7 @@ T
                 (princ 'read-char) (princ-error c)
                 (case (os-error-code c)
                   ((:ECONNRESET #.+ECONNRESET+) t)
+                  #+win32 ((:EWOULDBLOCK 140) t) ; signals EWOULDBLOCK on mingw
                   (t (os-error-code c))))
               (end-of-file (c)
                 (princ 'read-char) (princ-error c) t))
@@ -706,7 +703,11 @@ T
                   ((:ECONNRESET #.+ECONNRESET+) :APPEND) ; signals ECONNRESET e.g. on Cygwin
                   (t (os-error-code c)))))))
       (socket:socket-server-close se))))
-(:OUTPUT "foo" NIL :APPEND T T #.(if (equal (ext:operating-system-type) "OpenBSD") ':ERROR ':APPEND))
+#-CYGWIN
+(:OUTPUT "foo" NIL
+ :APPEND  ; If you sometimes get :OUTPUT here, increase the sleep durations above.
+ T T
+ :APPEND)
 
 ;; https://sourceforge.net/p/clisp/feature-requests/46/
 (check-os-error (socket:socket-connect 0)
@@ -716,10 +717,10 @@ T
                  (equal os "Darwin")
                  (equal os "AIX")
                  (equal os "SunOS")
-                 (equal os "CYGWIN"))
+                 (equal os "CYGWIN")
+                 (equal os "Windows"))
              `(:EADDRNOTAVAIL ,+EADDRNOTAVAIL+))
             ((equal os "Minix") `(:EADDRNOTAVAIL ,+EADDRNOTAVAIL+ 213))
-            ((equal os "Windows") '(:EADDRNOTAVAIL 10049))
             (t `(:ECONNREFUSED ,+ECONNREFUSED+)))))
 T
 

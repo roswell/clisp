@@ -1,5 +1,5 @@
 ;;; Sam Steingold 2000-2008, 2010-2011, 2017-2018
-;;; Bruno Haible 2017
+;;; Bruno Haible 2017, 2024
 ;;; This file is a part of CLISP (http://clisp.org), and, as such,
 ;;; is distributed under the GNU GPL v2+ (http://www.gnu.org/copyleft/gpl.html)
 
@@ -13,30 +13,45 @@
 ;;; ============== Presenting data from the Internet to the user ==============
 
 (defvar *browsers*
-  '((:netscape "netscape" "~a")
+  '(;; Desktop-independent GUI browsers.
+    (:netscape        "netscape" "~a")
     (:netscape-window "netscape" "-remote" "openURL(~a,new-window)")
-    (:netscape-tab "netscape" "-remote" "openURL(~a,new-tab)")
-    (:mozilla "mozilla" "~a")
+    (:netscape-tab    "netscape" "-remote" "openURL(~a,new-tab)")
+    (:mozilla        "mozilla" "~a")
     (:mozilla-window "mozilla" "-remote" "openURL(~a,new-window)")
-    (:mozilla-tab "mozilla" "-remote" "openURL(~a,new-tab)")
-    (:firefox "firefox" "~a")
+    (:mozilla-tab    "mozilla" "-remote" "openURL(~a,new-tab)")
+    (:firefox        "firefox" "~a")
     (:firefox-window "firefox" "-new-window" "~a")
-    (:firefox-tab "firefox" "-new-tab" "~a")
+    (:firefox-tab    "firefox" "-new-tab" "~a")
+    ;; GUI browsers for specific desktops.
+    ; KDE
     (:konqueror "kfmclient" "openURL" "~a")
+    (:falkon        "falkon" "~a")
+    (:falkon-window "falkon" "--new-window" "~a")
+    (:falkon-tab    "falkon" "--new-tab" "~a")
+    ; Haiku
+    #+haiku (:webpositive "/boot/system/apps/WebPositive" "~a")
+    ;; Text browsers.
     (:lynx "lynx" "~a")
     #+unix (:lynx-xterm "xterm" "-e" "lynx" "~a")
     (:links "links" "~a")
     #+unix (:links-xterm "xterm" "-e" "links" "~a")
     (:w3m "w3m" "~a")
     #+unix (:w3m-xterm "xterm" "-e" "w3m" "~a")
-    #+cygwin (:default "cygstart" "~a")
-    #+macos (:default "open" "~a")
-    (:mmm "mmm" "-external" "~a")
-    (:mosaic "xmosaic" "~a")
-    (:chromium "chromium-browser" "~a")
+    ;; Other.
+    (:chromium "chromium" "~a")
     (:conkeror "conkeror" "~a")
     (:opera "opera" "~a")
-    (:emacs "emacsclient" "--eval" "(browse-url ~s)"))
+    (:tor "tor" "~a")
+    (:emacs "emacsclient" "--eval" "(browse-url ~s)")
+    ;; Redirections to suitable browsers.
+    ; GNOME's wrapper.
+    (:gnome "gnome-www-browser" "~a")
+    ; Debian's wrapper around 'x-www-browser' and 'www-browser'.
+    #+unix (:sensible-browser "sensible-browser" "~a")
+    #+cygwin (:default "cygstart" "~a")
+    #+macos (:default "open" "~a")
+   )
   "Alist of browsers and commands that invoke them.
 `~a' will be replaced with the URL to view.")
 (defvar *browser* nil

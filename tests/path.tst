@@ -664,7 +664,8 @@ UNKNOWN
 (compile-file-pathname (logical-pathname "clocc:clocc.lisp")
                        :output-file "/tmp/Bug677/file-TEMP01.fas")
 #+CLISP
-#S(PATHNAME :HOST NIL :DEVICE NIL :DIRECTORY (:ABSOLUTE "tmp" "Bug677")
+#S(PATHNAME :HOST NIL :DEVICE #.(pathname-device *default-pathname-defaults*)
+            :DIRECTORY (:ABSOLUTE "tmp" "Bug677")
             :NAME "file-TEMP01" :TYPE "fas" :VERSION :NEWEST)
 #-CLISP
 UNKNOWN
@@ -1225,7 +1226,9 @@ NIL
     (delete-file f2)
     #+clisp (ext:delete-directory wd)
     #-clisp (delete-file wd)))
-(("bug-724/file" "bug-724/file.txt") T T)
+(#-win32 ("bug-724/file" "bug-724/file.txt")
+ #+win32 ("bug-724\\file" "bug-724\\file.txt")
+ T T)
 
 (let (lp) ; https://sourceforge.net/p/clisp/bugs/584/: bind *load-pathname* to the original arg
   (setf (logical-pathname-translations "FOO") '(("*" "./*")))
@@ -1336,10 +1339,9 @@ NIL
                                              (ext:default-directory)))))
 #+(and clisp win32) T
 
-#+(and clisp unicode (not macos))
+#+(and clisp unicode (not macos) (not cygwin))
 (block test-weird-pathnames
   (handler-bind ((parse-error
-                  ;; http://article.gmane.org/gmane.lisp.clisp.devel:18772
                   ;; https://sourceforge.net/p/clisp/mailman/message/20057056/
                   ;; some systems, e.g., OSX PPC 10.4.11 (Darwin Kernel
                   ;; Version 8.11.0), allow only ASCII pathnames
@@ -1361,11 +1363,10 @@ NIL
                       (equal (directory "weird*") dir))
                     (eq custom:*pathname-encoding* charset:iso-8859-1))))
         (delete-file weird)))))
-#+(and clisp unicode (not macos)) (T NIL T T)
+#+(and clisp unicode (not macos) (not cygwin)) (T NIL T T)
 
 ;; DOS attack: bad pathnames in search can break LOAD
 ;; http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=443520
-;; http://thread.gmane.org/gmane.lisp.clisp.devel/18532
 ;; https://sourceforge.net/p/clisp/mailman/message/19813221/
 #+(and clisp unicode (not macos))
 (letf* ((custom:*pathname-encoding* charset:iso-8859-1) ; 1:1
@@ -1444,11 +1445,11 @@ NIL
 
 ;; https://sourceforge.net/p/clisp/bugs/679/
 #+unix (pathnamep (truename "/dev/fd/0"))
-#+unix #.(if (member (ext:operating-system-type) '("AIX" "Haiku" "HP-UX" "Minix" "Windows") :test #'equal) 'ERROR 'T)
+#+unix #.(if (member (ext:operating-system-type) '("AIX" "Haiku" "Minix" "Windows") :test #'equal) 'ERROR 'T)
 #+unix (pathnamep (truename "/dev/fd/1"))
-#+unix #.(if (member (ext:operating-system-type) '("AIX" "Haiku" "HP-UX" "Minix" "Windows") :test #'equal) 'ERROR 'T)
+#+unix #.(if (member (ext:operating-system-type) '("AIX" "Haiku" "Minix" "Windows") :test #'equal) 'ERROR 'T)
 #+unix (pathnamep (truename "/dev/fd/2"))
-#+unix #.(if (member (ext:operating-system-type) '("AIX" "Haiku" "HP-UX" "Minix" "Windows") :test #'equal) 'ERROR 'T)
+#+unix #.(if (member (ext:operating-system-type) '("AIX" "Haiku" "Minix" "Windows") :test #'equal) 'ERROR 'T)
 
 
 (symbols-cleanup

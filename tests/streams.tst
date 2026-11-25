@@ -1280,17 +1280,27 @@ T
 (or (null s) (not (search "#P" (prin1-to-string s))) (pathnamep (truename s))) T
 (or (null s) (handler-case (write-line "foo" s)
                (stream-error (c) (princ-error c) t))) T
-(or (null s) (with-open-file (copy s) (streamp copy)))
-#.(if (member (ext:operating-system-type) '("AIX" "Haiku" "HP-UX" "Minix" "Windows") :test #'equal) 'ERROR 'T)
+;; Test whether we can extract the filename from (make-stream :input)
+;; and open that file. This usually works, because that filename is "/dev/fd/0",
+;; except
+;;   - on platforms which don't have the /dev/fd/N virtual files (such as AIX),
+;; or
+;;   - when the current process group was launched by "runuser -u <user>"
+;;     without --pty option. In this case, /dev/fd/0 is owned by root, not
+;;     by <user>.
+#-(or win32 cygwin) (or (null s) (with-open-file (copy s) (streamp copy)))
+#-(or win32 cygwin) #.(if (member (ext:operating-system-type) '("AIX" "Haiku" "Minix" "Windows") :test #'equal) 'ERROR 'T)
+
 (streamp (setq s (make-stream :output))) T
 (or (not (search "#P" (prin1-to-string s))) (pathnamep (truename s))) T
 (write-line "foo" s) "foo"
 (streamp (setq s (make-stream :error))) T
 (or (not (search "#P" (prin1-to-string s))) (pathnamep (truename s))) T
 (write-line "foo" s) "foo"
+#-win32
 (let ((*reopen-open-file* nil)) ; stdout can be a file, it will be detected!
   (with-open-file (copy s :direction :output) (streamp copy)))
-#.(if (member (ext:operating-system-type) '("AIX" "Haiku" "HP-UX" "Minix" "Windows") :test #'equal) 'ERROR 'T)
+#-win32 #.(if (member (ext:operating-system-type) '("AIX" "Darwin" "Haiku" "Minix" "Windows") :test #'equal) 'ERROR 'T)
 
 #+clisp
 (progn

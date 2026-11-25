@@ -6,7 +6,7 @@ ${MAKE-make} clisp-module \
   CC="${CC}" CPPFLAGS="${CPPFLAGS}" CFLAGS="${CFLAGS}" \
   CLISP_LINKKIT="$absolute_linkkitdir" CLISP="${CLISP}"
 
-NEW_FILES="oracle.o oiface.o orafns.o"
+NEW_FILES="oracle.@OBJEXT@ oiface.@OBJEXT@ orafns.@OBJEXT@"
 
 # Get additional libs for Oracle client.  This may be
 # system specific and require some tweaking.

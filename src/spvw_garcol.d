@@ -47,11 +47,11 @@ local void move_conses (sintM delta);
 
 #if DEBUG_GC_MARK
   #define IF_DEBUG_GC_MARK(statement)  statement
-  #if defined(WIDE_SOFT)
+  #if defined(WIDE_SOFT) || (pointer_bitsize > long_bitsize)
     /* oint is defined as uint64. */
     #define PRIoint "ll"
   #else
-    /* oint is defined as uintP. Assume pointer_bitsize == long_bitsize. */
+    /* oint is defined as uintP, and pointer_bitsize == long_bitsize. */
     #define PRIoint "l"
   #endif
 #else
@@ -848,7 +848,7 @@ local void gc_morris3 (Page* page)
  set_GCself(p,type,addr);
  sets p->GCself to type_pointer_object(type,addr). */
 #ifdef TYPECODES
-  #if !(exact_uint_size_p(oint_type_len) && ((oint_type_shift%hfintsize)==0) && (tint_type_mask == bit(oint_type_len)-1))
+  #if !(exact_uint_size_p(oint_type_len) && ((oint_type_shift%hfintsize)==0) && (tint_type_mask == wbit(oint_type_len)-1))
     #ifdef SINGLEMAP_MEMORY
       /* addr contains typeinfo */
       #define make_GCself(type,addr)  \
@@ -881,7 +881,7 @@ local void gc_sweep1_sstring_forward (aint p2) {
   if (sstring_flags(TheSstring(forward)) & sstringflags_relocated_B) {
     var gcv_object_t target = TheSstring(forward)->GCself;
     var aint backchain = p2;
-    for (;;) {
+    while (true) {
       var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
       ((Varobject)backchain)->GCself = target;
       sstring_flags_set((Sstring)backchain,sstringflags_relocated_B);
@@ -911,7 +911,7 @@ local void gc_sweep1_sstring_target (aint p2, aint p1) {
     /*NOTREACHED*/ abort();
   var gcv_object_t target; target = with_mark_bit(make_GCself(sstring_type,p1));
   var aint backchain = p2;
-  for (;;) {
+  while (true) {
     var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
     ((Varobject)backchain)->GCself = target;
     sstring_flags_set((Sstring)backchain,sstringflags_relocated_B);
@@ -929,7 +929,7 @@ local void gc_sweep1_instance_forward (aint p2) {
   if (record_flags(TheInstance(forward)) & instflags_relocated_B) {
     var gcv_object_t target = TheInstance(forward)->GCself;
     var aint backchain = p2;
-    for (;;) {
+    while (true) {
       var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
       ((Varobject)backchain)->GCself = target;
       record_flags_set((Record)backchain,instflags_relocated_B);
@@ -967,7 +967,7 @@ local void gc_sweep1_instance_target (aint p2, aint p1) {
   #endif
   var gcv_object_t target; target = with_mark_bit(make_GCself(type,p1));
   var aint backchain = p2;
-  for (;;) {
+  while (true) {
     var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
     ((Varobject)backchain)->GCself = target;
     record_flags_set((Record)backchain,instflags_relocated_B);
@@ -1072,7 +1072,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 #else
   var uintC min_hole_len = 0;
 #endif
-  while (1) {
+  while (true) {
     if (p2==end) break; /* we have finished */
     objlen=objsize((Varobject)p2);
     if (!marked(p2)) {
@@ -1141,7 +1141,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
     #endif
     /* object marked
      Elimination of forward pointers: */
-  #ifdef HAVE_SMALL_SSTRING
+   #ifdef HAVE_SMALL_SSTRING
      /* smart compiler should eliminate this branch when
       HAVE_SMALL_SSTRINGS is not defined. */
     #ifdef SPVW_PURE
@@ -1163,7 +1163,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
        }
      }
      else
-  #endif /* HAVE_SMALL_SSTRING */
+   #endif /* HAVE_SMALL_SSTRING */
     #ifdef SPVW_PURE
      if (instance_p(heapnr,p2))
     #else
@@ -1377,7 +1377,7 @@ local aint gc_sweep1_varobject_page(aint start, aint end,
 #elif (varobject_alignment==4)
   #define uintVLA  uintL
 #elif (varobject_alignment==8)
-  #define uintVLA  uintL2
+  #define uintVLA  uint64
 #else
   #error Unknown value for 'varobject_alignment'!
 #endif
@@ -1981,7 +1981,7 @@ local void gar_col_normal (void)
   var object files_to_close;    /* list of files to be closed */
   #endif
   var uintC pinned_count=0; /* pinned objects count (=0 if not MT build) */
-  #if defined(MULTITHREAD)
+ #if defined(MULTITHREAD)
   var object threads_to_go; /* list of threads to be released */
   var object mutexes_to_go; /* list of mutexes to be released */
   var object exemptions_to_go; /* list of exemptions to be released */
@@ -1989,7 +1989,7 @@ local void gar_col_normal (void)
   /* clear existing heap holes */
   for_each_varobject_heap(heap, { heap->holes_list = 0; });
   #endif
-  #endif /* MULTITHREAD */
+ #endif /* MULTITHREAD */
   set_break_sem_1();       /* disable BREAK during Garbage Collection */
   gc_signalblock_on();   /* disable Signals during Garbage Collection */
   gc_timer_on();
@@ -2025,15 +2025,15 @@ local void gar_col_normal (void)
       mem.heaps[heapnr].heap_start = mem.heaps[heapnr].heap_gen1_start;
    #endif
   }
-  #endif
+ #endif
   CHECK_GC_GENERATIONAL();
   /* mark phase: */
   all_weakpointers = O(all_weakpointers); O(all_weakpointers) = Fixnum_0;
   all_finalizers = O(all_finalizers); O(all_finalizers) = Fixnum_0;
-  #ifdef GC_CLOSES_FILES
+ #ifdef GC_CLOSES_FILES
   files_to_close = O(open_files); O(open_files) = NIL; /* O(files_to_close) = NIL; */
-  #endif
-  #if defined(MULTITHREAD)
+ #endif
+ #if defined(MULTITHREAD)
   threads_to_go = O(all_threads); O(all_threads) = NIL;
   mutexes_to_go = O(all_mutexes); O(all_mutexes) = NIL;
   exemptions_to_go = O(all_exemptions); O(all_exemptions) = NIL;
@@ -2054,7 +2054,7 @@ local void gar_col_normal (void)
       threads = Cdr(threads);
     }
   }
-  #endif /* MULTITHREAD */
+ #endif /* MULTITHREAD */
   gc_markphase();
   gc_mark_weakpointers(all_weakpointers);
   /* Now only, after gc_mark_weakpointers, can alive() be called.
@@ -2140,16 +2140,16 @@ local void gar_col_normal (void)
      holes in the heap that have to be filled with dummy object(s)*/
   var DYNAMIC_ARRAY(holes_to_fill,varobj_mem_region,pinned_count+1);
   var uintC holes_count=0, regions_count;
-#if defined(SPVW_PURE)
+ #if defined(SPVW_PURE)
   /* array holding starting indexes of holes in each heap.
      it is used really only in MT builds - in single thread
      the compiler may decide to remove it (defined in single thread
      becasue of too many #ifdefs otherwise) */
   var uintL holes_idx[heapcount] = {0};
-#endif
-#if !defined(MULTITHREAD)
+ #endif
+ #if !defined(MULTITHREAD)
   #undef pinned_count
-#endif
+ #endif
  #ifdef SPVW_PURE
   #ifdef GENERATIONAL_GC
   if (generation == 0) {
@@ -2228,7 +2228,7 @@ local void gar_col_normal (void)
 				 regions,regions_count,
 				 holes_to_fill,&holes_count);}});
   } else
- #endif
+  #endif
     for_each_varobject_page(page, {
       fill_relocation_memory_regions(page->page_start,page->page_end,
 				     regions,&regions_count);
@@ -2236,12 +2236,12 @@ local void gar_col_normal (void)
 			       &page->page_gcpriv.firstmarked,
 			       regions,regions_count,
 			       holes_to_fill,&holes_count);});
-#endif
+ #endif
   holes_to_fill[holes_count].start = 0; /* mark the end of holes array */
-#if defined(SPVW_PURE)
+ #if defined(SPVW_PURE)
   /* set invalid heapnr for the "last hole" */
   holes_to_fill[holes_count].heapnr = heapcount+1;
-#endif
+ #endif
 
   /* Now all active objects are prepared for update:
    For active objects of variable length at objptr, *objptr is the address,
@@ -2581,11 +2581,11 @@ local void gar_col_normal (void)
  can trigger GC! */
 local maygc void gar_col_done (void)
 {
-  #ifdef GC_CLOSES_FILES
+ #ifdef GC_CLOSES_FILES
   close_some_files(O(files_to_close)); /* close previously unmarked files */
   O(files_to_close) = NIL;
-  #endif
-  #if defined(MULTITHREAD)
+ #endif
+ #if defined(MULTITHREAD)
   /* release non-referenced mutexes */
   release_mutexes(O(mutexes_to_release));
   O(mutexes_to_release) = NIL;
@@ -2604,7 +2604,7 @@ local maygc void gar_col_done (void)
       list=Cdr(list);
     }
   }
-  #endif
+ #endif
   /* perform finalizer-functions: */
   while (!(eq(O(pending_finalizers),Fixnum_0))) {
     var object obj = O(pending_finalizers);
@@ -2683,14 +2683,14 @@ local void gc_compact_from_varobject_page (Heap* heapptr, Page* page, uintL heap
 local void gc_compact_from_varobject_page (Heap* heapptr, Page* page)
 #endif
 {
-#if defined MULTITHREAD
- #ifdef SPVW_PURE
+ #if defined MULTITHREAD
+  #ifdef SPVW_PURE
   if (page_contains_pinned_object(heapnr,page))
- #else /* SPVW_MIXED */
+  #else /* SPVW_MIXED */
   if (page_contains_pinned_object(page))
- #endif
+  #endif
     { page->page_gcpriv.d=0;return; }
-#endif /* MULTITHREAD */
+ #endif /* MULTITHREAD */
 
   var aint p1 = page->page_start;
   var aint p1end = page->page_end;
@@ -2701,7 +2701,7 @@ local void gc_compact_from_varobject_page (Heap* heapptr, Page* page)
     var aint p2;                /* cache of new_page->page_end */
     var uintM l2;               /* cache of new_page->page_room */
     /* try to copy all objects between p1 and p1end : */
-    while (1) {
+    while (true) {
       if (p1==p1end)            /* upper bound reached -> finished */
         break;
       var uintM laenge = objsize((Varobject)p1); /* determine byte-length */
@@ -2760,7 +2760,7 @@ local void gc_compact_from_cons_page (Heap* heapptr, Page* page)
     var aint p2;                /* cache of new_page->page_end */
     var uintM l2;               /* cache of new_page->page_room */
     /* try to copy all objects between p1start and p1: */
-    while (1) {
+    while (true) {
       if (p1==p1start)          /* lower bound reached -> finished */
         break;
       /* search a page, that has at least sizeof(cons_) bytes free: */
@@ -3096,11 +3096,7 @@ local void move_conses (sintM delta)
     /* shift upwards, from above */
     var gcv_object_t* source = (gcv_object_t*) mem.conses.heap_end;
     var gcv_object_t* source_end = (gcv_object_t*) mem.conses.heap_start;
-   #if !(defined(MIPS) && !defined(GNU))
     var gcv_object_t* dest = (gcv_object_t*) (mem.conses.heap_end += delta);
-   #else  /* circumvent IRIX 4 "cc -ansi" compiler-bug?? */
-    var gcv_object_t* dest = (mem.conses.heap_end += delta, (gcv_object_t*)mem.conses.heap_end);
-   #endif
     mem.conses.heap_start += delta;
     while (source!=source_end) {
       *--dest = *--source;      /* copy an entire cons upwards */
@@ -3110,11 +3106,7 @@ local void move_conses (sintM delta)
     /* shift downwards, from below */
     var gcv_object_t* source = (gcv_object_t*) mem.conses.heap_start;
     var gcv_object_t* source_end = (gcv_object_t*) mem.conses.heap_end;
-    #if !(defined(MIPS) && !defined(GNU))
     var gcv_object_t* dest = (gcv_object_t*) (mem.conses.heap_start += delta);
-    #else  /* circumvent IRIX 4 "cc -ansi" compiler-bug?? */
-    var gcv_object_t* dest = (mem.conses.heap_start += delta, (gcv_object_t*)mem.conses.heap_start);
-    #endif
     mem.conses.heap_end += delta;
     while (source!=source_end) {
       *dest++ = *source++;      /* copy an entire cons downwards */

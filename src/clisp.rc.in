@@ -1,5 +1,3 @@
-/* http://msdn.microsoft.com/en-us/library/aa381058(v=VS.85).aspx */
-/* for the filever.exe utility */
 #include <windows.h>
 
 #define CLISP_PRODUCTVERSION  @CLISP_PRODUCTVERSION@

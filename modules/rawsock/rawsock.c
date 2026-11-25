@@ -3,7 +3,7 @@
  * Fred Cohen, 2003-2004
  * Don Cohen, 2003-2004
  * Sam Steingold 2004-2012, 2017
- * Bruno Haible 2004-2008
+ * Bruno Haible 2004-2008, 2024
  * <http://www.opengroup.org/onlinepubs/9699919799/basedefs/sys_socket.h.html>
  */
 
@@ -80,8 +80,8 @@ DEFMODULE(rawsock,"RAWSOCK")
  removes 2 elements from STACK
  can trigger GC */
 static void* parse_buffer_arg (gcv_object_t *arg_, size_t *size, int prot) {
-  stringarg sa;
   *arg_ = check_byte_vector(*arg_);
+  stringarg sa;
   sa.offset = 0; sa.len = vector_length(*arg_);
   sa.string = *arg_ = array_displace_check(*arg_,sa.len,&sa.offset);
   test_vector_limits(&sa);
@@ -128,14 +128,14 @@ static void* check_struct_data (object type, gcv_object_t *arg,
  removes 2 elements from STACK if success (returns a positive value)
  can trigger GC */
 static int check_iovec_arg (gcv_object_t *arg_, uintL *offset) {
-  int ii;
-  stringarg sa;
   *arg_ = check_vector(*arg_);
   if (array_atype(*arg_) != Atype_T) return -1; /* cannot contain vectors */
+  stringarg sa;
   sa.offset = 0; sa.len = vector_length(*arg_);
   sa.string = array_displace_check(*arg_,sa.len,&sa.offset);
   test_vector_limits(&sa);
   *offset = sa.offset;
+  int ii;
   for (ii=*offset; ii<sa.len; ii++)
     TheSvector(*arg_)->data[ii] =
       check_byte_vector(TheSvector(*arg_)->data[ii]);
@@ -254,9 +254,8 @@ void coerce_into_bytes (void *arg, object element) {
 
 DEFUN(RAWSOCK:MAKE-SOCKADDR,family &optional data) {
   int family = check_socket_domain(STACK_1);
-  unsigned char *buffer;
-  size_t buffer_len, data_start = offsetof(struct sockaddr,sa_data);
-  struct pos arg;
+  size_t data_start = offsetof(struct sockaddr,sa_data);
+  size_t buffer_len;
   if (missingp(STACK_0)) {      /* standard size */
     buffer_len = sizeof(struct sockaddr) - data_start;
   } else if (posfixnump(STACK_0)) { /* integer data => as if sequence of 0 */
@@ -266,11 +265,12 @@ DEFUN(RAWSOCK:MAKE-SOCKADDR,family &optional data) {
     buffer_len = I_to_uint32(value1);
   }
   pushSTACK(allocate_bit_vector(Atype_8Bit,data_start + buffer_len));
-  buffer = (unsigned char *)TheSbvector(STACK_0)->data;
+  unsigned char *buffer = (unsigned char *)TheSbvector(STACK_0)->data;
   begin_system_call();
   memset(buffer,0,data_start + buffer_len);
   end_system_call();
   ((struct sockaddr*)buffer)->sa_family = family;
+  struct pos arg;
   arg.vector = &(STACK_0); arg.position = data_start;
   if (!missingp(STACK_1) && !posfixnump(STACK_1))
     map_sequence(STACK_1/*data*/,coerce_into_bytes,(void*)&arg);
@@ -404,7 +404,8 @@ DEFUN(RAWSOCK:CONVERT-ADDRESS, family address) {
     }
   } else if (simple_bit_vector_p(Atype_8Bit,STACK_0)) {
     value1 = addr_to_string(family,(char*)TheSbvector(STACK_0)->data);
-  } else bad_address: error_string_integer(STACK_0);
+  } else
+    bad_address: error_string_integer(STACK_0);
   if (nullp(value1)) {
     pushSTACK(NIL);             /* no PLACE */
     pushSTACK(STACK_1);         /* domain */
@@ -430,12 +431,12 @@ DEFUN(RAWSOCK:PROTOCOL, &optional protocol)
 { /* interface to getprotobyname() et al
      http://www.opengroup.org/onlinepubs/9699919799/functions/getprotoent.html */
   object proto = popSTACK();
-  struct protoent *pe = NULL;
   if (missingp(proto)) {        /* get all protocols */
     int count = 0;
     begin_system_call();
 #  if defined(HAVE_SETPROTOENT) && defined(HAVE_GETPROTOENT) && defined(HAVE_ENDPROTOENT)
     setprotoent(1);
+    struct protoent *pe;
     while ((pe = getprotoent())) {
       end_system_call();
       protoent_to_protocol(pe); pushSTACK(value1); count++;
@@ -445,24 +446,36 @@ DEFUN(RAWSOCK:PROTOCOL, &optional protocol)
 #  endif
     end_system_call();
     VALUES1(listof(count));
-    return;
   } else if (sint_p(proto)) {
+    struct protoent *pe = NULL;
 #  if defined(HAVE_GETPROTOBYNUMBER) || defined(WIN32_NATIVE)
     begin_system_call();
     pe = getprotobynumber(I_to_sint(proto));
     end_system_call();
 #  endif
+    if (pe)
+      protoent_to_protocol(pe);
+    else
+      VALUES1(NIL);
   } else if (stringp(proto)) {
 #  if defined(HAVE_GETPROTOBYNAME) || defined(WIN32_NATIVE)
+    object result = nullobj;
     with_string_0(proto,GLO(misc_encoding),protoz, {
-        begin_system_call();
-        pe = getprotobyname(protoz);
-        end_system_call();
-      });
+      begin_system_call();
+      struct protoent *pe = getprotobyname(protoz);
+      end_system_call();
+      if (pe)
+        protoent_to_protocol(pe);
+      else
+        VALUES1(NIL);
+      result = value1;
+    });
+    VALUES1(result);
+#  else
+    VALUES1(NIL);
 #  endif
-  } else error_string_integer(proto);
-  if (pe) protoent_to_protocol(pe);
-  else VALUES1(NIL);
+  } else
+    error_string_integer(proto);
 }
 /* --------------- */
 /* return RAWSOCK:NETWORK object in value1 */
@@ -478,12 +491,12 @@ DEFUN(RAWSOCK:NETWORK, &optional network type)
      http://www.opengroup.org/onlinepubs/9699919799/functions/getnetent.html */
   unsigned int type = check_uint_defaulted(popSTACK(),(unsigned int)-1);
   object net = popSTACK();
-  struct netent *ne = NULL;
   if (missingp(net)) {          /* get all networks */
     int count = 0;
 #  if defined(HAVE_SETNETENT) && defined(HAVE_GETNETENT) && defined(HAVE_ENDNETENT)
     begin_system_call();
     setnetent(1);
+    struct netent *ne;
     while ((ne = getnetent())) {
       end_system_call();
       if (type==(unsigned int)-1 || type==ne->n_addrtype) {
@@ -495,24 +508,36 @@ DEFUN(RAWSOCK:NETWORK, &optional network type)
     end_system_call();
 #  endif
     VALUES1(listof(count));
-    return;
   } else if (uint_p(net)) {
+    struct netent *ne = NULL;
 #  if defined(HAVE_GETNETBYADDR)
     begin_system_call();
     ne = getnetbyaddr(I_to_uint(net),type);
     end_system_call();
 #  endif
+    if (ne)
+      netent_to_network(ne);
+    else
+      VALUES1(NIL);
   } else if (stringp(net)) {
 #  if defined(HAVE_GETNETBYNAME)
+    object result = nullobj;
     with_string_0(net,GLO(misc_encoding),netz, {
-        begin_system_call();
-        ne = getnetbyname(netz);
-        end_system_call();
-      });
+      begin_system_call();
+      struct netent *ne = getnetbyname(netz);
+      end_system_call();
+      if (ne)
+        netent_to_network(ne);
+      else
+        VALUES1(NIL);
+      result = value1;
+    });
+    VALUES1(result);
+#  else
+    VALUES1(NIL);
 #  endif
-  } else error_string_integer(net);
-  if (ne) netent_to_network(ne);
-  else VALUES1(NIL);
+  } else
+    error_string_integer(net);
 }
 #endif  /* HAVE_NETDB_H */
 /* ================== net/if.h interface ================== */
@@ -538,7 +563,7 @@ DEFUN(RAWSOCK:IF-NAME-INDEX, &optional what) {
 #  if defined(HAVE_IF_INDEXTONAME)
     char name[IF_NAMESIZE];
     begin_system_call();
-    if (NULL == if_indextoname(I_to_uint(STACK_0),name)) ANSIC_error();
+    if (if_indextoname(I_to_uint(STACK_0),name) == NULL) ANSIC_error();
     end_system_call();
     VALUES1(asciz_to_string(name,GLO(misc_encoding)));
 #  else
@@ -549,36 +574,37 @@ DEFUN(RAWSOCK:IF-NAME-INDEX, &optional what) {
 #  if defined(HAVE_IF_INDEXTONAME)
     unsigned int idx;
     with_string_0(STACK_0,GLO(misc_encoding),namez, {
-        begin_system_call();
-        if (0 == (idx = if_nametoindex(namez))) ANSIC_error();
-        end_system_call();
-      });
+      begin_system_call();
+      if ((idx = if_nametoindex(namez)) == 0) ANSIC_error();
+      end_system_call();
+    });
     VALUES1(uint_to_I(idx));
 #  else
     pushSTACK(TheSubr(subr_self)->name);
     error(error_condition,GETTEXT("~S: no if_nametoindex() at configure time"));
 #  endif
-  } else error_string_integer(STACK_0);
+  } else
+    error_string_integer(STACK_0);
   skipSTACK(1);
 }
 #endif  /* net/if.h */
 /* ================== ifaddrs.h interface ================== */
 #if defined(HAVE_NET_IF_H) && defined(HAVE_IFADDRS_H) && defined(HAVE_GETIFADDRS) && defined(HAVE_FREEIFADDRS)
-DEFCHECKER(check_iff,prefix=IFF,bitmasks=both,default=(unsigned)~0,     \
+DEFCHECKER(check_iff,prefix=IFF,bitmasks=both,default=~0L,              \
            :UP BROADCAST DEBUG LOOPBACK                                 \
            POINTOPOINT NOTRAILERS RUNNING NOARP PROMISC ALLMULTI        \
            OACTIVE SIMPLEX LINK0 LINK1 LINK2 ALTPHYS POLLING PPROMISC   \
            MONITOR STATICARP NEEDSGIANT                                 \
            MASTER SLAVE MULTICAST PORTSEL AUTOMEDIA DYNAMIC LOWER-UP DORMANT)
 DEFUN(RAWSOCK:IFADDRS,&key FLAGS-AND FLAGS-OR) {
-  struct ifaddrs *ifap;
-  int count = 0;
   unsigned int flags_or = check_iff_of_list(popSTACK());
   unsigned int flags_and = missingp(STACK_0) ? 0 : check_iff_of_list(STACK_0);
   skipSTACK(1);                 /* drop flags_and */
   begin_system_call();
-  if (-1==getifaddrs(&ifap)) ANSIC_error();
+  struct ifaddrs *ifap;
+  if (getifaddrs(&ifap) == -1) ANSIC_error();
   end_system_call();
+  int count = 0;
   for (; ifap; ifap=ifap->ifa_next)
     if ((flags_or & ifap->ifa_flags)
         && ((flags_and & ifap->ifa_flags) == flags_and)) {
@@ -591,10 +617,12 @@ DEFUN(RAWSOCK:IFADDRS,&key FLAGS-AND FLAGS-OR) {
           pushSTACK(STACK_3);   /* ifa_name */
           pushSTACK(TheSubr(subr_self)->name);
           error(error_condition,GETTEXT("~S: both IFF_BROADCAST and IFF_POINTOPOINT set for ~S"));
-        } else pushSTACK_sockaddr(ifap->ifa_broadaddr);
+        } else
+          pushSTACK_sockaddr(ifap->ifa_broadaddr);
       else if (ifap->ifa_flags & IFF_POINTOPOINT)
         pushSTACK_sockaddr(ifap->ifa_dstaddr);
-      else pushSTACK(NIL);
+      else
+        pushSTACK(NIL);
       pushSTACK(ifap->ifa_data ? allocate_fpointer(ifap->ifa_data) : NIL);
       funcall(`RAWSOCK::MAKE-IFADDRS`,6);
       pushSTACK(value1); count++;
@@ -644,34 +672,34 @@ static int get_socket_protocol (object proto) {
   if (stringp(proto)) {
     struct protoent *pe;
     with_string_0(proto,GLO(misc_encoding),protoz, {
-        begin_system_call(); pe = getprotobyname(protoz); end_system_call();
-      });
+      begin_system_call(); pe = getprotobyname(protoz); end_system_call();
+    });
     if (pe) return pe->p_proto;
     pushSTACK(NIL);             /* no PLACE */
     pushSTACK(proto); pushSTACK(TheSubr(subr_self)->name);
     check_value(error_condition,GETTEXT("~S: invalid protocol name ~S"));
     proto = value1;
     goto get_socket_protocol_restart;
-  } else
+  }
 #endif
-    return check_socket_protocol(proto);
+  return check_socket_protocol(proto);
 }
 
 DEFUN(RAWSOCK:SOCKET,domain type protocol) {
-  rawsock_t sock;
   int protocol = get_socket_protocol(popSTACK());
   int type = check_socket_type(popSTACK());
   int domain = check_socket_domain(popSTACK());
+  rawsock_t sock;
   SYSCALL(sock,-1,socket(domain,type,protocol));
   VALUES1(fixnum(sock));
 }
 
 DEFUN(RAWSOCK:SOCKETPAIR,domain type protocol) {
-  rawsock_t sock[2];
-  int retval;
   int protocol = get_socket_protocol(popSTACK());
   int type = check_socket_type(popSTACK());
   int domain = check_socket_domain(popSTACK());
+  rawsock_t sock[2];
+  int retval;
 #if defined(HAVE_SOCKETPAIR)
   SYSCALL(retval,-1,socketpair(domain,type,protocol,sock));
 #else /* woe32 et al */
@@ -712,9 +740,11 @@ DEFUN(RAWSOCK:SOCKATMARK, sock) {
    SOCKADDR: extract data
  the return value is invalidated by GC, only use in with_opt_sa_arg
  can trigger GC */
-static /*maygc*/ struct sockaddr* optional_sockaddr_argument
-(gcv_object_t *arg, socklen_t *size PIN_ARG_DECL) {
-  if (nullp(*arg)) return NULL;
+static /*maygc*/ struct sockaddr* optional_sockaddr_argument (gcv_object_t *arg,
+                                                              socklen_t *size
+                                                              PIN_ARG_DECL) {
+  if (nullp(*arg))
+    return NULL;
   else {
     if (eq(T,*arg)) *arg = make_sockaddr();
     { struct sockaddr* sa =
@@ -852,10 +882,10 @@ DEFUN(RAWSOCK:GETNAMEINFO, sockaddr &key NOFQDN NUMERICHOST NAMEREQD \
   char node[BUFSIZ], service[BUFSIZ];
   int status;
   with_sockaddr_arg(sa,&STACK_0,&size,PROT_READ, {
-      begin_sock_call();
-      status = getnameinfo_f(sa,size,node,BUFSIZ,service,BUFSIZ,flags);
-      end_sock_call();
-    });
+    begin_sock_call();
+    status = getnameinfo_f(sa,size,node,BUFSIZ,service,BUFSIZ,flags);
+    end_sock_call();
+  });
   if (status) error_eai(status);
   STACK_0 = asciz_to_string(service,GLO(misc_encoding));
   VALUES2(asciz_to_string(node,GLO(misc_encoding)),popSTACK());
@@ -885,15 +915,14 @@ DEFCHECKER(check_addrinfo_flags,prefix=AI,default=0,bitmasks=both,    \
 static void call_getaddrinfo (const char* nd,const char* sv,
                               const struct addrinfo* hints,
                               struct addrinfo** ret) {
-  int status;
   begin_system_call();
-  if ((status = getaddrinfo_f(nd,sv,hints,ret))) error_eai(status);
+  int status = getaddrinfo_f(nd,sv,hints,ret);
+  if (status) error_eai(status);
   end_system_call();
 }
 DEFUN(RAWSOCK:GETADDRINFO, &key NODE SERVICE PROTOCOL SOCKTYPE FAMILY \
       PASSIVE CANONNAME NUMERICHOST NUMERICSERV V4MAPPED :ALL ADDRCONFIG) {
   struct addrinfo hints;
-  struct addrinfo *ret = NULL, *tmp;
   begin_system_call();
   memset(&hints,0,sizeof(hints));
   end_system_call();
@@ -901,24 +930,26 @@ DEFUN(RAWSOCK:GETADDRINFO, &key NODE SERVICE PROTOCOL SOCKTYPE FAMILY \
   hints.ai_family = check_socket_domain(popSTACK());
   hints.ai_socktype = check_socket_type(popSTACK());
   hints.ai_protocol = get_socket_protocol(popSTACK());
-  int valcount = 0;
+  struct addrinfo *ret = NULL;
   if (missingp(STACK_0)) {
     if (missingp(STACK_1))
       call_getaddrinfo(NULL,NULL,&hints,&ret);
     else
       with_string_0(check_string(STACK_1),GLO(misc_encoding),node, {
-          call_getaddrinfo(node,NULL,&hints,&ret);
-        });
+        call_getaddrinfo(node,NULL,&hints,&ret);
+      });
   } else {
     with_string_0(check_string(STACK_0),GLO(misc_encoding),service, {
-        if (missingp(STACK_1))
-          call_getaddrinfo(NULL,service,&hints,&ret);
-        else
-          with_string_0(check_string(STACK_1),GLO(misc_encoding),node, {
-              call_getaddrinfo(node,service,&hints,&ret);
-            });
-      });
+      if (missingp(STACK_1))
+        call_getaddrinfo(NULL,service,&hints,&ret);
+      else
+        with_string_0(check_string(STACK_1),GLO(misc_encoding),node, {
+          call_getaddrinfo(node,service,&hints,&ret);
+        });
+    });
   }
+  int valcount = 0;
+  struct addrinfo *tmp;
   for (tmp = ret; tmp; tmp = tmp->ai_next, valcount++) {
     pushSTACK(check_addrinfo_flags_to_list(tmp->ai_flags));
     pushSTACK(check_socket_domain_reverse(tmp->ai_family));
@@ -958,13 +989,13 @@ DEFUN(RAWSOCK:RECV,socket buffer &key :START :END PEEK OOB WAITALL) {
 DEFUN(RAWSOCK:RECVFROM,socket buffer address &key :START :END PEEK OOB WAITALL){
   int flags = recv_flags();
   rawsock_t sock = I_to_uint(check_uint(STACK_4));
+  if (!missingp(STACK_0)) STACK_0 = check_posfixnum(STACK_0);
+  if (!missingp(STACK_1)) STACK_1 = check_posfixnum(STACK_1);
+  STACK_3 = check_byte_vector(STACK_3);
   int retval;
   void *buffer;
   size_t buffer_len;
   socklen_t sa_size;
-  if (!missingp(STACK_0)) STACK_0 = check_posfixnum(STACK_0);
-  if (!missingp(STACK_1)) STACK_1 = check_posfixnum(STACK_1);
-  STACK_3 = check_byte_vector(STACK_3);
   with_opt_sa_arg(sa,&STACK_2,&sa_size,
     with_buffer_arg(buffer,&STACK_3,&buffer_len,PROT_READ_WRITE,
       SYSCALL(retval,sock,recvfrom(sock,(BUF_TYPE_T)buffer,
@@ -1023,15 +1054,15 @@ static void fill_msghdr (gcv_object_t *mho, uintL offset, struct msghdr *mhp,
 DEFUN(RAWSOCK:RECVMSG,socket message &key :START :END PEEK OOB WAITALL) {
   int flags = recv_flags();
   rawsock_t sock = I_to_uint(check_uint(STACK_3));
-  int retval;
-  struct msghdr message;
   uintL offset;
-  PIN_DECL;
+  struct msghdr message;
   check_message(&STACK_2,&offset,&message);
   message.msg_iov =
     (struct iovec*)alloca(message.msg_iovlen * sizeof(struct iovec));
+  PIN_DECL;
   PIN_INIT(message.msg_iovlen+1);
   fill_msghdr(&STACK_0,offset,&message,PROT_READ_WRITE PIN_ARG_USE);
+  int retval;
   SYSCALL(retval,sock,recvmsg(sock,&message,flags));
   unpin_varobjects(message.msg_iovlen+1);
   TheStructure(STACK_0)->recdata[MSG_FLAGS] =
@@ -1045,7 +1076,6 @@ DEFUN(RAWSOCK:SOCK-READ,socket buffer &key :START :END)
      http://www.opengroup.org/onlinepubs/9699919799/functions/readv.html */
   rawsock_t sock = I_to_uint(check_uint(STACK_3));
   ssize_t retval;
-  size_t len;
   uintL offset;
   if ((retval = check_iovec_arg(&STACK_2,&offset)) >= 0) { /* READV */
     ssize_t pinned_count = retval;
@@ -1054,9 +1084,11 @@ DEFUN(RAWSOCK:SOCK-READ,socket buffer &key :START :END)
     fill_iovec(STACK_0,offset,retval,buffer,PROT_READ_WRITE PIN_ARG_USE);
     SYSCALL(retval,sock,readv(sock,buffer,retval));
     unpin_varobjects(pinned_count);
-  } else                       /* READ */
+  } else {                     /* READ */
+    size_t len;
     with_buffer_arg(buffer,&STACK_2,&len,PROT_READ_WRITE,
                     SYSCALL(retval,sock,READ(sock,buffer,len)));
+  }
   VALUES1(ssize_to_I(retval)); skipSTACK(2);
 }
 
@@ -1081,15 +1113,15 @@ DEFUN(RAWSOCK:SEND,socket buffer &key :START :END OOB EOR) {
 DEFUN(RAWSOCK:SENDMSG,socket message &key :START :END OOB EOR) {
   int flags = send_flags();
   rawsock_t sock = I_to_uint(check_uint(STACK_3));
-  int retval;
-  struct msghdr message;
   uintL offset;
-  PIN_DECL;
+  struct msghdr message;
   check_message(&STACK_2,&offset,&message);
   message.msg_iov =
     (struct iovec*)alloca(message.msg_iovlen * sizeof(struct iovec));
+  PIN_DECL;
   PIN_INIT(message.msg_iovlen+1);
   fill_msghdr(&STACK_0,offset,&message,PROT_READ PIN_ARG_USE);
+  int retval;
   SYSCALL(retval,sock,sendmsg(sock,&message,flags));
   unpin_varobjects(message.msg_iovlen+1);
   TheStructure(STACK_0)->recdata[MSG_FLAGS] =
@@ -1101,12 +1133,12 @@ DEFUN(RAWSOCK:SENDMSG,socket message &key :START :END OOB EOR) {
 DEFUN(RAWSOCK:SENDTO, socket buffer address &key :START :END OOB EOR) {
   int flags = send_flags();
   rawsock_t sock = I_to_uint(check_uint(STACK_4));
-  int retval;
-  size_t buffer_len;
-  socklen_t size;
   if (!missingp(STACK_0)) STACK_0 = check_posfixnum(STACK_0);
   if (!missingp(STACK_1)) STACK_1 = check_posfixnum(STACK_1);
   STACK_3 = check_byte_vector(STACK_3);
+  int retval;
+  size_t buffer_len;
+  socklen_t size;
   with_sockaddr_arg(sa,&STACK_2,&size,PROT_READ,
     with_buffer_arg(buffer,&STACK_3,&buffer_len,PROT_READ,
                     SYSCALL(retval,sock,sendto(sock,(const BUF_TYPE_T)buffer,
@@ -1119,7 +1151,6 @@ DEFUN(RAWSOCK:SOCK-WRITE,socket buffer &key :START :END)
      http://www.opengroup.org/onlinepubs/9699919799/functions/writev.html */
   rawsock_t sock = I_to_uint(check_uint(STACK_3));
   ssize_t retval;
-  size_t len;
   uintL offset;
   if ((retval = check_iovec_arg(&STACK_2,&offset)) >= 0) { /* WRITEV */
     ssize_t pinned_count = retval;
@@ -1128,9 +1159,11 @@ DEFUN(RAWSOCK:SOCK-WRITE,socket buffer &key :START :END)
     fill_iovec(STACK_0,offset,retval,buffer,PROT_READ PIN_ARG_USE);
     SYSCALL(retval,sock,writev(sock,buffer,retval));
     unpin_varobjects(pinned_count);
-  } else                        /* WRITE */
+  } else {                      /* WRITE */
+    size_t len;
     with_buffer_arg(buffer,&STACK_2,&len,PROT_READ,
                     SYSCALL(retval,sock,WRITE(sock,buffer,len)));
+  }
   VALUES1(ssize_to_I(retval)); skipSTACK(2);
 }
 
@@ -1164,7 +1197,7 @@ static void configdev (rawsock_t sock, char* ifname, int ipaddress, int flags) {
     if (ioctl(sock, SIOCGIFADDR, &ifrequest) < 0)
       OS_file_error(STACK_1);
     else {
-      register int j;
+      int j;
       for (j=2;j<6;j++) ifrequest.ifr_addr.sa_data[j] = 0;
       if (ioctl(sock, SIOCSIFADDR, &ifrequest) < 0)
         OS_file_error(STACK_1);
@@ -1179,10 +1212,10 @@ DEFUN(RAWSOCK:CONFIGDEV, socket ifname ipaddress &key PROMISC NOARP) {
   uint32 ipaddress = I_to_UL(check_uint32(STACK_0));
   rawsock_t sock = I_to_uint(check_uint(STACK_2));
   with_string_0(check_string(STACK_1),Symbol_value(S(utf_8)),ifname, {
-      begin_blocking_system_call();
-      configdev(sock, ifname, ipaddress, flags);
-      end_blocking_system_call();
-    });
+    begin_blocking_system_call();
+    configdev(sock, ifname, ipaddress, flags);
+    end_blocking_system_call();
+  });
   VALUES0; skipSTACK(3);
 }
 #endif  /* HAVE_NET_IF_H */
@@ -1202,15 +1235,16 @@ DEFCHECKER(sockopt_name,default=-1,prefix=SO,                            \
            DONTROUTE RCVLOWAT RCVTIMEO SNDLOWAT SNDTIMEO)
 #endif
 #if defined(HAVE_GETSOCKOPT) || defined(WIN32_NATIVE)
-#define GET_SOCK_OPT(opt_type,retform) do {                             \
-    opt_type val;                                                       \
-    socklen_t len = sizeof(val);                                        \
-    int status;                                                         \
-    begin_sock_call();                                                  \
-    status = getsockopt(sock,level,name,(SETSOCKOPT_ARG_T)&val,&len);   \
-    end_sock_call();                                                    \
-    if (status==0) return retform;                                      \
-    else return (err_p ? OS_file_error(fixnum(sock)),NIL : S(Kerror));  \
+#define GET_SOCK_OPT(opt_type,retform) do {                               \
+    opt_type val;                                                         \
+    socklen_t len = sizeof(val);                                          \
+    begin_sock_call();                                                    \
+    int status = getsockopt(sock,level,name,(SETSOCKOPT_ARG_T)&val,&len); \
+    end_sock_call();                                                      \
+    if (status==0)                                                        \
+      return retform;                                                     \
+    else                                                                  \
+      return (err_p ? OS_file_error(fixnum(sock)),NIL : S(Kerror));       \
   } while(0)
 static int check_sockopt_name (int name) {
   pushSTACK(NIL);           /* no PLACE */
@@ -1282,7 +1316,8 @@ static object get_sock_opt (rawsock_t sock, int level, int name, int err_p) {
     case SO_SNDTIMEO:
 #  endif
       GET_SOCK_OPT(struct timeval,sec_usec_number(val.tv_sec,val.tv_usec,0));
-    default: name = check_sockopt_name(name);
+    default:
+      name = check_sockopt_name(name);
       goto get_sock_opt_restart;
   }
 }
@@ -1389,9 +1424,12 @@ static void set_sock_opt (rawsock_t sock, int level, int name, object value) {
 #  if defined(SO_LINGER)
     case SO_LINGER:
       SET_SOCK_OPT(struct linger,
-                   if (nullp(value)) val.l_onoff=0;
-                   else { val.l_onoff = 1;
-                     val.l_linger = I_to_sint32(check_sint32(value));});
+                   if (nullp(value))
+                     val.l_onoff = 0;
+                   else {
+                     val.l_onoff = 1;
+                     val.l_linger = I_to_sint32(check_sint32(value));
+                   });
 #  endif
 #  if defined(SO_RCVTIMEO)
     case SO_RCVTIMEO:
@@ -1400,7 +1438,8 @@ static void set_sock_opt (rawsock_t sock, int level, int name, object value) {
     case SO_SNDTIMEO:
 #  endif
       SET_SOCK_OPT(struct timeval,sec_usec(value,NIL,&val));
-    default: name = check_sockopt_name(name);
+    default:
+      name = check_sockopt_name(name);
       goto set_sock_opt_restart;
   }
 }
@@ -1453,18 +1492,17 @@ DEFUN(RAWSOCK::SET-SOCKET-OPTION, value sock name &key :LEVEL)
    - 2 bytes specifying the next level protocol (e.g., 0800 for IP)
    followed by an IP datagram, so the first 14 bytes are ignored. */
 static unsigned short ipcsum (unsigned char* buffer, size_t length) {
-  register long sum=0;          /* assumes long == 32 bits */
-  unsigned short result;
-  unsigned char *ptr=&(buffer[14]);
-  unsigned int nbytes;
+  unsigned char *ptr = &buffer[14];
   ASSERT(length >= 26);         /* FIXME: is this right?! */
-  buffer[24]=0;buffer[25]=0;nbytes=(buffer[14] & 0xF) << 2; /* checksum=0, headerlen */
-  while(nbytes>1){sum += *ptr; ptr++; sum += *ptr <<8; ptr++; nbytes -= 2;}
-  if(nbytes==1){sum += *ptr;}     /* mop up an odd byte,  if necessary */
+  buffer[24]=0; buffer[25]=0;
+  unsigned int nbytes = (buffer[14] & 0xF) << 2; /* checksum=0, headerlen */
+  long sum = 0;
+  while (nbytes>1) {sum += *ptr; ptr++; sum += *ptr <<8; ptr++; nbytes -= 2;}
+  if (nbytes==1) {sum += *ptr;}     /* mop up an odd byte,  if necessary */
   sum = (sum >> 16) + (sum & 0xFFFF);
-  result=~(sum  + (sum >> 16)) & 0xFFFF;
-  buffer[24]=(result & 0xFF);
-  buffer[25]=((result >> 8) & 0xFF);
+  unsigned short result = ~(sum  + (sum >> 16)) & 0xFFFF;
+  buffer[24] = (result & 0xFF);
+  buffer[25] = ((result >> 8) & 0xFF);
   return result;
 }
 DEFUN(RAWSOCK:IPCSUM, buffer &key :START :END) { /* IP checksum */
@@ -1475,21 +1513,19 @@ DEFUN(RAWSOCK:IPCSUM, buffer &key :START :END) { /* IP checksum */
 }
 
 static unsigned short icmpcsum (unsigned char* buffer, size_t length) {
-  register long sum=0;          /* assumes long == 32 bits */
-  unsigned short result;
-  unsigned char *ptr;
-  unsigned int nbytes, off, offset;
   ASSERT(length >= 18);                    /* FIXME: is this right?! */
-  off=((buffer[14]&0xF)<<2);offset=off+14; /* start of ICMP header */
-  buffer[offset+2]=0;buffer[offset+3]=0;
-  nbytes=(((buffer[16])<<8)+(buffer[17]))-off; /* bytes in ICMP part */
-  ptr=&(buffer[offset]);
-  while(nbytes>1){sum += *ptr; ptr++; sum += *ptr <<8; ptr++; nbytes -= 2;}
-  if(nbytes==1){sum += *ptr;}     /* mop up an odd byte,  if necessary */
+  unsigned int off = ((buffer[14]&0xF)<<2);
+  unsigned int offset = off+14; /* start of ICMP header */
+  buffer[offset+2]=0; buffer[offset+3]=0;
+  unsigned int nbytes = (((buffer[16])<<8)+(buffer[17]))-off; /* bytes in ICMP part */
+  unsigned char *ptr = &buffer[offset];
+  long sum = 0;
+  while (nbytes>1) {sum += *ptr; ptr++; sum += *ptr <<8; ptr++; nbytes -= 2;}
+  if (nbytes==1) {sum += *ptr;}     /* mop up an odd byte,  if necessary */
   sum = (sum >> 16) + (sum & 0xFFFF);
-  result=~(sum  + (sum >> 16)) & 0xFFFF;
-  buffer[offset+2]=(result & 0xFF);
-  buffer[offset+3]=((result >> 8) & 0xFF);
+  unsigned short result = ~(sum  + (sum >> 16)) & 0xFFFF;
+  buffer[offset+2] = (result & 0xFF);
+  buffer[offset+3] = ((result >> 8) & 0xFF);
   return result;
 }
 DEFUN(RAWSOCK:ICMPCSUM, buffer &key :START :END) { /* ICMP checksum */
@@ -1500,25 +1536,21 @@ DEFUN(RAWSOCK:ICMPCSUM, buffer &key :START :END) { /* ICMP checksum */
 }
 
 static unsigned short tcpcsum (unsigned char* buffer, size_t length) {
-  register unsigned long sum;  /* assumes long == 32 bits */
-  unsigned short result;
-  unsigned char *ptr;
-  unsigned int nbytes, packsize, offset;
   ASSERT(length >= 34);         /* FIXME: is this right?! */
-  sum = (buffer[26]<<8)+ buffer[27]+(buffer[28]<<8)+ buffer[29]; /* Src IP */
+  unsigned long sum = (buffer[26]<<8)+ buffer[27]+(buffer[28]<<8)+ buffer[29]; /* Src IP */
   sum +=(buffer[30]<<8)+ buffer[31]+(buffer[32]<<8)+ buffer[33]; /* Dst IP */
   sum +=(buffer[23]);           /* zero followed by protocol */
-  packsize=((buffer[16])<<8)+(buffer[17]); /* packet size - not including ARP area */
-  offset=((buffer[14]&0xF)<<2); /* start of TCP header (rel to IP header) */
+  unsigned int packsize = ((buffer[16])<<8)+(buffer[17]); /* packet size - not including ARP area */
+  unsigned int offset = ((buffer[14]&0xF)<<2); /* start of TCP header (rel to IP header) */
   sum +=(packsize - offset);    /* size of TCP part of the packet */
-  ptr=&(buffer[offset+14]);     /* start of TCP header in buffer */
-  nbytes=packsize-offset;       /* number of bytes to checksum */
+  unsigned char *ptr = &buffer[offset+14];     /* start of TCP header in buffer */
+  unsigned int nbytes = packsize-offset;       /* number of bytes to checksum */
   buffer[offset+16+14]=0;
   buffer[offset+17+14]=0; /* initialize TCP checksum to 0 */
-  while(nbytes>1){sum += *ptr<<8; ptr++; sum += *ptr; ptr++; nbytes -= 2;}
+  while (nbytes>1) {sum += *ptr<<8; ptr++; sum += *ptr; ptr++; nbytes -= 2;}
   if (nbytes==1) {sum += *ptr<<8;} /* mop up an odd byte,  if necessary */
   sum = (sum >> 16) + (sum & 0xFFFF);
-  result=~(sum  + (sum >> 16)) & 0xFFFF;
+  unsigned short result = ~(sum  + (sum >> 16)) & 0xFFFF;
   buffer[offset+17+14]=(result & 0xFF);
   buffer[offset+16+14]=((result >> 8) & 0xFF);
   return result;
@@ -1531,25 +1563,21 @@ DEFUN(RAWSOCK:TCPCSUM, buffer &key :START :END) { /* TCP checksum */
 }
 
 static unsigned short udpcsum (unsigned char* buffer, size_t length) {
-  register unsigned long sum = 0;  /* assumes long == 32 bits */
-  unsigned short result;
-  unsigned char *ptr;
-  unsigned int nbytes, packsize, offset;
   ASSERT(length >= 34);         /* FIXME: is this right?! */
-  sum = (buffer[26]<<8)+ buffer[27]+(buffer[28]<<8)+ buffer[29]; /* Src IP */
+  unsigned long sum = (buffer[26]<<8)+ buffer[27]+(buffer[28]<<8)+ buffer[29]; /* Src IP */
   sum +=(buffer[30]<<8)+ buffer[31]+(buffer[32]<<8)+ buffer[33]; /* Dst IP */
   sum +=(buffer[23]);           /* zero followed by protocol */
-  packsize=((buffer[16])<<8)+(buffer[17]); /* packet size */
-  offset=((buffer[14]&0xF)<<2);            /* start of UDP header */
+  unsigned int packsize = ((buffer[16])<<8)+(buffer[17]); /* packet size */
+  unsigned int offset = ((buffer[14]&0xF)<<2);            /* start of UDP header */
   sum +=(((buffer[16])<<8)+(buffer[17])) -offset;
-  ptr=&(buffer[offset+14]);     /* start of TCP header */
-  nbytes=packsize-offset;
+  unsigned char *ptr = &buffer[offset+14];     /* start of TCP header */
+  unsigned int nbytes = packsize-offset;
   buffer[offset+6+14]=0;
   buffer[offset+7+14]=0; /* initialize UDP checksum to 0 */
-  while(nbytes>1){sum += *ptr <<8; ptr++; sum += *ptr; ptr++; nbytes -= 2;}
+  while (nbytes>1) {sum += *ptr <<8; ptr++; sum += *ptr; ptr++; nbytes -= 2;}
   if (nbytes==1) {sum += *ptr<<8;} /* mop up an odd byte, if necessary */
   sum = (sum >> 16) + (sum & 0xFFFF);
-  result=~(sum  + (sum >> 16)) & 0xFFFF;
+  unsigned short result = ~(sum  + (sum >> 16)) & 0xFFFF;
   buffer[offset+7+14]=(result & 0xFF);
   buffer[offset+6+14]=((result >> 8) & 0xFF);
   return result;

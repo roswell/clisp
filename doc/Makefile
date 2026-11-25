@@ -1,5 +1,6 @@
 # CLISP Implementation Notes generation
-# (c) 2000-2011 Sam Steingold
+# (C) 2000-2011 Sam Steingold
+# (C) 2024 Bruno Haible
 
 # To generate HTML, you will need xsltproc & xmllint from the libxml2
 # (http://xmlsoft.org/) package in addition to the DocBook DTDs and XSL
@@ -13,7 +14,7 @@ DTDVER=4.5
 # all included XML files
 IMPNOTES=cl-ent.xml clhs-ent.xml impbody.xml impent.xml mop.xml gray.xml     \
 	impext.xml impissue.xml impbyte.xml unix-ent.xml mop-ent.xml faq.xml \
-	history.xml \
+	history.xml fdl-1.3.dbk gpl-2.0.dbk \
 	../modules/asdf/asdf.xml	        \
 	../modules/berkeley-db/berkeley-db.xml	\
 	../modules/berkeley-db/ent-bdb.xml	\
@@ -147,7 +148,6 @@ else
 XSLTPROC=xsltproc
 endif
 XMLS_COMMON = --timing --xinclude
-GOOGLEADS=0
 
 # target.database.document in this command is a workaround for bug
 #   warning: failed to load external entity \"olinkdb.xml\"
@@ -183,11 +183,19 @@ impnotes.xml: impnotes.xml.in $(IMPNOTES) ../version.sh Makefile
 	$(FILLIN) $< > $@
 endif
 
-XMLOUT=$(XSLTPROC) $(XMLS_COMMON) --param google.ads $(GOOGLEADS) \
-	--stringparam target.database.document
+XMLOUT=$(XSLTPROC) $(XMLS_COMMON) --stringparam target.database.document
 DOC_MAN = --stringparam current.docid "man"
 DOC_CLK = --stringparam current.docid "clink"
 DOC_IMP = --stringparam current.docid "impnotes"
+
+# Post-processing of man.xsl output.
+# Add a newline before .PP, see
+# <https://sourceforge.net/p/clisp/bugs/748/>
+# <https://bugs.launchpad.net/ubuntu/+source/clisp/+bug/2022970>
+# <https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1041788>
+# Replace old 'an-trap' with newer 'an-input-trap' (no visible effect), see
+# <https://savannah.gnu.org/bugs/?61002>.
+MAN_XSL_POSTPROCESS = sed -i -e 's/\(.\)\.PP/\1\n.PP/g' -e 's/an-trap/an-input-trap/'
 
 CHECK_IDS = if egrep -Hnr 'id="id[0-9]*"' $@; then exit 1; else true; fi
 
@@ -197,6 +205,7 @@ clisp.html: clisp.xml $(GEN_DEPS) pile.xsl $(OLINK)
 
 clisp.1: clisp.xml $(GEN_DEPS) man.xsl $(OLINK)
 	$(XMLOUT) "olink-pile.xml" $(DOC_MAN) -o $@ man.xsl $<
+	$(MAN_XSL_POSTPROCESS) $@
 
 clisp-link.html: clisp-link.xml $(GEN_DEPS) pile.xsl $(OLINK)
 	$(XMLOUT) "olink-pile.xml" $(DOC_CLK) -o $@ pile.xsl $<
@@ -204,10 +213,16 @@ clisp-link.html: clisp-link.xml $(GEN_DEPS) pile.xsl $(OLINK)
 
 clisp-link.1: clisp-link.xml $(GEN_DEPS) man.xsl $(OLINK)
 	$(XMLOUT) "olink-pile.xml" $(DOC_CLK) -o $@ man.xsl $<
+	$(MAN_XSL_POSTPROCESS) $@
 
+# Generates _clisp.html from clisp.html.
+# For quality checking of _clisp.html, use "make -f Makefile.devel view-html".
 _%.html: %.html
 	sed $(SGML_UNCOMMENT) $< > $@
 
+# Generates _clisp.1 from clisp.1.
+# For quality checking of _clisp.1, use "make -f Makefile.devel view-man"
+# or "groff -man -Tutf8 _clisp.1 | less -R".
 _%.1: %.1
 	sed $(ROFF_UNCOMMENT) $< > $@
 

@@ -193,50 +193,48 @@ local maygc object rehash_symtab (object symtab) {
      first process the symbols, that sit in lists
      (maybe Conses become free): */
   {
-    var gcv_object_t* offset = 0; /* offset = sizeof(gcv_object_t)*index */
+    var uintP offset = 0; /* offset = sizeof(gcv_object_t)*index */
     var uintC count = oldsize;
     do {
       var object oldentry = /* entry with number index in oldtable */
-        *(gcv_object_t*)(pointerplus(&TheSvector(STACK_2)->data[0],
-                                     (aint)offset));
+        *(gcv_object_t*)(pointerplus(&TheSvector(STACK_2)->data[0],offset));
       if (consp(oldentry)) /* this time process only non-empty symbol-lists */
         do {
           pushSTACK(Cdr(oldentry)); /* save rest-list */
-        #ifndef MULTITHREAD
-          /* cons oldentry in front of free-conses */
-          Cdr(oldentry) = STACK_2; STACK_2 = oldentry;
-        #endif
+          #ifndef MULTITHREAD
+            /* cons oldentry in front of free-conses */
+            Cdr(oldentry) = STACK_2; STACK_2 = oldentry;
+          #endif
           /* enter symbol in the new table */
           newinsert(Car(oldentry),newsize);
           oldentry = popSTACK(); /* rest-list */
         } while (consp(oldentry));
-      offset++;
+      offset += sizeof(gcv_object_t);
     } while (--count);
   }
   { /* then process symbols, that sit there collision-free: */
-    var gcv_object_t* offset = 0; /* offset = sizeof(gcv_object_t)*index */
+    var uintP offset = 0; /* offset = sizeof(gcv_object_t)*index */
     var uintC count;
     dotimespC(count,oldsize, {
       var object oldentry = /* entry with number index in oldtable */
-        *(gcv_object_t*)(pointerplus(&TheSvector(STACK_2)->data[0],
-                                     (aint)offset));
+        *(gcv_object_t*)(pointerplus(&TheSvector(STACK_2)->data[0],offset));
       if (!listp(oldentry)) { /* this time process only symbols /= NIL */
         pushSTACK(oldentry); /* dummy, so that the stack is fine */
         newinsert(oldentry,newsize); /* enter into the new table */
         skipSTACK(1);
       }
-      offset++;
+      offset += sizeof(gcv_object_t);
     });
   }
   /* stack layout: tab, oldtable, free-conses, newtable. */
   { /* update tab: */
-  #ifdef MULTITHREAD
-    /* allocate new symtab. other threads may have obtained pointer to
-       the old one for lookup - do not modify it */
-    var object new_symtab = allocate_vector(3); /* vector of length 3 */
-    Symtab_count(new_symtab) = Symtab_count(STACK_3); /* set the count */
-    STACK_3 = new_symtab; /* replace symtab on the stack */
-  #endif
+    #ifdef MULTITHREAD
+      /* allocate new symtab. other threads may have obtained pointer to
+         the old one for lookup - do not modify it */
+      var object new_symtab = allocate_vector(3); /* vector of length 3 */
+      Symtab_count(new_symtab) = Symtab_count(STACK_3); /* set the count */
+      STACK_3 = new_symtab; /* replace symtab on the stack */
+    #endif
     var object newtable = popSTACK(); /* newtable */
     skipSTACK(2);
     symtab = popSTACK(); /* tab */
@@ -312,8 +310,10 @@ local bool symtab_find (object sym, object symtab) {
     else
       return false;
   } else { /* entry is a symbol-list */
-    if (nullp(memq(sym,entry))) return false; /* not found */
-    else return true; /* found as CAR from entry */
+    if (nullp(memq(sym,entry)))
+      return false; /* not found */
+    else
+      return true; /* found as CAR from entry */
   }
 }
 
@@ -519,14 +519,14 @@ local maygc object make_package (object name, object nicknames,
   ThePackage(pack)->pack_docstring = NIL;
   ensure_pack_shortest_name(pack);
   pushSTACK(pack);
- #ifdef MULTITHREAD
-  /* allocate the package mutex */
-  /* mutex name is the same as the package name */
-  pushSTACK(S(Kname)); pushSTACK(ThePackage(pack)->pack_name);
-  pushSTACK(S(Krecursive_p)); pushSTACK(T); /* recursive  */
-  funcall(L(make_mutex),4);
-  ThePackage(STACK_0)->pack_mutex = value1;
- #endif
+  #ifdef MULTITHREAD
+    /* allocate the package mutex */
+    /* mutex name is the same as the package name */
+    pushSTACK(S(Kname)); pushSTACK(ThePackage(pack)->pack_name);
+    pushSTACK(S(Krecursive_p)); pushSTACK(T); /* recursive  */
+    funcall(L(make_mutex),4);
+    ThePackage(STACK_0)->pack_mutex = value1;
+  #endif
   /* and insert in ALL_PACKAGES: */
   pushSTACK(allocate_cons()); /* new_cons */
   WITH_OS_MUTEX_LOCK(2,&all_packages_lock, {
@@ -758,8 +758,10 @@ local maygc void cerror_package_locked (object func, object pack, object obj) {
   pushSTACK(NIL);              /* 7 continue-format-string */
   pushSTACK(S(package_error)); /* 6 error type */
   pushSTACK(S(Kpackage));      /* 5 :PACKAGE */
-  if (consp(pack)) pushSTACK(Car(pack)); /* from check-redefinition */
-  else pushSTACK(pack);        /* 4 PACKAGE-ERROR slot PACKAGE */
+  if (consp(pack))
+    pushSTACK(Car(pack)); /* from check-redefinition */
+  else
+    pushSTACK(pack);           /* 4 PACKAGE-ERROR slot PACKAGE */
   pushSTACK(NIL);              /* 3 error-format-string */
   pushSTACK(func);             /* 2 */
   pushSTACK(obj);              /* 1 */
@@ -822,8 +824,8 @@ local maygc void make_present (object sym, object pack) {
            2, if inherited via use-list
            3, if available as internal symbol
  can trigger GC */
-modexp maygc uintBWL intern
-(object string, bool invert, object pack, object* sym_) {
+modexp maygc uintBWL intern (object string, bool invert, object pack,
+                             object* sym_) {
   /* first check without locking */
   var uintBWL result = find_symbol(string,invert,pack,sym_);
   if (!(result==0)) {
@@ -1429,11 +1431,11 @@ local maygc void map_symtab (object fun, object symtab) {
   pushSTACK(Symtab_table(symtab)); /* table vector */
   /* number of entries */
   var uintL size = posfixnum_to_V(Symtab_size(symtab));
-  var gcv_object_t* offset = 0; /* offset = sizeof(gcv_object_t)*index */
+  var uintP offset = 0; /* offset = sizeof(gcv_object_t)*index */
   var uintC count;
   dotimespC(count,size, {
     var object entry = /* entry with number index in table */
-      *(gcv_object_t*)(pointerplus(&TheSvector(STACK_0)->data[0],(aint)offset));
+      *(gcv_object_t*)(pointerplus(&TheSvector(STACK_0)->data[0],offset));
     if (atomp(entry)) {
       if (!nullp(entry)) {
         /* entry is a symbol /= NIL */
@@ -1450,7 +1452,7 @@ local maygc void map_symtab (object fun, object symtab) {
       } while (!matomp(STACK_0));
       skipSTACK(1);
     }
-    offset++;
+    offset += sizeof(gcv_object_t);
   });
   skipSTACK(2);
 }
@@ -1468,11 +1470,11 @@ local maygc void map_symtab_c (one_sym_function_t* fun, void* data, object symta
   pushSTACK(Symtab_table(symtab)); /* table vector */
   /* number of entries */
   var uintL size = posfixnum_to_V(Symtab_size(symtab));
-  var gcv_object_t* offset = 0; /* offset = sizeof(gcv_object_t)*index */
+  var uintP offset = 0; /* offset = sizeof(gcv_object_t)*index */
   var uintC count;
   dotimespC(count,size, {
     var object entry = /* entry with number index in table */
-      *(gcv_object_t*)(pointerplus(&TheSvector(STACK_0)->data[0],(aint)offset));
+      *(gcv_object_t*)(pointerplus(&TheSvector(STACK_0)->data[0],offset));
     if (atomp(entry)) {
       if (!nullp(entry)) { /* entry is a symbol /= NIL */
         (*fun)(data,entry); /* apply function */
@@ -1486,7 +1488,7 @@ local maygc void map_symtab_c (one_sym_function_t* fun, void* data, object symta
       } while (!matomp(STACK_0));
       skipSTACK(1);
     }
-    offset++;
+    offset += sizeof (gcv_object_t);
   });
   skipSTACK(1);
 }
@@ -2045,7 +2047,7 @@ LISPFUN(rename_package,seclass_default,2,1,norest,nokey,0,NIL) {
       var object name = STACK_1;
       var object nicknamelistr = STACK_0;
       /* name loops over the names and all nicknames */
-      while (1) { /* find package with this name: */
+      while (true) { /* find package with this name: */
         pushSTACK(name); pushSTACK(nicknamelistr); /* save (MT) */
         var object found = find_package(name);
         nicknamelistr = popSTACK(); name = popSTACK(); /* restore */
@@ -2112,8 +2114,10 @@ LISPFUNNR(package_case_sensitive_p,1) {
 LISPFUNN(set_package_case_sensitive_p,2) {
   var object pack = test_package_arg(popSTACK());
   var bool value = !nullp(popSTACK());
-  if (value) mark_pack_casesensitive(pack);
-  else mark_pack_caseinsensitive(pack);
+  if (value)
+    mark_pack_casesensitive(pack);
+  else
+    mark_pack_caseinsensitive(pack);
   VALUES_IF(value);
 }
 
@@ -2127,8 +2131,10 @@ LISPFUNNR(package_case_inverted_p,1) {
 LISPFUNN(set_package_case_inverted_p,2) {
   var object pack = test_package_arg(popSTACK());
   var bool value = !nullp(popSTACK());
-  if (value) mark_pack_caseinverted(pack);
-  else mark_pack_casepreserved(pack);
+  if (value)
+    mark_pack_caseinverted(pack);
+  else
+    mark_pack_casepreserved(pack);
   VALUES_IF(value);
 }
 
@@ -2166,14 +2172,18 @@ LISPFUNN(set_package_lock,2) {
   if (mconsp(pack)) {
     while (mconsp(STACK_0)) {
       var object pa = test_package_arg(Car(STACK_0)); STACK_0 = Cdr(STACK_0);
-      if (unlock_p) mark_pack_unlocked(pa);
-      else          mark_pack_locked(pa);
+      if (unlock_p)
+        mark_pack_unlocked(pa);
+      else
+        mark_pack_locked(pa);
     }
   } else if (nullp(pack)) { /* do nothing - package list was empty */
   } else {
     pack = test_package_arg(pack);
-    if (unlock_p) mark_pack_unlocked(pack);
-    else          mark_pack_locked(pack);
+    if (unlock_p)
+      mark_pack_unlocked(pack);
+    else
+      mark_pack_locked(pack);
   }
   skipSTACK(2);
   VALUES_IF(!unlock_p);
@@ -2629,8 +2639,10 @@ LISPFUN(pin_package,seclass_default,1,0,norest,key,4,
             STACK_1 = CLSTEXT("One should not change the case sensitiveness of ~S.");
             funcall(S(warn),2);
           }
-          if (value) mark_pack_casesensitive(*pack_);
-          else mark_pack_caseinsensitive(*pack_);
+          if (value)
+            mark_pack_casesensitive(*pack_);
+          else
+            mark_pack_caseinsensitive(*pack_);
         }
         if (boundp(STACK_0)) { /* check the case-invertedness: */
           var bool value = !nullp(STACK_0);
@@ -2639,8 +2651,10 @@ LISPFUN(pin_package,seclass_default,1,0,norest,key,4,
             STACK_1 = CLSTEXT("One should not change the case inversion of ~S.");
             funcall(S(warn),2);
           }
-          if (value) mark_pack_caseinverted(*pack_);
-          else mark_pack_casepreserved(*pack_);
+          if (value)
+            mark_pack_caseinverted(*pack_);
+          else
+            mark_pack_casepreserved(*pack_);
         }
         /* adjust the nicknames: */
         if (boundp(STACK_3)) {
@@ -2812,13 +2826,13 @@ LISPFUNN(delete_package,1) {
 local maygc void delete_package_aux (void* data, object sym) {
   var gcv_object_t* localptr = (gcv_object_t*)data; /* pointer to pack */
   pushSTACK(sym); unintern(&STACK_0,localptr);
-#if defined(MULTITHREAD)
-  /* clear per thread symvalues if any.
-     FIXME: The symvalue cell pointed from clisp_thread_t will remain
-     as a memory leak !!! It is possible with exhaustive scan of all
-     symbols to "compact" the threads symvalues cells. */
-  clear_per_thread_symvalues(STACK_0);
-#endif
+  #if defined(MULTITHREAD)
+    /* clear per thread symvalues if any.
+       FIXME: The symvalue cell pointed from clisp_thread_t will remain
+       as a memory leak !!! It is possible with exhaustive scan of all
+       symbols to "compact" the threads symvalues cells. */
+    clear_per_thread_symvalues(STACK_0);
+  #endif
   skipSTACK(1);
 }
 
@@ -2925,17 +2939,17 @@ LISPFUNN(map_external_symbols,2) {
  applies the function fun to all symbols present in any package. */
 LISPFUNN(map_all_symbols,1)
 {
-#ifdef MULTITHREAD
-  {
-    pushSTACK(NIL);
-    var gcv_object_t *ap_ = &STACK_0;
-    WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
-      *ap_ = copy_list(O(all_packages));  /* traverse copy of package-list */
-    });
-  }
-#else
-  pushSTACK(O(all_packages)); /* traverse package-list */
-#endif
+  #ifdef MULTITHREAD
+    {
+      pushSTACK(NIL);
+      var gcv_object_t *ap_ = &STACK_0;
+      WITH_OS_MUTEX_LOCK(0,&all_packages_lock, {
+        *ap_ = copy_list(O(all_packages));  /* traverse copy of package-list */
+      });
+    }
+  #else
+    pushSTACK(O(all_packages)); /* traverse package-list */
+  #endif
   while (mconsp(STACK_0)) {
     var object pack = Car(STACK_0); /* next package */
     STACK_0 = Cdr(STACK_0);

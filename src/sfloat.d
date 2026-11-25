@@ -9,8 +9,8 @@
 #        uintL mant = Mantisse (>= 2^SF_mant_len, < 2^(SF_mant_len+1))
   #if defined(GNU) && defined(MC680X0) && !defined(NO_ASM) && (SF_exp_shift==16) && (SF_exp_len==8)
     #define SF_uexp(x)  \
-      ({var register uint32 __x = as_oint(x);            \
-        var register uint8 __uexp;                       \
+      ({var uint32 __x = as_oint(x);                     \
+        var uint8 __uexp;                                \
         __asm__("swap %0" : "=d" (__uexp) : "0" (__x) ); \
         __uexp;                                          \
        })

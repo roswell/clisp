@@ -8,7 +8,7 @@
  * Since we are at it, this driver program also implements the "-K" option.
  * All other options are passed to the main program.
  *
- * Bruno Haible 31.3.1997-2000, 2004-2005, 2008-2009, 2017, 2020
+ * Bruno Haible 31.3.1997-2024
  * Sam Steingold 1998-2009, 2011
  */
 
@@ -41,8 +41,6 @@
  */
 #endif
 
-#include "config.h"
-
 /* Declare strlen(), strcpy(), strcat(). */
 # include <string.h>
 /* Declare stderr, perror(). */
@@ -62,6 +60,7 @@ BOOL real_path (LPCSTR namein, LPSTR nameout);
 # include <sys/stat.h>          /* stat */
 # include <unistd.h>            /* access */
 # include <errno.h>             /* ENOMEM, ENOENT, errno */
+# include <fcntl.h>             /* open */
 # include <sys/param.h>         /* MAXPATHLEN */
 #endif
 int find_executable (const char * program_name);
@@ -114,8 +113,8 @@ int main (int argc, char* argv[])
    * directly. (For example, "sh /usr/local/bin/clisp ..." will make it
    * absolute, "time clisp ..." will make it relative.)
    * If "clisp" is used as a script interpreter, program_name will be
-   * - the full absolute pathname, on SunOS 4, Solaris, HP-UX, IRIX,
-   * - only the basename, on Linux, AIX, OSF/1.
+   * - the full absolute pathname, on Solaris,
+   * - only the basename, on Linux, AIX.
    * It follows that we cannot tell whether we have been called as
    * script interpreter or directly.
    */
@@ -161,9 +160,9 @@ int main (int argc, char* argv[])
    * Script execution on Unix is implemented like this:
    * - The basename/fullname of the interpreter is put into argv[0].
    * - (Optional - only if at least one interpreter-arg is present.) Next
-   *   comes the tail of the "#!..." line. On SunOS 4, Linux, IRIX, AIX,
-   *   OSF/1: with leading whitespace stripped, but whitespace inside it
-   *   untouched (!). On Solaris, HP-UX: with leading whitespace stripped,
+   *   comes the tail of the "#!..." line. On Linux, AIX:
+   *   with leading whitespace stripped, but whitespace inside it
+   *   untouched (!). On Solaris: with leading whitespace stripped,
    *   and cut off at the next whitespace character (!!).
    * - Next comes the filename of the script.
    * - Then all the arguments of the script.
@@ -175,7 +174,7 @@ int main (int argc, char* argv[])
    * Also, don't split argv[1] into pieces if it is the filename of the
    * script. To determine this, look whether argv[1] is an option versus
    * a filename.
-   * As a workaround against the Solaris/HP-UX problem, we split not
+   * As a workaround against the Solaris problem, we split not
    * only at normal spaces, but also at hard spaces (in ISO-8859-1 encoding
    * and in UTF-8 encoding).
    * See <impnotes.html#quickstart>.

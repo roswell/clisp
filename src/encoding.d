@@ -1,6 +1,6 @@
 /*
  * Encodings (character sets and conversions) for CLISP
- * Bruno Haible 1998-2008, 2017-2018
+ * Bruno Haible 1998-2008, 2017-2026
  * Sam Steingold 1998-2009, 2011, 2017
  */
 
@@ -84,7 +84,6 @@ local line_end_t enc_eol_to_le (object enc_eol) {
 
 local uintL base64_to_chars (line_end_t le, const uintB* src,
                              const uintB* srcend, chart *dest) {
-  var uintL pos = 0;
   var uintL counter = 0;
   var uintL num_chars = 0;
   while (src < srcend) {
@@ -180,7 +179,7 @@ local uintL base64_to_bytes (const chart *src, const chart* srcend,
   var uintB *dest = destp;
   var uintL num_bytes = 0;
 
-  while (1) {
+  while (true) {
     /* Process first byte of a quadruplet. */
     READ_QUADRUPLET_BYTE(return num_bytes);
     if (!BASE64_P(c)) { *error_p = src-1; return num_bytes; }
@@ -2053,7 +2052,7 @@ LISPFUN(make_encoding,seclass_read,0,0,norest,key,5,
     #ifdef HAVE_GOOD_ICONV
     else {
       var bool valid_encoding_p = true;
-      with_string_0(arg,Symbol_value(S(ascii)),charset_ascii,{
+      with_string_0(arg,Symbol_value(S(ascii)),charset_ascii, {
         valid_encoding_p =
           check_charset(charset_ascii,ignore_not_exist ? nullobj : arg);
       });
@@ -2080,11 +2079,13 @@ LISPFUN(make_encoding,seclass_read,0,0,norest,key,5,
       }
     }
     #else
-    else error_illegal_arg(arg,S(encoding),S(Kcharset));
+    else
+      error_illegal_arg(arg,S(encoding),S(Kcharset));
     #endif
   }
  #endif
-  else error_illegal_arg(arg,S(encoding),S(Kcharset));
+  else
+    error_illegal_arg(arg,S(encoding),S(Kcharset));
   STACK_3 = arg;
   /* Check the :LINE-TERMINATOR argument. */
   arg = STACK_2;
@@ -2209,8 +2210,8 @@ LISPFUN(charset_range,seclass_read,3,1,norest,nokey,0,NIL) {
  < return: normal-simple-string with len characters as content
  can trigger GC */
 #ifdef ENABLE_UNICODE
-modexp maygc object n_char_to_string
-(const char* srcptr, uintL blen, object encoding) {
+modexp maygc object n_char_to_string (const char* srcptr, uintL blen,
+                                      object encoding) {
   var const uintB* bptr = (const uintB*)srcptr;
   var const uintB* bendptr = bptr+blen;
   var uintL clen = Encoding_mblen(encoding)(encoding,bptr,bendptr);
@@ -2502,17 +2503,20 @@ global void init_encodings_2 (void) {
       C_make_encoding(); /* cannot use funcall yet */
       if (nullp(value1)) {
         pushSTACK(symbol); pushSTACK(O(charset_package)); C_unintern();
-      } else define_constant(symbol,value1);
+      } else
+        define_constant(symbol,value1);
       symbol = objectplus(symbol,(soint)sizeof(*TheSymbol(symbol))<<(oint_addr_shift-addr_shift));
     }
   }
   /* Now some aliases, to be defined only if their targets still exit. */
   if (!boundp(Symbol_value(S(cp1255)))) {
     pushSTACK(S(windows_1255)); pushSTACK(O(charset_package)); C_unintern();
-  } else define_constant(S(windows_1255),Symbol_value(S(cp1255)));
+  } else
+    define_constant(S(windows_1255),Symbol_value(S(cp1255)));
   if (!boundp(Symbol_value(S(cp1258)))) {
     pushSTACK(S(windows_1258)); pushSTACK(O(charset_package)); C_unintern();
-  } else define_constant(S(windows_1258),Symbol_value(S(cp1258)));
+  } else
+    define_constant(S(windows_1258),Symbol_value(S(cp1258)));
  #endif
   /* Initialize O(internal_encoding): */
   pushSTACK(Symbol_value(S(utf_8))); /* :charset */
@@ -2585,7 +2589,7 @@ local maygc object encoding_from_name (const char* const_name, const char* conte
               context,name,DEFAULT_1_1_ENCODING_NAME);
       fprint(stderr,"\n");
       pushSTACK(DEFAULT_1_1_ENCODING);
-    } else  {
+    } else {
       fprintf(stderr,GETTEXT("WARNING: %s: no encoding %s, using %s"),
               context,name,"locale encoding");
       fprint(stderr,"\n");

@@ -11,7 +11,7 @@
                 exclude-result-prefixes="date"
                 version="1.0">
 
-<!-- http://article.gmane.org/gmane.text.docbook.apps/21355 https://lists.oasis-open.org/archives/docbook-apps/200903/msg00123.html -->
+<!-- https://lists.oasis-open.org/archives/docbook-apps/200903/msg00123.html -->
 <!-- side effect of this empty param is to output a message -->
 <xsl:param name="__output.version__"><xsl:message>
  <xsl:text>DocBook XSL stylesheet VERSION is: </xsl:text>
@@ -100,18 +100,6 @@
 </xsl:template>
 <!-- ============================== / RFC ============================== -->
 
-<!-- =============================== Gmane =============================== -->
-<xsl:param name="gmane.top"
-           select="'http://article.gmane.org/gmane.lisp.clisp.'"/>
-<xsl:template match="ulink[@role='gmane']">
- <a class="{@role}" href="{$gmane.top}{@url}"><code>
-   <xsl:choose><xsl:when test=".=''"><xsl:text>Gmane/</xsl:text>
-     <xsl:value-of select="@url"/></xsl:when>
-    <xsl:otherwise><xsl:apply-templates/></xsl:otherwise></xsl:choose>
- </code></a>
-</xsl:template>
-<!-- ============================== / Gmane ============================== -->
-
 <!-- ============================ CLISP CVS ============================ -->
 <xsl:param name="clisp.cvs.file" select="'https://gitlab.com/gnu-clisp/clisp/blob/master/'"/>
 <xsl:param name="clisp.cvs.dir" select="'https://gitlab.com/gnu-clisp/clisp/tree/master/'"/>
@@ -194,7 +182,7 @@
 
 <!-- =========== Win32 functions ============ -->
 <xsl:template match="function[@role='win32'] | varname[@role='win32']">
- <a class="{@role}" href="https://social.msdn.microsoft.com/search/en-US/windows?query={.}"><xsl:apply-imports/></a>
+ <a class="{@role}" href="https://learn.microsoft.com/en-us/search/?terms={.}"><xsl:apply-imports/></a>
 </xsl:template>
 <!-- =========== / Win32 functions ============ -->
 
@@ -302,7 +290,7 @@
 </xsl:template>
 <!-- ========================== /CLHS ========================== -->
 
-<!-- http://article.gmane.org/gmane.text.docbook.apps/21851 https://lists.oasis-open.org/archives/docbook-apps/200906/msg00074.html
+<!-- https://lists.oasis-open.org/archives/docbook-apps/200906/msg00074.html
      avoid line breaks in lineannotation from xref titles -->
 <xsl:template match="title/text()" mode="no.anchor.mode">
  <xsl:value-of select="translate(., '&#10;', '&#32;')"/>
@@ -364,8 +352,8 @@
 <xsl:template match="screen/prompt">
  <strong><xsl:apply-imports/></strong></xsl:template>
 
-<!-- http://article.gmane.org/gmane.text.docbook.apps:19941 https://lists.oasis-open.org/archives/docbook-apps/200806/msg00000.html
-     http://article.gmane.org/gmane.text.docbook.apps:19957 https://lists.oasis-open.org/archives/docbook-apps/200806/msg00016.html
+<!-- https://lists.oasis-open.org/archives/docbook-apps/200806/msg00000.html
+     https://lists.oasis-open.org/archives/docbook-apps/200806/msg00016.html
      list examples in the section toc -->
 <xsl:param name="generate.toc">
 appendix  toc,title
@@ -436,9 +424,7 @@ set       toc,title
  <div class="custom-footer"><hr /><table width="100%">
    <tr><td align="left"><a href="http://clisp.org">
       <img src="clisp.png" width="48" height="48" alt="[CLISP home]"/></a></td>
-    <td align="center"><a href="https://sourceforge.net/p/clisp/donate/?source={@id}"><img src="https://sourceforge.net/images/project-support.jpg" width="88" height="32" alt="[Support CLISP]"/></a></td>
-    <td align="right"><a href="https://sourceforge.net/projects/clisp/"><img width="120" height="30" alt="[SourceForge]" src="https://sourceforge.net/sflogo.php?group_id=1355&amp;type=12&amp;page={@id}"/></a></td>
- </tr></table></div><hr />
+   </tr></table></div><hr />
  <!-- https://sourceforge.net/p/alexandria/support-requests/122850/ -->
  <form method="get" action="http://www.google.com/custom" target="_top">
   <table width="100%" border="0"><tr>
@@ -463,19 +449,6 @@ set       toc,title
      <input type="hidden" name="cof" value="GALT:#008000;GL:1;DIV:#336699;VLC:663399;AH:center;BGC:FFFFFF;LBGC:000000;ALC:0000FF;LC:0000FF;T:000000;GFNT:0000FF;GIMP:0000FF;LH:48;LW:48;L:http://clisp.cons.org/clisp.png;S:http://clisp.cons.org;FORID:1"/>
      <input type="hidden" name="hl" value="en"/></td></tr></table></form>
  <hr />
- <xsl:if test="$google.ads != 0"><div class="google-ads">
-   <script type="text/javascript"><xsl:comment>
-google_ad_client = "pub-4445255502750357";
-google_ad_width = 728;
-google_ad_height = 90;
-google_ad_format = "728x90_as";
-google_ad_type = "text";
-//2007-01-03: beta
-google_ad_channel = "5563845797";
-</xsl:comment></script>
-   <script type="text/javascript"
-           src="http://pagead2.googlesyndication.com/pagead/show_ads.js"/>
-  </div></xsl:if>
 </xsl:template>
 
 </xsl:stylesheet>

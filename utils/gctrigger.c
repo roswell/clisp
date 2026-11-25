@@ -24,8 +24,6 @@
  The GCTRIGGER statement is inserted. At the corresponding closing brace '}'
  an additional brace is inserted. */
 
-#include <config.h>
-
 typedef unsigned char  uintB;
 typedef unsigned short  uintW;
 typedef unsigned long  uintL;
@@ -39,6 +37,11 @@ typedef int  boolean;
 
 #if !(defined(__GNUC__) && !defined(__STRICT_ANSI__))
 #define inline
+#endif
+
+/* Avoid conflict with function eof(), declared on native Windows.  */
+#if defined(_WIN32) && !defined(__CYGWIN__)
+#define eof tt_eof
 #endif
 
 

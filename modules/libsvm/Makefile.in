@@ -14,7 +14,7 @@ MAKE = make
 
 SHELL = /bin/sh
 
-GENERATED = libsvm.fas libsvm.o preload.lisp
+GENERATED = libsvm.fas libsvm.@OBJEXT@ preload.lisp
 DISTRIBFILES = link.sh Makefile $(GENERATED) \
 	$(srcdir)/libsvm.lisp $(srcdir)/README
 distribdir =
@@ -23,20 +23,20 @@ distribdir =
 clisp-module : $(GENERATED)
 
 libsvm.c libsvm.fas : $(srcdir)/libsvm.lisp
-	$(CLISP) -c $(srcdir)/libsvm.lisp -o ./
+	$(CLISP) -c @BTHS@$(srcdir)/libsvm.lisp@BTHE@ -o ./
 
-libsvm.o : libsvm.c config.h
+libsvm.@OBJEXT@ : libsvm.c config.h
 	$(CC) $(CPPFLAGS) $(SVMCPPFLAGS) $(CFLAGS) -I$(CLISP_LINKKIT) -c libsvm.c
 
 preload.lisp : $(srcdir)/preload.lisp
-	$(LN_S) $(srcdir)/preload.lisp .
+	$(LN) $(srcdir)/preload.lisp .
 
 # Make a module distribution into $(distribdir)
 clisp-module-distrib : clisp-module force
 	$(LN) $(DISTRIBFILES) $(distribdir)
 
 clean : force
-	rm -f core *.o *.a *.fas *.lib
+	rm -f core *.@OBJEXT@ *.a *.fas *.lib
 
 distclean : clean
 

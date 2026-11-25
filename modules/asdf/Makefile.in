@@ -1,0 +1,37 @@
+# Makefile for CLISP module set ASDF
+
+srcdir = @srcdir@
+CLISP = @CLISP@ -norc -q
+CLISP_LINKKIT = @CLISP_LINKKIT@
+
+LN = @LN@
+LN_S = @LN_S@
+
+MAKE = make
+
+SHELL = /bin/sh
+
+GENERATED = asdf.fas link.sh
+DISTRIBFILES = Makefile $(GENERATED) $(srcdir)/asdf.lisp
+distribdir =
+
+# default target: make the module
+clisp-module : $(GENERATED)
+
+asdf.fas: $(srcdir)/asdf.lisp
+	$(CLISP) -m 2MW -c @BTHS@$(srcdir)/asdf.lisp@BTHE@ -o ./
+
+link.sh : $(srcdir)/link.sh
+	$(LN_S) $(srcdir)/link.sh .
+
+# Make a module distribution into $(distribdir)
+clisp-module-distrib : clisp-module force
+	$(LN) $(DISTRIBFILES) $(distribdir)
+
+clean : force
+	rm -f *.fas *.lib
+
+distclean : clean
+
+force :
+

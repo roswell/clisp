@@ -15,9 +15,12 @@ local bool R_zerop (object x)
 
 /* R_plusp(x) determines, if (> x 0), with x being a real number. */
 local bool R_plusp (object x)
-{ if (R_minusp(x)) return false; /* x<0 -> no */
-  else if (R_zerop(x)) return false; /* x=0 -> no */
-  else return true; /* else x>0. */
+{ if (R_minusp(x))
+    return false; /* x<0 -> no */
+  else if (R_zerop(x))
+    return false; /* x=0 -> no */
+  else
+    return true; /* else x>0. */
 }
 
 /* R_minusp(x) determines, if (< x 0), with x being a real number.
@@ -101,9 +104,12 @@ local maygc object R_R_contagion_R (object x, object y)
               /* x FF */ floatcase(y, WY,X,WX,WX),
               /* x DF */ floatcase(y, WY,WY,X,WX),
               /* x LF */ floatcase(y, WY,WY,WY, { /* y LF */
-                if (Lfloat_length(x) == Lfloat_length(y)) X
-                else if (Lfloat_length(x) <= Lfloat_length(y)) WX
-                else WY
+                if (Lfloat_length(x) == Lfloat_length(y))
+                  X
+                else if (Lfloat_length(x) <= Lfloat_length(y))
+                  WX
+                else
+                  WY
               }));
  warn_x: {
     var object result = (nullpSv(floating_point_contagion_ansi) ? x : y);
@@ -1452,24 +1458,37 @@ local maygc object R_R_min_R (object x, object y)
 local maygc object R_signum_R (object x)
 {
   if (R_rationalp(x)) { /* x rational */
-    if (R_minusp(x)) return Fixnum_minus1; /* x<0 -> -1 */
-    else if (eq(x,Fixnum_0)) return x; /* x=0 -> 0 */
-    else return Fixnum_1; /* x>0 -> +1 */
+    if (R_minusp(x))
+      return Fixnum_minus1; /* x<0 -> -1 */
+    else if (eq(x,Fixnum_0))
+      return x; /* x=0 -> 0 */
+    else
+      return Fixnum_1; /* x>0 -> +1 */
   } else { /* x float */
     floatcase(x, { /* x SF */
-      if (R_minusp(x)) return SF_minus1; /* x<0 -> -1.0 */
-      else if (SF_zerop(x)) return x; /* x=0 -> 0.0 */
-      else return SF_1; /* x>0 -> +1.0 */
+      if (R_minusp(x))
+        return SF_minus1; /* x<0 -> -1.0 */
+      else if (SF_zerop(x))
+        return x; /* x=0 -> 0.0 */
+      else
+        return SF_1; /* x>0 -> +1.0 */
     }, { /* x FF */
-      if (R_minusp(x)) return FF_minus1; /* x<0 -> -1.0 */
-      else if (FF_zerop(x)) return x; /* x=0 -> 0.0 */
-      else return FF_1; /* x>0 -> +1.0 */
+      if (R_minusp(x))
+        return FF_minus1; /* x<0 -> -1.0 */
+      else if (FF_zerop(x))
+        return x; /* x=0 -> 0.0 */
+      else
+        return FF_1; /* x>0 -> +1.0 */
     }, { /* x DF */
-      if (R_minusp(x)) return DF_minus1; /* x<0 -> -1.0 */
-      else if (DF_zerop(x)) return x; /* x=0 -> 0.0 */
-      else return DF_1; /* x>0 -> +1.0 */
+      if (R_minusp(x))
+        return DF_minus1; /* x<0 -> -1.0 */
+      else if (DF_zerop(x))
+        return x; /* x=0 -> 0.0 */
+      else
+        return DF_1; /* x>0 -> +1.0 */
     }, { /* x LF */
-      if (LF_zerop(x)) return x; /* x=0 -> 0.0 */
+      if (LF_zerop(x))
+        return x; /* x=0 -> 0.0 */
       else /* according to sign of x */
         { encode_LF1s(LF_sign(x),Lfloat_length(x), return); }
     });
@@ -1620,7 +1639,7 @@ local maygc object R_rationalize_RA (object x)
   pushSTACK(Fixnum_0); pushSTACK(Fixnum_1);
   pushSTACK(Fixnum_1); pushSTACK(Fixnum_0);
   /* stack layout: -, -, s, b, a, p[i-1], p[i], q[i-1], q[i]. */
-  while (1) {
+  while (true) {
     RA_ceiling_I_RA(STACK_4); /* c := (ceiling a) */
     /* stack layout: ..., c, -. */
     if (RA_RA_comp(STACK_1,STACK_(5+2))<0) break; /* if c<b end of loop */

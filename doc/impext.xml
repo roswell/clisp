@@ -179,7 +179,7 @@ space.</para>
 &sh-prompt; &clisp-cmd; &opt-K; full &opt-x; '(&savemem;)'
 &sh-prompt; &clisp-cmd; &opt-K; base &opt-M; lispinit.mem
 base/lisp.run: initialization file `lispinit.mem' was not created by this version of CLISP runtime</screen>
-See also <ulink role="gmane" url="devel/17757"/>/<ulink role="msgid=BF6EFF38DF3FA647BBD932720D8BED650BAA11@parmbx02.ilog.biz" url="https://sourceforge.net/p/clisp/mailman/message/18854510/"/>.</para></section>
+See also <ulink role="msgid=BF6EFF38DF3FA647BBD932720D8BED650BAA11@parmbx02.ilog.biz" url="https://sourceforge.net/p/clisp/mailman/message/18854510/"/>.</para></section>
 
 <section id="images-in-distros">
  <title>Distributing images in package repositories</title>
@@ -2194,7 +2194,7 @@ additionally binds &cont-r; to the content length.</para>
     <varlistentry><term><envar>CFLAGS</envar></term>
      <listitem><simpara>flags for the &c-lang; compiler, when compiling or
        linking</simpara></listitem></varlistentry>
-    <varlistentry><term><envar>CLFLAGS</envar></term>
+    <varlistentry><term><envar>LDFLAGS</envar></term>
      <listitem><simpara>flags for the &c-lang; compiler, when linking
     </simpara></listitem></varlistentry>
     <varlistentry><term><envar>LIBS</envar></term>
@@ -3873,7 +3873,7 @@ and possibly the calling convention.</para>
   have problems with this.
   The recommended workaround is to pass pointers; this is fully supported.
   See also <ulink url="ml">clisp-devel</ulink>
-  (<ulink role="gmane" url="devel/10089"/>/<ulink role="msgid=200307141526.26925.bruno@clisp.org" url="https://sourceforge.net/p/clisp/mailman/message/12562038/"/>).</simpara></warning>
+  (<ulink role="msgid=200307141526.26925.bruno@clisp.org" url="https://sourceforge.net/p/clisp/mailman/message/12562038/"/>).</simpara></warning>
 
 </section>
 
@@ -4445,11 +4445,11 @@ Now you can sum doubles:
 <para>You can find more information and examples of the &clisp;
  &ffi-pac; in the following <ulink url="ml">clisp-list</ulink> messages:
  <variablelist><varlistentry><term>variable size values</term>
-   <listitem><simpara><ulink role="gmane" url="general/7278"/>/<ulink role="msgid=9F8582E37B2EE5498E76392AEDDCD3FE05F4B8F7@G8PQD.blf01.telekom.de" url="https://sourceforge.net/p/clisp/mailman/message/10143425/"/>
+   <listitem><simpara><ulink role="msgid=9F8582E37B2EE5498E76392AEDDCD3FE05F4B8F7@G8PQD.blf01.telekom.de" url="https://sourceforge.net/p/clisp/mailman/message/10143425/"/>
   </simpara></listitem></varlistentry>
   <varlistentry><term>variable length arrays</term>
-   <listitem><simpara><ulink role="gmane" url="general/6626"/>/<ulink role="msgid=9F8582E37B2EE5498E76392AEDDCD3FE0287A252@G8PQD.blf01.telekom.de" url="https://sourceforge.net/p/clisp/mailman/message/10142276/"/>
-     <ulink role="gmane" url="general/6628"/>/<ulink role="msgid=9F8582E37B2EE5498E76392AEDDCD3FE0287A3B1@G8PQD.blf01.telekom.de" url="https://sourceforge.net/p/clisp/mailman/message/10142279/"/>
+   <listitem><simpara><ulink role="msgid=9F8582E37B2EE5498E76392AEDDCD3FE0287A252@G8PQD.blf01.telekom.de" url="https://sourceforge.net/p/clisp/mailman/message/10142276/"/>
+     <ulink role="msgid=9F8582E37B2EE5498E76392AEDDCD3FE0287A3B1@G8PQD.blf01.telekom.de" url="https://sourceforge.net/p/clisp/mailman/message/10142279/"/>
 </simpara></listitem></varlistentry></variablelist></para>
 <para>Even more examples can be found in the file
  <filename role="clisp-cvs">tests/ffi.tst</filename>
@@ -5231,10 +5231,31 @@ spawning threads, multithreading should work fine.</simpara></warning>
  executable.</para>
 
 <simplesect id="script-req"><title>OS Requirements</title>
- <para>&clisp; can be used as a script interpreter under the following
- conditions:
+<para>There are two cases:
 <itemizedlist>
-<listitem><simpara>The &interp-r; must be the full pathname of &clisp-cmd;
+<listitem><para>On operating systems where the program
+ <filename>/usr/bin/env</filename> understands the <literal>-S</literal>
+ option &#x2013; this is the case on &linux; and &hurd; distributions
+ that use the &coreutils;, and on &freebsd; &#x2013;:
+ <itemizedlist>
+  <listitem><simpara>Define the &interp-r; as
+   <filename>/usr/bin/env</filename>.</simpara></listitem>
+  <listitem><simpara>Define the &interp-args; as
+   <literal>-S clisp [<replaceable>clisp-arguments</replaceable>]</literal>.
+   </simpara></listitem>
+ </itemizedlist>
+ For example:
+ <screen>#!/usr/bin/env -S clisp &opt-C; &opt-M; my-image.mem &opt-L; French</screen>
+ &clisp-cmd; will then be looked up in <envar>PATH</envar>, and the
+ <ulink url="https://www.gnu.org/software/coreutils/manual/html_node/env-invocation.html#g_t_002dS_002f_002d_002dsplit_002dstring-usage-in-scripts"><literal>-S</literal></ulink>
+ option causes
+ <ulink url="https://www.gnu.org/software/coreutils/manual/html_node/env-invocation.html"><command>env</command></ulink>
+ to split the &interp-args; at spaces.</para></listitem>
+<listitem><para>Otherwise, a lookup in PATH is not possible; you will
+ need to use the full pathname of &clisp-cmd; instead. The following
+ conditions need to be met:
+<itemizedlist>
+<listitem><simpara>The &interp-r; must be the full pathname of &clisp-cmd;.
  The recommended path is <filename>/usr/local/bin/clisp</filename>,
  and if &clisp; is actually installed elsewhere, making
  <filename>/usr/local/bin/clisp</filename> be a symbolic link to the
@@ -5247,16 +5268,22 @@ spawning threads, multithreading should work fine.</simpara></warning>
  <command role="unix">make install</command> will install &clisp-cmd; as
  a real executable.</simpara></listitem>
 <listitem><para>On some platforms, the first line which specifies the
- interpreter is limited in length:
+ interpreter and &interp-args; is limited in length:
    <itemizedlist>
-     <listitem><simpara>max. 80 characters on HP-UX,</simpara></listitem>
-     <listitem><simpara>max. 127 characters on &linux;.</simpara></listitem>
+     <listitem><simpara>max. 253 characters on &linux;.</simpara></listitem>
+     <listitem><simpara>max. 513 characters on &macosx;.</simpara></listitem>
+     <listitem><simpara>max. 1025 characters on &netbsd;.</simpara></listitem>
+     <listitem><simpara>max. 125 characters on &openbsd;.</simpara></listitem>
+     <listitem><simpara>max. 1022 characters on AIX.</simpara></listitem>
+     <listitem><simpara>max. 1021 characters on Solaris.</simpara></listitem>
    </itemizedlist>
-   Characters exceeding this limit are simply cut off by the system.
-   At least 128 characters are accepted on Solaris, IRIX, AIX, OSF/1.
+   On &linux; and AIX,
+   characters exceeding this limit are simply cut off by the system.
+   On &macosx;, &netbsd;, &openbsd;, and Solaris,
+   the script is not executed at all if this line is too long.
    There is no workaround: You have to keep the interpreter pathname
    and arguments short.</para></listitem>
-<listitem><simpara>On Solaris and HP-UX, only the first
+<listitem><simpara>On AIX and Solaris, only the first
  <replaceable>interpreter-arg</replaceable> is passed to the &interp-r;.
  In order to pass more than one option (for example, &opt-M; and
  &opt-C;) to &clisp;, separate them with
@@ -5264,7 +5291,9 @@ spawning threads, multithreading should work fine.</simpara></warning>
  spaces</ulink> instead of normal spaces.  (But the separator between
  &interp-r; and &interp-args; must still be a normal space!) &clisp;
  will split the &interp-args; both at no-break spaces and at normal spaces.
-</simpara></listitem></itemizedlist></para></simplesect>
+</simpara></listitem></itemizedlist>
+</para></listitem></itemizedlist>
+</para></simplesect>
 
 <simplesect id="script-arg-split"><title>How &clisp-cmd; handles
  &interp-args;.</title>
@@ -5626,22 +5655,21 @@ EOF
   <listitem><para>Returns the operating system (kernel) name. The value
    is a string, similar to the result of <code>uname -s</code>. Possible
    values include:
-   <code>Linux</code> (both on GNU/Linux and Android systems),
+   <code>Linux</code> (on GNU/Linux, on musl libc systems, and on
+   Android systems),
    <code>GNU/Hurd</code>,
    <code>GNU/kFreeBSD</code>,
-   <code>Darwin</code> (on macOS systems),
-   <code>FreeBSD</code>,
+   <code>Darwin</code> (on &macosx; systems),
+   <code>FreeBSD</code> (on &freebsd; systems),
    <code>DragonFly</code>,
-   <code>NetBSD</code>,
-   <code>OpenBSD</code>,
+   <code>NetBSD</code> (on &netbsd; systems),
+   <code>OpenBSD</code> (on &openbsd; systems),
    <code>CYGWIN</code>,
    <code>Haiku</code>,
-   <code>IRIX</code>,
    <code>Minix</code>,
    <code>SunOS</code> (on Solaris systems),
    <code>AIX</code>,
-   <code>Windows</code>,
-   <code>HP-UX</code>.
+   <code>Windows</code>.
    Other values are possible as well.</para></listitem></varlistentry>
 
  <varlistentry><term><code>(&os-version;)</code></term>

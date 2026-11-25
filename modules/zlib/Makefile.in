@@ -13,7 +13,7 @@ MAKE = make
 
 SHELL = /bin/sh
 
-GENERATED = zlib.o zlib.fas
+GENERATED = zlib.@OBJEXT@ zlib.fas
 DISTRIBFILES = link.sh Makefile $(GENERATED) $(srcdir)/zlib.lisp
 distribdir =
 
@@ -21,9 +21,9 @@ distribdir =
 clisp-module : $(GENERATED)
 
 zlib.c zlib.fas : $(srcdir)/zlib.lisp
-	$(CLISP) -c $(srcdir)/zlib.lisp -o ./
+	$(CLISP) -c @BTHS@$(srcdir)/zlib.lisp@BTHE@ -o ./
 
-zlib.o : zlib.c config.h
+zlib.@OBJEXT@ : zlib.c config.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -I$(CLISP_LINKKIT) -c zlib.c
 
 # Make a module distribution into $(distribdir)
@@ -31,7 +31,7 @@ clisp-module-distrib : clisp-module force
 	$(LN) $(DISTRIBFILES) $(distribdir)
 
 clean : force
-	rm -f core *.o *.a *.fas *.lib
+	rm -f core *.@OBJEXT@ *.a *.fas *.lib
 
 distclean : clean
 

@@ -1,7 +1,7 @@
 ${MAKE-make} clisp-module \
   CC="${CC}" CPPFLAGS="${CPPFLAGS}" CFLAGS="${CFLAGS}" \
   CLISP_LINKKIT="$absolute_linkkitdir" CLISP="${CLISP}"
-NEW_FILES="rawsock.o"
+NEW_FILES="rawsock.@OBJEXT@"
 NEW_LIBS="${NEW_FILES} @LIBS@"
 NEW_MODULES="rawsock"
 TO_LOAD='sock'

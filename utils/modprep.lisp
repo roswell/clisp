@@ -2,7 +2,7 @@
 ;;;
 ;;; Copyright (C) 1998 Bruno Haible (20.9.1998, 10.-11.10.1998) [C]
 ;;; Copyright (C) 2003-2011, 2016-2018 by Sam Steingold [lisp]
-;;; Copyright (C) 2017-2018 Bruno Haible
+;;; Copyright (C) 2017-2018, 2026 Bruno Haible
 ;;; This is Free Software, distributed under the GNU GPL v2+
 ;;; See http://www.gnu.org/copyleft/gpl.html
 #| This preprocessor generates all necessary tables for a CLISP module.
@@ -1183,8 +1183,13 @@ commas and parentheses."
           (ext:string-concat "struct " subr-runtime-tab "_t")))
     (newline out) (newline out)
     (formatln out "~A ~A" subr-tab-type subr-tab)
-    (formatln out "  #if defined(HEAPCODES) && (alignment_long < varobject_alignment) && defined(__GNUC__)")
-    (formatln out "    __attribute__ ((aligned (varobject_alignment)))")
+    (formatln out "  #if defined(HEAPCODES) && (alignment_long < varobject_alignment)")
+    (formatln out "    #if defined(__GNUC__)")
+    (formatln out "      __attribute__ ((aligned (varobject_alignment)))")
+    (formatln out "    #endif")
+    (formatln out "    #if defined(__SUNPRO_C)")
+    (formatln out "      #pragma align varobject_alignment (~A)" subr-tab)
+    (formatln out "    #endif")
     (formatln out "  #endif")
     (formatln out "  = {")
     (formatln out "  #if varobjects_misaligned")

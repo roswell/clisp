@@ -14,7 +14,8 @@ nil
 
 (integerp (show readline:gnu-readline-p)) T
 (typep (show readline:terminal-name) '(or null string)) T
-(integerp (show readline:prefer-env-winsize)) T
+;; readline:prefer-env-winsize does not exist on OpenBSD.
+(if (boundp 'readline:prefer-env-winsize) (integerp (show readline:prefer-env-winsize)) t) T
 
 (if (boundp 'readline:editing-mode) readline:editing-mode 1) 1
 (if (boundp 'readline:insert-mode)  readline:insert-mode 1)  1
@@ -45,7 +46,8 @@ NIL
 
 (readline:resize-terminal) NIL
 
-(readline:reset-screen-size) NIL
+;; readline:reset-screen-size does not exist on OpenBSD.
+(if (fboundp 'readline:reset-screen-size) (readline:reset-screen-size) nil) NIL
 
 (multiple-value-bind (rows cols) (readline:get-screen-size)
   (show (list rows cols))

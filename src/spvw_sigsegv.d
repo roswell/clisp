@@ -25,11 +25,7 @@ local void print_mem_stats (void) {
   fprintf(stderr,GETTEXTL("GC count: %lu"),(unsigned long)tm.gccount);
   fprint(stderr,"\n");
   fprint(stderr,GETTEXTL("Space collected by GC:"));
- #if defined(intQsize)
   fprintf(stderr," %llu",(unsigned long long)tm.gcfreed);
- #else
-  fprintf(stderr," %lu %lu",tm.gcfreed.hi,tm.gcfreed.lo);
- #endif
   fprint(stderr,"\n");
  #if defined(TIME_UNIX)
   #define PRINT_INTERNAL_TIME(t) fprintf(stderr," %lu %lu",(unsigned long)t.tv_sec,(unsigned long)t.tv_usec)
@@ -126,22 +122,6 @@ local void stackoverflow_handler_continuation (void* arg1, void* arg2, void* arg
    #endif
    #ifdef I80386
     if (scp) { setSTACK(STACK = (gcv_object_t*)(scp->uc_mcontext.gregs[EBX])); }
-   #endif
-  #endif
-  #ifdef UNIX_OSF
-    /* stackoverflow_context_t is actually `struct sigcontext *'. */
-   #ifdef DECALPHA
-    if (scp) { setSTACK(STACK = (gcv_object_t*)(scp->sc_regs[9])); }
-   #endif
-  #endif
-  #ifdef UNIX_HPUX
-   #ifdef HPPA
-    /* stackoverflow_context_t is actually `struct sigcontext *'. */
-    #define USE_64BIT_REGS(mc) \
-      (((mc).ss_flags & SS_WIDEREGS) && ((mc).ss_flags & SS_NARROWISINVALID))
-    #define GET_R10(mc) \
-      (USE_64BIT_REGS(mc) ? (mc).ss_wide.ss_64.ss_gr10 : (mc).ss_narrow.ss_gr10)
-    if (scp) { setSTACK(STACK = (gcv_object_t*)GET_R10(scp->sc_ctxt.sl.sl_ss)); }
    #endif
   #endif
   #ifdef UNIX_FREEBSD

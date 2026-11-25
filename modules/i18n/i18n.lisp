@@ -56,7 +56,7 @@
                             i18n::int_p_cs_precedes  i18n::int_n_cs_precedes
                             i18n::int_p_sep_by_space i18n::int_n_sep_by_space
                             i18n::int_p_sign_posn    i18n::int_n_sign_posn)))
-  ;; <http://opengroup.org/onlinepubs/9699919799/functions/localeconv.html>
+  ;; <https://pubs.opengroup.org/onlinepubs/9799919799/functions/localeconv.html>
   i18n::decimal_point i18n::thousands_sep i18n::grouping i18n::int_curr_symbol
   i18n::currency_symbol i18n::mon_decimal_point i18n::mon_thousands_sep
   i18n::mon_grouping i18n::positive_sign i18n::negative_sign

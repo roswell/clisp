@@ -448,7 +448,7 @@ local void build_old_generation_cache (uintL heapnr, varobj_mem_region *rwarea)
               rwarea++;
             }
           }
-        } while (1);
+        } while (true);
         goto prot_finished;
       #endif
       all_ro:
@@ -572,7 +572,7 @@ local void build_old_generation_cache (uintL heapnr, varobj_mem_region *rwarea)
                   }
                   /* At most one page boundary has been crossed.
                    Then, there are no more pointers (until nextptr). */
-                  while (1) {
+                  while (true) {
                     physpage->firstobject = nextptr;
                     gen0_start += physpagesize; physpage++;
                     if (nextptr < gen0_start)
@@ -612,7 +612,7 @@ local void build_old_generation_cache (uintL heapnr, varobj_mem_region *rwarea)
                   }
                   /* At most one page boundary has been crossed.
                    Then, there are no more pointers (until nextptr). */
-                  while (1) {
+                  while (true) {
                     physpage->firstobject = nextptr;
                     gen0_start += physpagesize; physpage++;
                     if (nextptr < gen0_start)
@@ -774,7 +774,7 @@ local void build_old_generation_cache (uintL heapnr, varobj_mem_region *rwarea)
                     }
                     /* At most one page boundary has been crossed.
                      Then, there are no more pointers (until nextptr). */
-                    while (1) {
+                    while (true) {
                       physpage->firstobject = nextptr;
                       gen0_start += physpagesize; physpage++;
                       if (nextptr < gen0_start)
@@ -808,7 +808,7 @@ local void build_old_generation_cache (uintL heapnr, varobj_mem_region *rwarea)
                     }
                     /* At most one page boundary has been crossed.
                      Then, there are no more pointers (until nextptr). */
-                    while (1) {
+                    while (true) {
                       physpage->firstobject = nextptr;
                       gen0_start += physpagesize; physpage++;
                       if (nextptr < gen0_start)

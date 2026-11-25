@@ -1,5 +1,5 @@
 dnl -*- Autoconf -*-
-dnl Copyright (C) 1993-2008, 2011, 2017, 2020 Free Software Foundation, Inc.
+dnl Copyright (C) 1993-2026 Free Software Foundation, Inc.
 dnl This file is free software, distributed under the terms of the GNU
 dnl General Public License.  As a special exception to the GNU General
 dnl Public License, this file may be distributed as part of a program
@@ -14,17 +14,19 @@ AC_DEFUN([CL_ADDRESS_RANGE],
 [
   AC_REQUIRE([AC_PROG_CC])
   address_range_prog='
+    #include <stdint.h>
     #include <stdio.h>
-    int printf_address (unsigned long addr)
+    int printf_address (uintptr_t addr)
     {
       FILE* out = fopen("conftest.h","wb");
-      if (sizeof(unsigned long) <= 4)
-        fprintf(out,"0x%08X\n", (unsigned int)addr);
+      if (sizeof(uintptr_t) <= 4)
+        fprintf(out,"0x%08X", (unsigned int)addr);
       else
-        fprintf(out,"0x%08X%08X\n",(unsigned int)(addr>>32),(unsigned int)(addr&0xFFFFFFFF));
+        fprintf(out,"0x%08X%08X",(unsigned int)(addr>>32),(unsigned int)(addr&0xFFFFFFFF));
+      fprintf(out,"%s\n", sizeof(void*) > sizeof(long) ? "ULL" : "UL");
       return ferror(out) || fclose(out);
     }
-    #define chop_address(addr) ((unsigned long)(char*)(addr) & ~0x00FFFFFFL)
+    #define chop_address(addr) ((uintptr_t)(char*)(addr) & ~(uintptr_t)0x00FFFFFFL)
     '
 
   AC_CACHE_CHECK([for the code address range], [cl_cv_address_code],
@@ -42,7 +44,7 @@ AC_DEFUN([CL_ADDRESS_RANGE],
        [cl_cv_address_code='guessing 0'])
      rm -f conftest.h
     ])
-  x=`echo $cl_cv_address_code | sed -e 's,^guessing ,,'`"UL"
+  x=`echo $cl_cv_address_code | sed -e 's,^guessing ,,'`
   AC_DEFINE_UNQUOTED([CODE_ADDRESS_RANGE], [$x],
     [address range of program code (text+data+bss)])
 
@@ -65,7 +67,7 @@ AC_DEFUN([CL_ADDRESS_RANGE],
        [cl_cv_address_malloc='guessing 0'])
      rm -f conftest.h
     ])
-  x=`echo $cl_cv_address_malloc | sed -e 's,^guessing ,,'`"UL"
+  x=`echo $cl_cv_address_malloc | sed -e 's,^guessing ,,'`
   AC_DEFINE_UNQUOTED([MALLOC_ADDRESS_RANGE], [$x],
     [address range of malloc() memory])
 
@@ -99,14 +101,13 @@ AC_DEFUN([CL_ADDRESS_RANGE],
        [cl_cv_address_shlib='guessing 0'])
      rm -f conftest.h
     ])
-  x=`echo $cl_cv_address_shlib | sed -e 's,^guessing ,,'`"UL"
+  x=`echo $cl_cv_address_shlib | sed -e 's,^guessing ,,'`
   AC_DEFINE_UNQUOTED([SHLIB_ADDRESS_RANGE],[$x],
     [address range of shared library code])
 
   AC_CACHE_CHECK([for the stack address range], [cl_cv_address_stack],
     [AC_RUN_IFELSE(
        [AC_LANG_PROGRAM([
-          #include "confdefs.h"
           #include "confdefs.h"
           $address_range_prog
           ],
@@ -119,7 +120,7 @@ AC_DEFUN([CL_ADDRESS_RANGE],
        [cl_cv_address_stack='guessing ~0'])
      rm -f conftest.h
     ])
-  x=`echo "$cl_cv_address_stack" | sed -e 's,^guessing ,,'`"UL"
+  x=`echo "$cl_cv_address_stack" | sed -e 's,^guessing ,,'`
   AC_DEFINE_UNQUOTED([STACK_ADDRESS_RANGE], [$x],
     [address range of the C stack])
 ])

@@ -14,7 +14,7 @@ MAKE = make
 
 SHELL = /bin/sh
 
-GENERATED = gdbm.fas gdbm.o preload.lisp
+GENERATED = gdbm.fas gdbm.@OBJEXT@ preload.lisp
 DISTRIBFILES = link.sh Makefile $(GENERATED) $(srcdir)/gdbm.lisp
 distribdir =
 
@@ -22,24 +22,24 @@ distribdir =
 clisp-module : $(GENERATED)
 
 gdbm.fas: $(srcdir)/gdbm.lisp
-	$(CLISP) -c $(srcdir)/gdbm.lisp -o ./
+	$(CLISP) -c @BTHS@$(srcdir)/gdbm.lisp@BTHE@ -o ./
 
-gdbm.o : gdbm.m.c config.h
+gdbm.@OBJEXT@ : gdbm.m.c config.h
 	$(CC) $(CPPFLAGS) $(GDBMCPPFLAGS) $(CFLAGS) -I. -I$(CLISP_LINKKIT) \
-		-c gdbm.m.c -o gdbm.o
+		-c gdbm.m.c -o gdbm.@OBJEXT@
 
 gdbm.m.c : $(srcdir)/gdbm.c
-	$(CLISP) -C $(CLISP_LINKKIT)/modprep $(srcdir)/gdbm.c ./
+	$(CLISP) -C @BTHS@$(CLISP_LINKKIT)/modprep@BTHE@ @BTHS@$(srcdir)/gdbm.c@BTHE@ ./
 
 preload.lisp : $(srcdir)/preload.lisp
-	$(LN_S) $(srcdir)/preload.lisp .
+	$(LN) $(srcdir)/preload.lisp .
 
 # Make a module distribution into $(distribdir)
 clisp-module-distrib : clisp-module force
 	$(LN) $(DISTRIBFILES) $(distribdir)
 
 clean : force
-	rm -f core *.o *.a *.m.c *.fas *.lib
+	rm -f core *.@OBJEXT@ *.a *.m.c *.fas *.lib
 
 distclean : clean
 

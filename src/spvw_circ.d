@@ -57,7 +57,7 @@ global object subst_circ (gcv_object_t* ptr, object alist);
  #endif
 #else /* use GC marks for detection */
  #ifdef MULTITHREAD
-  #error In MULTITHREAD builds the circularirty detection should be reentrant
+  #error In MULTITHREAD builds the circularity detection should be reentrant
  #endif
 #endif
 

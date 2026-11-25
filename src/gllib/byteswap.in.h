@@ -1,5 +1,5 @@
 /* byteswap.h - Byte swapping
-   Copyright (C) 2005, 2007, 2009-2021 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2009-2026 Free Software Foundation, Inc.
    Written by Oskar Liljeblad <oskar@osk.mine.nu>, 2005.
 
    This file is free software: you can redistribute it and/or modify
@@ -16,29 +16,58 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #ifndef _GL_BYTESWAP_H
-#define _GL_BYTESWAP_H
+#define _GL_BYTESWAP_H 1
+
+/* This file uses _GL_INLINE.  */
+#if !_GL_CONFIG_H_INCLUDED
+ #error "Please include config.h first."
+#endif
+
+/* Define this now, rather than after including stdbit.h, in case stdbit.h
+   recursively includes us via stdint.h.  This is for Gnulib endian.h.  */
+#ifndef _GL_BYTESWAP_INLINE
+# define _GL_BYTESWAP_INLINE _GL_INLINE
+#endif
+
+#include <stdbit.h> /* for stdc_memreverse8u* */
+#include <stdint.h> /* for UINT_LEAST64_MAX */
+
+_GL_INLINE_HEADER_BEGIN
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Given an unsigned 16-bit argument X, return the value corresponding to
    X with reversed byte order.  */
-#define bswap_16(x) ((((x) & 0x00FF) << 8) | \
-                     (((x) & 0xFF00) >> 8))
+_GL_BYTESWAP_INLINE uint_least16_t
+bswap_16 (uint_least16_t x)
+{
+  return stdc_memreverse8u16 (x);
+}
 
 /* Given an unsigned 32-bit argument X, return the value corresponding to
    X with reversed byte order.  */
-#define bswap_32(x) ((((x) & 0x000000FF) << 24) | \
-                     (((x) & 0x0000FF00) << 8) | \
-                     (((x) & 0x00FF0000) >> 8) | \
-                     (((x) & 0xFF000000) >> 24))
+_GL_BYTESWAP_INLINE uint_least32_t
+bswap_32 (uint_least32_t x)
+{
+  return stdc_memreverse8u32 (x);
+}
 
+#ifdef UINT_LEAST64_MAX
 /* Given an unsigned 64-bit argument X, return the value corresponding to
    X with reversed byte order.  */
-#define bswap_64(x) ((((x) & 0x00000000000000FFULL) << 56) | \
-                     (((x) & 0x000000000000FF00ULL) << 40) | \
-                     (((x) & 0x0000000000FF0000ULL) << 24) | \
-                     (((x) & 0x00000000FF000000ULL) << 8) | \
-                     (((x) & 0x000000FF00000000ULL) >> 8) | \
-                     (((x) & 0x0000FF0000000000ULL) >> 24) | \
-                     (((x) & 0x00FF000000000000ULL) >> 40) | \
-                     (((x) & 0xFF00000000000000ULL) >> 56))
+_GL_BYTESWAP_INLINE uint_least64_t
+bswap_64 (uint_least64_t x)
+{
+  return stdc_memreverse8u64 (x);
+}
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+_GL_INLINE_HEADER_END
 
 #endif /* _GL_BYTESWAP_H */

@@ -1,6 +1,6 @@
 /*
  * Miscellaneous CLISP functions
- * Bruno Haible 1990-2008, 2017-2020
+ * Bruno Haible 1990-2008, 2017-2026
  * Sam Steingold 1999-2011, 2017
  */
 
@@ -29,7 +29,7 @@ LISPFUN(lisp_implementation_version,seclass_no_se,0,0,norest,nokey,0,NIL)
            so I rely on __DATE__ and __TIME__ CPP macros. */
         var uintL se,mi,ho,da,mo,ye;
         with_string_0(O(lisp_implementation_version_built_string),
-                      O(misc_encoding),ztime,{
+                      O(misc_encoding),ztime, {
           begin_system_call();
           /* Mmm dd yyyyhh:mm:ss
              0   4  7   11 14 17 */
@@ -69,7 +69,7 @@ LISPFUN(lisp_implementation_version,seclass_no_se,0,0,norest,nokey,0,NIL)
             pushSTACK(fixnum(mo));
             pushSTACK(fixnum(ye));
             funcall(S(encode_universal_time),6);
-            sprintf(build_time,"%u", (unsigned int) I_to_UL(value1));
+            sprintf(build_time,"%llu", (unsigned long long) I_to_UQ(value1));
           }
           O(lisp_implementation_version_built_string) =
             ascii_to_string(build_time);
@@ -121,9 +121,16 @@ LISPFUNN(machinetype,0)
     begin_system_call();
     if (uname(&utsname) < 0) { end_system_call(); OS_error(); }
     end_system_call();
-    pushSTACK(asciz_to_string(utsname.machine,O(misc_encoding)));
+    var const char* arch = utsname.machine;
+    #ifdef ARM64
+    /* Convert "aarch64", a term used only by gcc and binutils people,
+       to "arm64", the term used by everyone else. */
+    if (asciz_equal(arch,"aarch64"))
+      arch = "arm64";
+    #endif
+    pushSTACK(asciz_to_string(arch,O(misc_encoding)));
     funcall(L(nstring_upcase),1); /* convert to uppercase */
-    ret = value1;
+    ret = coerce_imm_ss(value1);
   #elif defined(WIN32_NATIVE)
     {
       var SYSTEM_INFO info;
@@ -132,6 +139,10 @@ LISPFUNN(machinetype,0)
       end_system_call();
       if (info.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_INTEL) {
         ret = coerce_imm_ss(ascii_to_string("PC/386"));
+      } else if (info.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64) {
+        ret = coerce_imm_ss(ascii_to_string("X86_64"));
+      } else if (info.wProcessorArchitecture == 12 /* PROCESSOR_ARCHITECTURE_ARM64 */) {
+        ret = coerce_imm_ss(ascii_to_string("ARM64"));
       }
     }
   #else
@@ -152,7 +163,14 @@ LISPFUNN(machine_version,0)
     begin_system_call();
     if (uname(&utsname) < 0) { end_system_call(); OS_error(); }
     end_system_call();
-    pushSTACK(asciz_to_string(utsname.machine,O(misc_encoding)));
+    var const char* arch = utsname.machine;
+    #ifdef ARM64
+    /* Convert "aarch64", a term used only by gcc and binutils people,
+       to "arm64", the term used by everyone else. */
+    if (asciz_equal(arch,"aarch64"))
+      arch = "arm64";
+    #endif
+    pushSTACK(asciz_to_string(arch,O(misc_encoding)));
     funcall(L(nstring_upcase),1); /* convert to uppercase */
     ret = coerce_imm_ss(value1);
   #elif defined(WIN32_NATIVE)
@@ -179,6 +197,10 @@ LISPFUNN(machine_version,0)
             TheS8string(ret)->data[3] = '5';
         }
         ret = coerce_imm_ss(ret);
+      } else if (info.wProcessorArchitecture==PROCESSOR_ARCHITECTURE_AMD64) {
+        ret = coerce_imm_ss(ascii_to_string("X86_64"));
+      } else if (info.wProcessorArchitecture == 12 /* PROCESSOR_ARCHITECTURE_ARM64 */) {
+        ret = coerce_imm_ss(ascii_to_string("ARM64"));
       }
     }
   #else
@@ -203,11 +225,6 @@ LISPFUNN(operating_system_type,0)
       #if defined(UNIX_HURD)
       if (strcmp(utsname.sysname,"GNU")==0) {
         strcpy(utsname.sysname,"GNU/Hurd");
-      }
-      #endif
-      #if defined(UNIX_IRIX)
-      if (strncmp(utsname.sysname,"IRIX",4)==0) {
-        utsname.sysname[4] = '\0';
       }
       #endif
       #if defined(UNIX_CYGWIN)
@@ -445,13 +462,13 @@ LISPFUNN(code_address_of,1)
   if (ulong_p(obj)) /* Number within the range of aint == ulong ==> self */
     VALUES1(obj);
   else if (subrp(obj))          /* SUBR ->  its address */
-    VALUES1(ulong_to_I((aint)(TheSubr(obj)->function)));
+    VALUES1(uintP_to_I((aint)(TheSubr(obj)->function)));
   else if (fsubrp(obj))         /* FSUBR -> its address */
-    VALUES1(ulong_to_I((aint)(TheFsubr(obj)->function)));
+    VALUES1(uintP_to_I((aint)(TheFsubr(obj)->function)));
  #ifdef DYNAMIC_FFI
   else if (ffunctionp(obj)) {
     object fa = check_faddress_valid(TheFfunction(obj)->ff_address);
-    VALUES1(ulong_to_I((uintP)Faddress_value(fa)));
+    VALUES1(uintP_to_I((uintP)Faddress_value(fa)));
   }
  #endif
   else

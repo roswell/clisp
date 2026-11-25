@@ -1,6 +1,7 @@
 /*
  * CLISP: Berkeley-DB <http://www.sleepycat.com/docs/api_c/>
  * Copyright (C) 2003-2012 by Sam Steingold
+ * Copyright (C) 2024 Bruno Haible
  */
 
 #include "clisp.h"
@@ -385,13 +386,13 @@ static void time_stamp (FILE* out, const char* prefix) {
  can trigger GC */
 static FILE* my_fopen (object path) {
   FILE *ret;
-  with_string_0(path=physical_namestring(path),GLO(pathname_encoding),pathz,{
-      begin_blocking_system_call();
-      ret = fopen(pathz,"w");
-      if (ret == NULL) { end_blocking_system_call(); OS_file_error(path); }
-      time_stamp(ret,"opened");
-      end_blocking_system_call();
-    });
+  with_string_0(path=physical_namestring(path),GLO(pathname_encoding),pathz, {
+    begin_blocking_system_call();
+    ret = fopen(pathz,"w");
+    if (ret == NULL) { end_blocking_system_call(); OS_file_error(path); }
+    time_stamp(ret,"opened");
+    end_blocking_system_call();
+  });
   return ret;
 }
 
@@ -487,12 +488,12 @@ DEFUN(BDB:DBE-DBREMOVE, dbe file database &key TRANSACTION AUTO-COMMIT)
   if (!nullp(STACK_2)) STACK_2 = check_string(STACK_0); /* DATABASE */
   STACK_1 = physical_namestring(STACK_1);               /* FILE */
   with_string_0(STACK_1,GLO(pathname_encoding),file, {
-      if (stringp(STACK_0)) {
-        with_string_0(STACK_0,GLO(misc_encoding),database, {
-            SYSCALL(dbe->dbremove,(dbe,txn,file,database,flags));
-          });
-      } else SYSCALL(dbe->dbremove,(dbe,txn,file,NULL,flags));
-    });
+    if (stringp(STACK_0)) {
+      with_string_0(STACK_0,GLO(misc_encoding),database, {
+        SYSCALL(dbe->dbremove,(dbe,txn,file,database,flags));
+      });
+    } else SYSCALL(dbe->dbremove,(dbe,txn,file,NULL,flags));
+  });
   VALUES0; skipSTACK(3);
 }
 
@@ -502,12 +503,12 @@ DEFUN(BDB:DBE-DBRENAME, dbe file database newname &key TRANSACTION AUTO-COMMIT)
   DB_TXN *txn = (DB_TXN*)bdb_handle(popSTACK(),`BDB::TXN`,BH_NIL_IS_NULL);
   DB_ENV *dbe = (DB_ENV*)bdb_handle(STACK_3,`BDB::DBE`,BH_VALID);
   with_string_0(physical_namestring(STACK_2),GLO(pathname_encoding),file, {
-      with_string_0(check_string(STACK_1),GLO(misc_encoding),database, {
-          with_string_0(check_string(STACK_0),GLO(misc_encoding),newname, {
-              SYSCALL(dbe->dbrename,(dbe,txn,file,database,newname,flags));
-            });
-        });
+    with_string_0(check_string(STACK_1),GLO(misc_encoding),database, {
+      with_string_0(check_string(STACK_0),GLO(misc_encoding),newname, {
+        SYSCALL(dbe->dbrename,(dbe,txn,file,database,newname,flags));
+      });
     });
+  });
   VALUES0; skipSTACK(4);
 }
 
@@ -564,12 +565,12 @@ static void reset_errpfx (DB_ENV *dbe) {
     begin_system_call(); dbe->set_errpfx(dbe,NULL); end_system_call();
   } else
     with_string_0(check_string(STACK_0),GLO(misc_encoding), prefix, {
-        char *errpfx = (char*)clisp_malloc(prefix_bytelen+1);
-        begin_system_call();
-        strcpy(errpfx,prefix);
-        dbe->set_errpfx(dbe,errpfx);
-        end_system_call();
-      });
+      char *errpfx = (char*)clisp_malloc(prefix_bytelen+1);
+      begin_system_call();
+      strcpy(errpfx,prefix);
+      dbe->set_errpfx(dbe,errpfx);
+      end_system_call();
+    });
 }
 /* extract errpfx
  can trigger GC */
@@ -703,7 +704,7 @@ DEFUN(BDB:DBE-SET-OPTIONS, dbe &key                                     \
     uintL dims[2];
    restart_LK_CONFLICTS:        /* check arguments */
     STACK_0 = check_array(STACK_0);
-    if (2 != array_rank(STACK_0)
+    if (array_rank(STACK_0) != 2
         || (get_array_dimensions(STACK_0,2,dims), dims[0] != dims[1])
         || (array_atype(STACK_0) != Atype_8Bit)) {
       pushSTACK(NIL);           /* no PLACE */
@@ -1317,12 +1318,12 @@ static dbt_o_t fill_dbt (object obj, DBT* key, int re_len)
     return DBT_INTEGER;
   } else if (stringp(obj)) {
     with_string_0(obj,GLO(misc_encoding),linez, {
-        key->ulen = key->size = linez_bytelen;
-        key->data = clisp_malloc(linez_bytelen);
-        begin_system_call();
-        memcpy(key->data,linez,linez_bytelen);
-        end_system_call();
-      });
+      key->ulen = key->size = linez_bytelen;
+      key->data = clisp_malloc(linez_bytelen);
+      begin_system_call();
+      memcpy(key->data,linez,linez_bytelen);
+      end_system_call();
+    });
     return DBT_STRING;
   } else if (bit_vector_p(Atype_8Bit,obj)) {
     uintL idx = 0;
@@ -1618,13 +1619,13 @@ DEFUN(BDB:DB-OPEN, db file &key DATABASE :TYPE MODE FLAGS            \
   with_string_0((stringp(STACK_1) ? (object)STACK_1
                  : physical_namestring(STACK_1)),
                 GLO(pathname_encoding),file, {
-      if (missingp(STACK_0)) {  /* no :DATABASE */
-        SYSCALL(db->open,(db,txn,file,NULL,db_type,flags,mode));
-      } else                    /* multiple databases in one file */
-        with_string_0(check_string(STACK_0),GLO(misc_encoding),databse, {
-            SYSCALL(db->open,(db,txn,file,databse,db_type,flags,mode));
-          });
-    });
+    if (missingp(STACK_0)) {  /* no :DATABASE */
+      SYSCALL(db->open,(db,txn,file,NULL,db_type,flags,mode));
+    } else                    /* multiple databases in one file */
+      with_string_0(check_string(STACK_0),GLO(misc_encoding),databse, {
+        SYSCALL(db->open,(db,txn,file,databse,db_type,flags,mode));
+      });
+  });
   VALUES0;
   skipSTACK(3);
 }
@@ -1651,8 +1652,8 @@ DEFUN(BDB:DB-UPGRADE, db file &key DUPSORT)
   u_int32_t flags = (missingp(STACK_0) ? 0 : DB_DUPSORT);
   DB *db = (DB*)bdb_handle(STACK_2,`BDB::DB`,BH_VALID);
   with_string_0(physical_namestring(STACK_1),GLO(pathname_encoding),file, {
-      SYSCALL(db->upgrade,(db,file,flags));
-    });
+    SYSCALL(db->upgrade,(db,file,flags));
+  });
   VALUES0; skipSTACK(3);
 }
 
@@ -1660,15 +1661,15 @@ DEFUN(BDB:DB-RENAME, db file database newname)
 { /* Rename a database */
   DB *db = (DB*)bdb_handle(STACK_3,`BDB::DB`,BH_VALID);
   with_string_0(physical_namestring(STACK_2),GLO(pathname_encoding),file, {
-      with_string_0(check_string(STACK_0),GLO(misc_encoding),newname, {
-          if (nullp(STACK_1))   /* database=NIL */
-            SYSCALL(db->rename,(db,file,NULL,newname,0));
-          else
-            with_string_0(check_string(STACK_1),GLO(misc_encoding),database, {
-                SYSCALL(db->rename,(db,file,database,newname,0));
-              });
+    with_string_0(check_string(STACK_0),GLO(misc_encoding),newname, {
+      if (nullp(STACK_1))   /* database=NIL */
+        SYSCALL(db->rename,(db,file,NULL,newname,0));
+      else
+        with_string_0(check_string(STACK_1),GLO(misc_encoding),database, {
+          SYSCALL(db->rename,(db,file,database,newname,0));
         });
     });
+  });
   VALUES0; skipSTACK(4);
 }
 
@@ -1676,10 +1677,10 @@ DEFUN(BDB:DB-REMOVE, db file database)
 { /* Remove a database */
   DB *db = (DB*)bdb_handle(STACK_2,`BDB::DB`,BH_VALID);
   with_string_0(physical_namestring(STACK_1),GLO(pathname_encoding),file, {
-      with_string_0(check_string(STACK_0),GLO(misc_encoding),database, {
-          SYSCALL(db->remove,(db,file,database,0));
-        });
+    with_string_0(check_string(STACK_0),GLO(misc_encoding),database, {
+      SYSCALL(db->remove,(db,file,database,0));
     });
+  });
   VALUES0; skipSTACK(3);
 }
 
@@ -1791,16 +1792,16 @@ DEFUN(BDB:DB-VERIFY, db file &key DATABASE SALVAGE AGGRESSIVE PRINTABLE \
     STACK_1 = check_string(STACK_1);
     flags |= DB_ORDERCHKONLY;
   }
-  with_string_0(STACK_2,GLO(pathname_encoding),file,{
-      if (!missingp(STACK_1))
-        with_string_0(STACK_1,GLO(misc_encoding),database,{
-            SYSCALL1(db->verify,(db,file,database,outfile,flags),
-                     { if (outfile) fclose(outfile); });
-          });
-      else
-        SYSCALL1(db->verify,(db,file,NULL,outfile,flags),
+  with_string_0(STACK_2,GLO(pathname_encoding),file, {
+    if (!missingp(STACK_1))
+      with_string_0(STACK_1,GLO(misc_encoding),database, {
+        SYSCALL1(db->verify,(db,file,database,outfile,flags),
                  { if (outfile) fclose(outfile); });
-    });
+      });
+    else
+      SYSCALL1(db->verify,(db,file,NULL,outfile,flags),
+               { if (outfile) fclose(outfile); });
+  });
   /* http://docs.oracle.com/cd/E17076_02/html/api_reference/C/dbverify.html
    The DB->verify() method may not be called after the DB->open() method is called.
    The DB handle may not be accessed again after DB->verify() is called,
@@ -1906,8 +1907,8 @@ DEFUN(BDB:DB-SET-OPTIONS, db &key MSGFILE ERRFILE ERRPFX PASSWORD \
       SYSCALL(db->set_re_source,(db,NULL));
     else
       with_string_0(check_string(STACK_0),GLO(pathname_encoding), re_source, {
-          SYSCALL(db->set_re_source,(db,re_source));
-        });
+        SYSCALL(db->set_re_source,(db,re_source));
+      });
   }
   skipSTACK(1);
   if (!missingp(STACK_0)) {     /* RE_PAD */
@@ -2752,8 +2753,9 @@ DEFUN(BDB:TXN-RECOVER, dbe &key FIRST :NEXT)
   DB_ENV *dbe = (DB_ENV*)bdb_handle(popSTACK(),`BDB::DBE`,BH_VALID);
   u_int32_t tx_max;
   DB_PREPLIST *preplist;
-  int status, ii;
-  u_int32_t retnum;
+  int status;
+  long retnum;
+  long ii;
   SYSCALL(dbe->get_tx_max,(dbe,&tx_max));
   preplist = (DB_PREPLIST*)clisp_malloc(tx_max * sizeof(DB_PREPLIST));
   begin_blocking_system_call();

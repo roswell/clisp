@@ -23,7 +23,7 @@ local _Noreturn void error_sym_plist_odd (object symbol) {
  < tail: eq(Car(*tail),key), or a pointer to an atom if not found,
          or NULL if odd length */
 local inline gcv_object_t* plist_find (gcv_object_t *plist_, object key) {
-  while (1) {
+  while (true) {
     var object plistr = *plist_;
     if (atomp(plistr)) /* not found */
       return plist_;
@@ -96,10 +96,10 @@ LISPFUNN(proclaim_constant,2)
    and assigns a value. */
   var object symbol = check_symbol_not_symbol_macro(STACK_1);
   #if defined(MULTITHREAD)
-   /* clear per thread symvalues if any */
-   pushSTACK(symbol);
-   clear_per_thread_symvalues(symbol);
-   symbol = popSTACK();
+    /* clear per thread symvalues if any */
+    pushSTACK(symbol);
+    clear_per_thread_symvalues(symbol);
+    symbol = popSTACK();
   #endif
   var object val = STACK_0; skipSTACK(2);
   set_const_flag(TheSymbol(symbol)); /* make a constant */
@@ -209,7 +209,7 @@ LISPFUNNR(get_properties,2)
   var object keylist = popSTACK();
   var object plist = popSTACK();
   var object plistr = plist;
-  while (1) {
+  while (true) {
     if (endp(plistr))
       goto notfound;
     var object item = Car(plistr);

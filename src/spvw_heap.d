@@ -61,21 +61,21 @@ typedef struct {
                      PROT_READ_WRITE : only the page is valid. */
   uintL cache_size;         /* number of cached pointers */
   old_new_pointer_t* cache; /* cache of all pointers into the new generation */
-#if defined(MULTITHREAD)
+ #if defined(MULTITHREAD)
   /* during fault handling we have to allow a single thread to  change this page cache */
   spinlock_t cache_lock;
-#endif
+ #endif
 } physpage_state_t;
 
-#if defined(MULTITHREAD)
-/* during GC GEN1 the highest bit of cache_size marks whether the
-   protection of the page should be preserved (becasue it contains
-   pinned objects).
-   Used only during GEN1 of GC !!! Never set outside GC. */
- #define physpage_pinned_mask  ((uintL)(bit(intLsize-1)))
- #define physpage_pin_marked(p) ((p)->cache_size & physpage_pinned_mask)
- #define physpage_pin_mark(p) p->cache_size |= physpage_pinned_mask
-#endif /* MULTITHREAD & GENERATIONAL_GC */
+ #if defined(MULTITHREAD)
+  /* during GC GEN1 the highest bit of cache_size marks whether the
+     protection of the page should be preserved (becasue it contains
+     pinned objects).
+     Used only during GEN1 of GC !!! Never set outside GC. */
+  #define physpage_pinned_mask  ((uintL)(bit(intLsize-1)))
+  #define physpage_pin_marked(p) ((p)->cache_size & physpage_pinned_mask)
+  #define physpage_pin_mark(p) p->cache_size |= physpage_pinned_mask
+ #endif /* MULTITHREAD */
 #endif /* GENERATIONAL_GC */
 
 typedef struct {

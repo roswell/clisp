@@ -1,6 +1,6 @@
 /*
  * Special Forms, Control Structures, Evaluator Related Stuff for CLISP
- * Bruno Haible 1990-2005, 2016-2017
+ * Bruno Haible 1990-2005, 2016-2026
  * Sam Steingold 1998-2009, 2011
  * German comments translated into English: Stefan Kain 2002-09-28
  */
@@ -383,14 +383,14 @@ local maygc Values compile_eval_form (object closure_name)
   pushSTACK(form); /* as first argument */
   aktenv_to_stack();
   var uintC argcount = 6;
-  if (NULL != closure_name_) {
+  if (closure_name_ != NULL) {
     pushSTACK(*closure_name_);
     argcount = 7;
   }
   funcall(S(compile_form),argcount);
   /* call the freshly compiled closure with 0 arguments: */
   funcall(value1,0);
-  if (NULL != closure_name_) skipSTACK(1); /* drop closure_name_ */
+  if (closure_name_ != NULL) skipSTACK(1); /* drop closure_name_ */
 }
 
 /* signal a correctable error for a broken LET variable spec
@@ -446,9 +446,9 @@ global gcv_object_t* specdecled_ (object symbol, gcv_object_t* spec_pointer,
  < uintC spec_count: number of SPECDECL bindings.
  changes STACK (STACK_0<-value1=({form}) + bindings requiring 2 unwind calls)
  can trigger GC */
-local /*maygc*/ void make_variable_frame
-(object caller, object varspecs, gcv_object_t** bind_ptr_, uintC* bind_count_,
- gcv_object_t** spec_ptr_, uintC* spec_count_)
+local /*maygc*/ void make_variable_frame (object caller, object varspecs,
+                                          gcv_object_t** bind_ptr_, uintC* bind_count_,
+                                          gcv_object_t** spec_ptr_, uintC* spec_count_)
 {
   GCTRIGGER4(caller,varspecs,value1,value2);
   var object declarations = value2;
@@ -485,22 +485,22 @@ local /*maygc*/ void make_variable_frame
                 /* store special-declared symbol in stack: */
                 pushSTACK(specdecl); /* #<SPECDECL> as "value" */
                 pushSTACK_symbolwithflags(declsym,0); /* Symbol inactive */
-               #if defined(MULTITHREAD)
-                /* this is locally declared special variable. make it per thread
-                   if not already.*/
-                if (TheSymbol(declsym)->tls_index == SYMBOL_TLS_INDEX_NONE) {
-                  /* this call is may gc now */
-                  pushSTACK(value1); pushSTACK(value2);            /* save */
-                  pushSTACK(caller); pushSTACK(varspecs);          /* save */
-                  pushSTACK(declarations); pushSTACK(declspecs);   /* save */
-                  pushSTACK(decl_identifier); pushSTACK(declspec); /* save */
-                  add_per_thread_special_var(declsym);
-                  declspec = popSTACK(); decl_identifier = popSTACK(); /* restore */
-                  declspecs = popSTACK(); declarations = popSTACK();   /* restore */
-                  varspecs = popSTACK(); caller = popSTACK();          /* restore */
-                  value2 = popSTACK(); value1 = popSTACK();            /* restore */
-                }
-               #endif
+                #if defined(MULTITHREAD)
+                  /* this is locally declared special variable. make it per thread
+                     if not already.*/
+                  if (TheSymbol(declsym)->tls_index == SYMBOL_TLS_INDEX_NONE) {
+                    /* this call is may gc now */
+                    pushSTACK(value1); pushSTACK(value2);            /* save */
+                    pushSTACK(caller); pushSTACK(varspecs);          /* save */
+                    pushSTACK(declarations); pushSTACK(declspecs);   /* save */
+                    pushSTACK(decl_identifier); pushSTACK(declspec); /* save */
+                    add_per_thread_special_var(declsym);
+                    declspec = popSTACK(); decl_identifier = popSTACK(); /* restore */
+                    declspecs = popSTACK(); declarations = popSTACK();   /* restore */
+                    varspecs = popSTACK(); caller = popSTACK();          /* restore */
+                    value2 = popSTACK(); value1 = popSTACK();            /* restore */
+                  }
+                #endif
               } else if (eq(decl_identifier,S(implementation_dependent))) {
                 /* store impdependent-declared symbol in stack: */
                 pushSTACK(impdependent); /* #<IMPLEMENTATION-DEPENDENT> as "value" */
@@ -1349,7 +1349,7 @@ LISPSPECFORM(return_from, 1,1,nobody)
   while (framepointerp(env)) {
     /* env is a frame-pointer to a IBLOCK-frame in the stack. */
     FRAME = TheFramepointer(env);
-    if (framecode(FRAME_(0)) & bit(nested_bit_t)) {
+    if (framecode(FRAME_(0)) & fbit(nested_bit_t)) {
       /* frame already nested */
       env = FRAME_(frame_next_env); break;
     }
@@ -1393,11 +1393,13 @@ LISPSPECFORM(return_from, 1,1,nobody)
  set_last_copy()   is "APPEND" [can trigger GC]
  modifies */
 local inline void set_last_inplace (object list) {
-  if (!consp(STACK_0)) STACK_1=STACK_0=list; /* init */
-  else Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
+  if (!consp(STACK_0))
+    STACK_1 = STACK_0 = list; /* init */
+  else
+    Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
   if (consp(list)) {
     var object list1;
-    while (1) { /* list is a cons */
+    while (true) { /* list is a cons */
       list1 = Cdr(list);
       if (atomp(list1)) break;
       list = list1;
@@ -1428,8 +1430,10 @@ local inline maygc void set_last_copy (object list) {
     }
     skipSTACK(3);
   } else {
-    if (!consp(STACK_0)) STACK_1=STACK_0=list; /* init */
-    else Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
+    if (!consp(STACK_0))
+      STACK_1 = STACK_0 = list; /* init */
+    else
+      Cdr(STACK_0) = list; /* insert as (cdr (last totallist)) */
   }
 }
 
@@ -1449,7 +1453,8 @@ local inline maygc void set_last_copy (object list) {
     pushSTACK(NIL); /* start of the result list */                      \
    {var gcv_object_t* ergptr = &STACK_0; /* pointer to it */            \
     /* traverse all lists in parallel: */                               \
-    while (1) { var gcv_object_t* argptr = args_pointer;                \
+    while (true) {                                                      \
+      var gcv_object_t* argptr = args_pointer;                          \
       var object fun = NEXT(argptr);                                    \
       var uintC count = argcount;                                       \
       do {                                                              \
@@ -1483,7 +1488,8 @@ local inline maygc void set_last_copy (object list) {
     pushSTACK(NIL); /* (last totallist) */                              \
    {var gcv_object_t *ret=&STACK_1; /* remember the total list*/        \
     /* traverse all lists in parallel: */                               \
-    while (1) { var gcv_object_t* argptr = args_pointer;                \
+    while (true) {                                                      \
+      var gcv_object_t* argptr = args_pointer;                          \
       var object fun = NEXT(argptr);                                    \
       var uintC count = argcount;                                       \
       do {                                                              \
@@ -1497,8 +1503,10 @@ local inline maygc void set_last_copy (object list) {
       pushSTACK(value1);                                                \
      {var object new_cons = allocate_cons(); /* new cons */             \
       Car(new_cons) = popSTACK(); /* new_cons = (LIST (FUNCALL ...)) */ \
-      if (nullp(STACK_1)) STACK_1 = STACK_0 = new_cons; /* init */      \
-      else { Cdr(STACK_0) = new_cons; STACK_0 = new_cons; } /* append */ \
+      if (nullp(STACK_1))                                               \
+        STACK_1 = STACK_0 = new_cons; /* init */                        \
+      else                                                              \
+        { Cdr(STACK_0) = new_cons; STACK_0 = new_cons; } /* append */   \
     }}                                                                  \
    done:                                                                \
     VALUES1(*ret); /* result list-cons */                               \
@@ -1516,7 +1524,8 @@ local inline maygc void set_last_copy (object list) {
     pushSTACK(BEFORE(rest_args_pointer)); /* save first list argument */ \
    {var gcv_object_t* ergptr = &STACK_0; /* pointer to it */            \
     /* traverse all lists in parallel: */                               \
-    while (1) { var gcv_object_t* argptr = args_pointer;                \
+    while (true) {                                                      \
+      var gcv_object_t* argptr = args_pointer;                          \
       var object fun = NEXT(argptr);                                    \
       var uintC count = argcount;                                       \
       do {                                                              \
@@ -1548,7 +1557,8 @@ local inline maygc void set_last_copy (object list) {
     pushSTACK(NIL); /* (last totallist) */                              \
    {var gcv_object_t *ret=&STACK_1; /* remember the total list*/        \
     /* traverse all lists in parallel: */                               \
-    while (1) { var gcv_object_t* argptr = args_pointer;                \
+    while (true) {                                                      \
+      var gcv_object_t* argptr = args_pointer;                          \
       var object fun = NEXT(argptr);                                    \
       var uintC count = argcount;                                       \
       do {                                                              \
@@ -1680,7 +1690,7 @@ LISPSPECFORM(go, 1,0,nobody)
   while (framepointerp(env)) {
     /* env is a frame-pointer to a ITAGBODY-frame in the stack. */
     FRAME = uTheFramepointer(env);
-    if (framecode(FRAME_(0)) & bit(nested_bit_t)) {
+    if (framecode(FRAME_(0)) & fbit(nested_bit_t)) {
       /* frame already nested */
       env = FRAME_(frame_next_env); break;
     }
@@ -1849,7 +1859,7 @@ LISPSPECFORM(multiple_value_bind, 2,0,body)
       mv_pointer = &mv_space[1];
      #endif
       /* still min(r,s)>0 values to bind: */
-      while (1) {
+      while (true) {
         bind_next_var(*mv_pointer++);
         if (--r == 0) goto ok; /* no more variables? */
         if (--s == 0) goto fill; /* no more values? */
@@ -2005,7 +2015,7 @@ LISPFUNN(driver,1)
   var sp_jmp_buf returner; /* remember entry point */
   finish_entry_frame(DRIVER,returner,,;);
   /* this is the entry point. */
-  while (1) { funcall(STACK_(0+2),0); } /* call fun, endless loop */
+  while (true) { funcall(STACK_(0+2),0); } /* call fun, endless loop */
 }
 
 LISPFUNN(unwind_to_driver,1)
@@ -2028,14 +2038,16 @@ local maygc void test_env (void) {
   var object arg = STACK_0;
   if (missingp(arg)) { /* required by ANSI CL sections 3.1.1.3.1, 3.1.1.4 */
     arg = allocate_vector(2); /* vector #(nil nil) as default */
-  } else while (!(simple_vector_p(arg) && (Svector_length(arg) == 2))) {
-    pushSTACK(NIL); /* no PLACE */
-    pushSTACK(arg); /* TYPE-ERROR slot DATUM */
-    pushSTACK(O(type_svector2)); /* TYPE-ERROR slot EXPECTED-TYPE */
-    pushSTACK(arg);
-    check_value(type_error,
-                GETTEXT("Argument ~S is not a macroexpansion environment"));
-    arg = value1;
+  } else {
+    while (!(simple_vector_p(arg) && (Svector_length(arg) == 2))) {
+      pushSTACK(NIL); /* no PLACE */
+      pushSTACK(arg); /* TYPE-ERROR slot DATUM */
+      pushSTACK(O(type_svector2)); /* TYPE-ERROR slot EXPECTED-TYPE */
+      pushSTACK(arg);
+      check_value(type_error,
+                  GETTEXT("Argument ~S is not a macroexpansion environment"));
+      arg = value1;
+    }
   }
   STACK_0 = arg;
 }
@@ -2135,9 +2147,9 @@ LISPFUNN(proclaim,1)
         clear_const_flag(TheSymbol(symbol));
       set_special_flag(TheSymbol(symbol));
       #if defined(MULTITHREAD)
-       /* MT: add to the threads (empty) if not already there */
-       if (TheSymbol(symbol)->tls_index == SYMBOL_TLS_INDEX_NONE)
-         add_per_thread_special_var(symbol);
+        /* MT: add to the threads (empty) if not already there */
+        if (TheSymbol(symbol)->tls_index == SYMBOL_TLS_INDEX_NONE)
+          add_per_thread_special_var(symbol);
       #endif
     }
   } else if (eq(decltyp,S(notspecial))) { /* NOTSPECIAL */
@@ -2308,7 +2320,7 @@ local bool form_constant_p (object form) {
     if ((cclosurep(fdef) && (Cclosure_seclass(fdef) == seclass_foldable))
         || (subrp(fdef) && (TheSubr(fdef)->seclass == seclass_foldable))) {
       check_SP();
-      while (1) {
+      while (true) {
         form = Cdr(form);
         if (nullp(form)) return true;  /* list is over */
         if (!consp(form)) return false;  /* invalid form */
@@ -2447,8 +2459,10 @@ LISPFUNN(keyword_test,2)
       var object key = Car(arglistr); arglistr = Cdr(arglistr);
       var object val = Car(arglistr); arglistr = Cdr(arglistr);
       if (eq(key,S(Kallow_other_keys))) {
-        if (nullp(val)) break;  /* need check */
-        else goto done;         /* no check */
+        if (nullp(val))
+          break;             /* need check */
+        else
+          goto done;         /* no check */
       }
     }
     for (arglistr = arglist; consp(arglistr); ) {
@@ -2483,7 +2497,7 @@ LISPSPECFORM(and, 0,0,body)
   if (atomp(body)) {
     VALUES1(T); /* (AND) -> T */
   } else {
-    while (1) {
+    while (true) {
       pushSTACK(Cdr(body));
       eval(Car(body)); /* evaluate form */
       body = popSTACK();
@@ -2502,7 +2516,7 @@ LISPSPECFORM(or, 0,0,body)
   if (atomp(body)) {
     VALUES1(NIL); /* (OR) -> NIL */
   } else {
-    while (1) {
+    while (true) {
       pushSTACK(Cdr(body));
       eval(Car(body)); /* evaluate form */
       body = popSTACK();

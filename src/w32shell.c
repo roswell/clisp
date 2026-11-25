@@ -36,7 +36,7 @@ int shell_quote (char * dest, const char * source) {
    only CYGWIN=winsymlinks is supported (i.e., a symlink is a windows *.lnk
    file); system file with a cookie is NOT (FIXME!)
    for win_shortcut_hdr description see also,
-   http://msdn.microsoft.com/en-us/library/dd871305(PROT.10).aspx */
+   https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-shllink/16cb4ca1-9339-4d0c-a68d-bf1d6cc0f943 */
 
 static const GUID GUID_shortcut =
   {0x00021401L, 0, 0, {0xc0, 0, 0, 0, 0, 0, 0, 0x46}};

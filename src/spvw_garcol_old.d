@@ -56,11 +56,11 @@ local void move_conses (sintM delta);
 
 #if DEBUG_GC_MARK
   #define IF_DEBUG_GC_MARK(statement)  statement
-  #if defined(WIDE_SOFT)
+  #if defined(WIDE_SOFT) || (pointer_bitsize > long_bitsize)
     /* oint is defined as uint64. */
     #define PRIoint "ll"
   #else
-    /* oint is defined as uintP. Assume pointer_bitsize == long_bitsize. */
+    /* oint is defined as uintP, and pointer_bitsize == long_bitsize. */
     #define PRIoint "l"
   #endif
 #else
@@ -857,7 +857,7 @@ local void gc_morris3 (Page* page)
  set_GCself(p,type,addr);
  sets p->GCself to type_pointer_object(type,addr). */
 #ifdef TYPECODES
-  #if !(exact_uint_size_p(oint_type_len) && ((oint_type_shift%hfintsize)==0) && (tint_type_mask == bit(oint_type_len)-1))
+  #if !(exact_uint_size_p(oint_type_len) && ((oint_type_shift%hfintsize)==0) && (tint_type_mask == wbit(oint_type_len)-1))
     #ifdef SINGLEMAP_MEMORY
       /* addr contains typeinfo */
       #define make_GCself(type,addr)  \
@@ -890,7 +890,7 @@ local void gc_sweep1_sstring_forward (aint p2) {
   if (sstring_flags(TheSstring(forward)) & sstringflags_relocated_B) {
     var gcv_object_t target = TheSstring(forward)->GCself;
     var aint backchain = p2;
-    for (;;) {
+    while (true) {
       var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
       ((Varobject)backchain)->GCself = target;
       sstring_flags_set((Sstring)backchain,sstringflags_relocated_B);
@@ -920,7 +920,7 @@ local void gc_sweep1_sstring_target (aint p2, aint p1) {
     /*NOTREACHED*/ abort();
   var gcv_object_t target; target = with_mark_bit(make_GCself(sstring_type,p1));
   var aint backchain = p2;
-  for (;;) {
+  while (true) {
     var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
     ((Varobject)backchain)->GCself = target;
     sstring_flags_set((Sstring)backchain,sstringflags_relocated_B);
@@ -938,7 +938,7 @@ local void gc_sweep1_instance_forward (aint p2) {
   if (record_flags(TheInstance(forward)) & instflags_relocated_B) {
     var gcv_object_t target = TheInstance(forward)->GCself;
     var aint backchain = p2;
-    for (;;) {
+    while (true) {
       var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
       ((Varobject)backchain)->GCself = target;
       record_flags_set((Record)backchain,instflags_relocated_B);
@@ -976,7 +976,7 @@ local void gc_sweep1_instance_target (aint p2, aint p1) {
   #endif
   var gcv_object_t target; target = with_mark_bit(make_GCself(type,p1));
   var aint backchain = p2;
-  for (;;) {
+  while (true) {
     var gcv_object_t backpointer = ((Varobject)backchain)->GCself;
     ((Varobject)backchain)->GCself = target;
     record_flags_set((Record)backchain,instflags_relocated_B);
@@ -1341,7 +1341,7 @@ local void gc_sweep1_varobject_page (Page* page)
 #elif (varobject_alignment==4)
   #define uintVLA  uintL
 #elif (varobject_alignment==8)
-  #define uintVLA  uintL2
+  #define uintVLA  uint64
 #else
   #error Unknown value for 'varobject_alignment'!
 #endif
@@ -2065,7 +2065,7 @@ local void gc_compact_from_varobject_page (Heap* heapptr, Page* page)
     var aint p2;                /* cache of new_page->page_end */
     var uintM l2;               /* cache of new_page->page_room */
     /* try to copy all objects between p1 and p1end : */
-    while (1) {
+    while (true) {
       if (p1==p1end)            /* upper bound reached -> finished */
         break;
       var uintM laenge = objsize((Varobject)p1); /* determine byte-length */
@@ -2124,7 +2124,7 @@ local void gc_compact_from_cons_page (Heap* heapptr, Page* page)
     var aint p2;                /* cache of new_page->page_end */
     var uintM l2;               /* cache of new_page->page_room */
     /* try to copy all objects between p1start and p1: */
-    while (1) {
+    while (true) {
       if (p1==p1start)          /* lower bound reached -> finished */
         break;
       /* search a page, that has at least sizeof(cons_) bytes free: */
@@ -2460,11 +2460,7 @@ local void move_conses (sintM delta)
     /* shift upwards, from above */
     var gcv_object_t* source = (gcv_object_t*) mem.conses.heap_end;
     var gcv_object_t* source_end = (gcv_object_t*) mem.conses.heap_start;
-   #if !(defined(MIPS) && !defined(GNU))
     var gcv_object_t* dest = (gcv_object_t*) (mem.conses.heap_end += delta);
-   #else  /* circumvent IRIX 4 "cc -ansi" compiler-bug?? */
-    var gcv_object_t* dest = (mem.conses.heap_end += delta, (gcv_object_t*)mem.conses.heap_end);
-   #endif
     mem.conses.heap_start += delta;
     while (source!=source_end) {
       *--dest = *--source;      /* copy an entire cons upwards */
@@ -2474,11 +2470,7 @@ local void move_conses (sintM delta)
     /* shift downwards, from below */
     var gcv_object_t* source = (gcv_object_t*) mem.conses.heap_start;
     var gcv_object_t* source_end = (gcv_object_t*) mem.conses.heap_end;
-    #if !(defined(MIPS) && !defined(GNU))
     var gcv_object_t* dest = (gcv_object_t*) (mem.conses.heap_start += delta);
-    #else  /* circumvent IRIX 4 "cc -ansi" compiler-bug?? */
-    var gcv_object_t* dest = (mem.conses.heap_start += delta, (gcv_object_t*)mem.conses.heap_start);
-    #endif
     mem.conses.heap_end += delta;
     while (source!=source_end) {
       *dest++ = *source++;      /* copy an entire cons downwards */

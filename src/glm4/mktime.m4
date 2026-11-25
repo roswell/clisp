@@ -1,9 +1,11 @@
-# serial 36
-dnl Copyright (C) 2002-2003, 2005-2007, 2009-2021 Free Software Foundation,
+# mktime.m4
+# serial 43
+dnl Copyright (C) 2002-2003, 2005-2007, 2009-2026 Free Software Foundation,
 dnl Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
+dnl This file is offered as-is, without any warranty.
 
 dnl From Jim Meyering.
 
@@ -82,7 +84,8 @@ spring_forward_gap ()
      instead of "TZ=America/Vancouver" in order to detect the bug even
      on systems that don't support the Olson extension, or don't have the
      full zoneinfo tables installed.  */
-  putenv ("TZ=PST8PDT,M4.1.0,M10.5.0");
+  if (putenv ("TZ=PST8PDT,M4.1.0,M10.5.0") != 0)
+    return -1;
 
   tm.tm_year = 98;
   tm.tm_mon = 3;
@@ -107,22 +110,6 @@ mktime_test (time_t now)
   return (mktime_test1 (now)
           && mktime_test1 ((time_t) (time_t_max - now))
           && mktime_test1 ((time_t) (time_t_min + now)));
-}
-
-static int
-irix_6_4_bug ()
-{
-  /* Based on code from Ariel Faigon.  */
-  struct tm tm;
-  tm.tm_year = 96;
-  tm.tm_mon = 3;
-  tm.tm_mday = 0;
-  tm.tm_hour = 0;
-  tm.tm_min = 0;
-  tm.tm_sec = 0;
-  tm.tm_isdst = -1;
-  mktime (&tm);
-  return tm.tm_mon == 2 && tm.tm_mday == 31;
 }
 
 static int
@@ -170,7 +157,8 @@ year_2050_test ()
      instead of "TZ=America/Vancouver" in order to detect the bug even
      on systems that don't support the Olson extension, or don't have the
      full zoneinfo tables installed.  */
-  putenv ("TZ=PST8PDT,M4.1.0,M10.5.0");
+  if (putenv ("TZ=PST8PDT,M4.1.0,M10.5.0") != 0)
+    return -1;
 
   t = mktime (&tm);
 
@@ -179,6 +167,25 @@ year_2050_test ()
      due to leap seconds.  */
   return (t == (time_t) -1
           || (0 < t && answer - 120 <= t && t <= answer + 120));
+}
+
+static int
+indiana_test ()
+{
+  if (putenv ("TZ=America/Indiana/Indianapolis") != 0)
+    return -1;
+  struct tm tm;
+  tm.tm_year = 1986 - 1900; tm.tm_mon = 4 - 1; tm.tm_mday = 28;
+  tm.tm_hour = 16; tm.tm_min = 24; tm.tm_sec = 50; tm.tm_isdst = 0;
+  time_t std = mktime (&tm);
+  if (! (std == 515107490 || std == 515107503))
+    return 1;
+
+  /* This platform supports TZDB, either without or with leap seconds.
+     Return true if GNU Bug#48085 is absent.  */
+  tm.tm_isdst = 1;
+  time_t dst = mktime (&tm);
+  return std - dst == 60 * 60;
 }
 
 int
@@ -232,20 +239,18 @@ main ()
       if ((result & 8) == 0 && ! bigtime_test (INT_MAX))
         result |= 8;
     }
-  if (! irix_6_4_bug ())
-    result |= 16;
   if (! spring_forward_gap ())
+    result |= 16;
+  if (! year_2050_test () || ! indiana_test ())
     result |= 32;
-  if (! year_2050_test ())
-    result |= 64;
   return result;
 }]])],
          [gl_cv_func_working_mktime=yes],
          [gl_cv_func_working_mktime=no],
          [case "$host_os" in
-                    # Guess no on native Windows.
-            mingw*) gl_cv_func_working_mktime="guessing no" ;;
-            *)      gl_cv_func_working_mktime="$gl_cross_guess_normal" ;;
+                               # Guess no on native Windows.
+            mingw* | windows*) gl_cv_func_working_mktime="guessing no" ;;
+            *)                 gl_cv_func_working_mktime="$gl_cross_guess_normal" ;;
           esac
          ])
      fi
@@ -259,7 +264,6 @@ AC_DEFUN([gl_FUNC_MKTIME],
   AC_REQUIRE([AC_CANONICAL_HOST])
   AC_REQUIRE([gl_FUNC_MKTIME_WORKS])
 
-  REPLACE_MKTIME=0
   if test "$gl_cv_func_working_mktime" != yes; then
     REPLACE_MKTIME=1
     AC_DEFINE([NEED_MKTIME_WORKING], [1],
@@ -267,7 +271,7 @@ AC_DEFUN([gl_FUNC_MKTIME],
        with the algorithmic workarounds.])
   fi
   case "$host_os" in
-    mingw*)
+    mingw* | windows*)
       REPLACE_MKTIME=1
       AC_DEFINE([NEED_MKTIME_WINDOWS], [1],
         [Define if the compilation of mktime.c should define 'mktime'

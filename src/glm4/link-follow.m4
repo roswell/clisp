@@ -1,11 +1,14 @@
-# serial 21
+# link-follow.m4
+# serial 22
+dnl Copyright (C) 1999-2001, 2004-2006, 2009-2026 Free Software Foundation,
+dnl Inc.
+dnl This file is free software; the Free Software Foundation
+dnl gives unlimited permission to copy and/or distribute it,
+dnl with or without modifications, as long as this notice is preserved.
+dnl This file is offered as-is, without any warranty.
+
 dnl Run a program to determine whether link(2) follows symlinks.
 dnl Set LINK_FOLLOWS_SYMLINKS accordingly.
-
-# Copyright (C) 1999-2001, 2004-2006, 2009-2021 Free Software Foundation, Inc.
-# This file is free software; the Free Software Foundation
-# gives unlimited permission to copy and/or distribute it,
-# with or without modifications, as long as this notice is preserved.
 
 dnl This macro can be used to emulate POSIX linkat.  If
 dnl LINK_FOLLOWS_SYMLINKS is 0, link matches linkat(,0), and
@@ -84,7 +87,7 @@ AC_DEFUN([gl_FUNC_LINK_FOLLOWS_SYMLINK],
            [gl_cv_func_link_follows_symlink=yes], dnl Followed link/compile failed
            [dnl We're cross compiling.
             dnl The past results are "yes" on Mac OS X, FreeBSD, NetBSD,
-            dnl OpenBSD, Minix, AIX, HP-UX, OSF/1, and "no" on Linux, Cygwin.
+            dnl OpenBSD, Minix, AIX, HP-UX, and "no" on Linux, Cygwin.
             case "$host_os" in
                                   # On glibc/Linux we know the result.
               linux*-gnu* | gnu*) gl_cv_func_link_follows_symlink="guessing no" ;;

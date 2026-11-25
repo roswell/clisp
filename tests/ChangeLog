@@ -1,3 +1,80 @@
+2026-10-06  Bruno Haible  <bruno@clisp.org>
+
+	Avoid an occasional test failure on Alma Linux, OpenBSD, Windows, etc.
+	* socket.tst: Increase some sleep durations.
+
+2026-10-05  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on Cygwin.
+	* excepsit.tst: On Cygwin, don't assume that /etc/passwd exists.
+
+2026-10-05  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on Cygwin.
+	* path.tst: On Cygwin, don't assume that non-ASCII characters in
+	file names work.
+
+2026-10-05  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on Cygwin.
+	* streams.tst: Disable some test on Cygwin.
+
+2026-10-05  Bruno Haible  <bruno@clisp.org>
+
+	Avoid some test failures on mingw.
+	* path.tst: Update some expected results for win32.
+	* streams.tst: Disable some tests on win32.
+
+2026-10-05  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on macOS.
+	* streams.tst: Update an expected result on macOS.
+
+2026-10-05  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on Alma Linux 10.
+	* socket.tst: Use port 9094 instead of 9090, because on Alma Linux
+	port 9090 is already taken by systemd (pid 1).
+
+2026-10-05  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on OpenBSD >= 7.3.
+	* socket.tst: Update an expected result: :ERROR was seen on
+	OpenBSD <= 6.9, whereas on OpenBSD >= 7.3 it is :APPEND.
+
+2026-10-04  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on mingw/arm64.
+	* alltest.tst (lambda-parameters-limit): Limit to 512 on all native
+	Windows platforms.
+
+2026-10-04  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on mingw.
+	* socket.tst: On win32, use errno values, not GetLastError() values
+	(needed since 2011-07-19). Disable a test that hangs. Update some
+	expected results.
+
+2026-10-04  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on mingw.
+	* path.tst: Update some expected results for win32.
+
+2026-09-30  Bruno Haible  <bruno@clisp.org>
+
+	Avoid a test failure on 64-bit mingw.
+	* alltest.tst (lambda-parameters-limit): Limit to 512 on 64-bit mingw.
+
+2026-09-30  Bruno Haible  <bruno@clisp.org>
+
+	Drop portability to BeOS.
+	* excepsit.tst, ffi.tst: Remove BeOS specific code.
+
+2026-09-29  Bruno Haible  <bruno@clisp.org>
+
+	Skip a test that hangs on Cygwin.
+	* socket.tst: Skip a test that hangs on 32-bit Cygwin 2.9.0.
+
 2020-06-21  Bruno Haible  <bruno@clisp.org>
 
 	Avoid test failures on AIX, Haiku, Minix.
@@ -1727,7 +1804,6 @@
 2005-05-15  Sam Steingold  <sds@gnu.org>
 
 	* clos.tst: added a test from
-	<http://article.gmane.org/gmane.lisp.clisp.general:9582>
 	<https://sourceforge.net/p/clisp/mailman/message/12275493/>
 
 2005-05-11  Bruno Haible  <bruno@clisp.org>

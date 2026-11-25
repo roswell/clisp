@@ -28,7 +28,7 @@
     if (k1 < 16-1) {
       # k < 16
       var uintWL y = (x >> (k1+2)) | bit(k1); # stets 2^(k-1) <= y < 2^k
-      while (1) {
+      while (true) {
         var uintWL z;
         divu_3216_1616(x,y, z=,); # Dividiere x/y (geht, da x/y < 2^(2k)/2^(k-1) = 2^(k+1) <= 2^16)
         if (z >= y)
@@ -40,7 +40,7 @@
       # k = 16, Vorsicht!
       var uintWL x1 = high16(x);
       var uintWL y = (x >> (16+1)) | bit(16-1); # stets 2^(k-1) <= y < 2^k
-      while (1) {
+      while (true) {
         var uintWL z;
         if (x1 >= y) # Division x/y ergäbe Überlauf -> z > y
           break;
@@ -59,7 +59,7 @@
 # Zieht die Ganzzahl-Wurzel aus einer 64-Bit-Zahl und
 # liefert eine 32-Bit-Wurzel.
 # UL2_sqrt_UL(x1,x0)
-# > uintL2 x = x1*2^32+x0 : Radikand, >=0, <2^64
+# > uint64 x = x1*2^32+x0 : Radikand, >=0, <2^64
 # < uintL result : Wurzel, >=0, <2^32
   local uintL UL2_sqrt_UL (uintL x1, uintL x0);
   # Methode:
@@ -84,7 +84,7 @@
     if (k < 32) {
       # k < 32
       var uintL y = ((x1 << (32-k)) | (x0 >> k) | bit(k)) >> 1; # stets 2^(k-1) <= y < 2^k
-      while (1) {
+      while (true) {
         var uintL z;
         divu_6432_3232(x1,x0,y, z=,); # Dividiere x/y (geht, da x/y < 2^(2k)/2^(k-1) = 2^(k+1) <= 2^32)
         if (z >= y)
@@ -95,7 +95,7 @@
     } else {
       # k = 32, Vorsicht!
       var uintL y = (x1 >> 1) | bit(32-1); # stets 2^(k-1) <= y < 2^k
-      while (1) {
+      while (true) {
         var uintL z;
         if (x1 >= y) # Division x/y ergäbe Überlauf -> z > y
           break;
@@ -226,7 +226,7 @@
         #endif
         # Anfangswert: x := floor((beta + a[2n-1])/2)
         var uintD x = floor(a_msd,2) | bit(intDsize-1);
-        while (1) { # Heron-Iterationsschleife
+        while (true) { # Heron-Iterationsschleife
           var uintD d;
           # Dividiere d := floor((a[2n-1]*beta+a[2n-2])/x) :
           if (a_msd>=x) # Überlauf -> d>=beta -> fertig
@@ -309,7 +309,7 @@
           } else {
             a_mptr[0] -= carry; # a[2n-j] wird <0
             # negativer Übertrag -> b* nach unten korrigieren:
-            while (1) {
+            while (true) {
               b_star = b_star-1; # b* := b* - 1
               # erhöhe [a[2n-j],...,a[2n-2j-1]] um [b[n],...,b[n-j]]:
               if (!(( addto_loop_down(b_ptr,a_lptr,j+1) ==0)))
@@ -585,7 +585,7 @@
           var uintD* zz_LSDptr = z2_LSDptr;
           var uintD* z_LSDptr;
           # Ab jetzt {zz_LSDptr,free_LSDptr} = {z1_LSDptr,z2_LSDptr}.
-          clear_loop_down(&y_LSDptr[-(uintP)k],k2-k); # y auf k2 Digits erweitern
+          clear_loop_down(y_LSDptr-(uintP)k,k2-k); # y auf k2 Digits erweitern
           copy_loop_down(y_LSDptr,zz_LSDptr,k2); # zz:=y
           do {
             var uintD* new_zz_LSDptr = free_LSDptr;
@@ -615,16 +615,16 @@
             zz_LSDptr = z3_LSDptr; # zz ist jetzt auch frei
           mulu_2loop_down(z_LSDptr,k2,y_LSDptr,k2,free_LSDptr); # y^n
           sub_loop_down(x_LSDptr,free_LSDptr,zz_LSDptr,k2); # zz:=x-y^n
-          ASSERT(!test_loop_up(&zz_LSDptr[-(uintP)k],k)); # zz == 0 mod beta^k
+          ASSERT(!test_loop_up(zz_LSDptr-(uintP)k,k)); # zz == 0 mod beta^k
           mulu_2loop_down(z_LSDptr,k2-k,n_LSDptr,n_len,free_LSDptr); # n*y^(n-1)
           # Quotienten mod beta^(k2-k) bilden und an y mod beta^k ankleben:
-          UDS_UDS_div2adic_UDS(k2-k,&zz_LSDptr[-(uintP)k],free_LSDptr,&y_LSDptr[-(uintP)k]);
+          UDS_UDS_div2adic_UDS(k2-k,zz_LSDptr-(uintP)k,free_LSDptr,y_LSDptr-(uintP)k);
           k = k2; # jetzt gilt y^n == x sogar mod beta^k2.
         }
         end_arith_call();
       }
       # y mit y^n == x mod beta^m ist gefunden.
-      var object y = UDS_to_I(&y_LSDptr[-(uintP)m],m); # y als Integer >=0
+      var object y = UDS_to_I(y_LSDptr-(uintP)m,m); # y als Integer >=0
       RESTORE_NUM_STACK # num_stack zurück
       pushSTACK(y);
     # Stackaufbau: x, y.

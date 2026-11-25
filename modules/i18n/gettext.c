@@ -1,6 +1,6 @@
 /*
  * ======= General internationalization, for Lisp programs too =======
- * Copyright (C) 1990-2005 Bruno Haible
+ * Copyright (C) 1990-2005, 2026 Bruno Haible
  * Copyright (C) 1998-2008, 2010, 2012 Sam Steingold
  * This is Free Software, distributed under the GNU GPL v2+
  */
@@ -49,13 +49,12 @@ static inline object do_gettext (const char* msgid,
 static inline object do_ngettext (const char* msgid, const char* msgid_plural,
                                   const char* domain, uint32 n, int category)
 {
-  const char* translated_msg;
   begin_blocking_system_call();
 # if CLISP_UNICODE
   if (domain != NULL)
     bind_textdomain_codeset(domain,"UTF-8");
 # endif
-  translated_msg = dcngettext(domain,msgid,msgid_plural,n,category);
+  const char* translated_msg = dcngettext(domain,msgid,msgid_plural,n,category);
   end_blocking_system_call();
   return asciz_to_string(translated_msg,Symbol_value(S(utf_8)));
 }
@@ -133,9 +132,8 @@ DEFUNR(I18N:NGETTEXT,msgid msgid_plural n &optional domain category)
 DEFUNR(I18N:TEXTDOMAIN,)
 { /* returns the current default domain. */
  #ifdef GNU_GETTEXT
-  const char* domain;
   begin_system_call();
-  domain = textdomain(NULL);
+  const char* domain = textdomain(NULL);
   end_system_call();
   VALUES1(asciz_to_string(domain,Symbol_value(S(ascii))));
  #else
@@ -182,10 +180,10 @@ DEFUN(I18N:SET-TEXTDOMAINDIR, domain directory)
        to protect against later chdir() calls. */
     object directory = pathname_to_OSdir(STACK_0,true);
     with_string_0(STACK_1/*domain*/,Symbol_value(S(ascii)),domain_asciz, {
-        begin_system_call();
-        bindtextdomain(domain_asciz,TheAsciz(directory));
-        end_system_call();
-      });
+      begin_system_call();
+      bindtextdomain(domain_asciz,TheAsciz(directory));
+      end_system_call();
+    });
   }
  #endif
   VALUES1(STACK_0);
@@ -198,43 +196,43 @@ DEFUN(I18N:SET-LOCALE, &optional category locale)
 { /* call setlocale(3) */
   gcv_object_t *category = &STACK_1;
   gcv_object_t *locale = &STACK_0;
-  char* res;
   if (missingp(*category)) {
     int pos = 0;
     if (missingp(*locale)) {
       for (; pos < check_locale_category_map.size; pos++) {
         begin_system_call();
-        res = setlocale(check_locale_category_map.table[pos].c_const,NULL);
+        char* res = setlocale(check_locale_category_map.table[pos].c_const,NULL);
         end_system_call();
         pushSTACK(*check_locale_category_map.table[pos].l_const);
         pushSTACK(safe_to_string(res));
       }
     } else {
       *locale = check_string(*locale);
-      with_string_0(*locale,GLO(misc_encoding),loc_z,{
-          for (; pos < check_locale_category_map.size; pos++) {
-            begin_system_call();
-            res = setlocale(check_locale_category_map.table[pos].c_const,loc_z);
-            end_system_call();
-            pushSTACK(*check_locale_category_map.table[pos].l_const);
-            pushSTACK(safe_to_string(res));
-          }
-        });
+      with_string_0(*locale,GLO(misc_encoding),loc_z, {
+        for (; pos < check_locale_category_map.size; pos++) {
+          begin_system_call();
+          char* res = setlocale(check_locale_category_map.table[pos].c_const,loc_z);
+          end_system_call();
+          pushSTACK(*check_locale_category_map.table[pos].l_const);
+          pushSTACK(safe_to_string(res));
+        }
+      });
     }
     VALUES1(listof(2*check_locale_category_map.size));
   } else {
     int cat_value = check_locale_category(*category);
+    char* res;
     if (missingp(*locale)) {
       begin_system_call();
       res = setlocale(cat_value,NULL);
       end_system_call();
     } else {
       *locale = check_string(*locale);
-      with_string_0(*locale,GLO(misc_encoding),loc_z,{
-          begin_system_call();
-          res = setlocale(cat_value,loc_z);
-          end_system_call();
-        });
+      with_string_0(*locale,GLO(misc_encoding),loc_z, {
+        begin_system_call();
+        res = setlocale(cat_value,loc_z);
+        end_system_call();
+      });
     }
     VALUES1(safe_to_string(res));
   }
@@ -247,13 +245,13 @@ DEFUN(I18N:SET-LOCALE, &optional category locale)
  it may be increased as a result of calling this function */
 # define GET_LOCALE_INFO_BUF_SIZE 256
 static int get_locale_info (int what, char**res, int *res_size, int errorp) {
-  int val;
   begin_system_call();
-  val = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT,what,*res,*res_size);
+  int val = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT,what,*res,*res_size);
   end_system_call();
-  if (val == 0)
+  if (val == 0) {
     if (errorp) OS_error();
-    else return 1;
+    return 1;
+  }
   if (val > *res_size) {
     *res = (char*)clisp_realloc(*res,val);
     if (*res == NULL) OS_error();
@@ -294,8 +292,9 @@ static object int_char_lconv(char val) {
 }
 DEFUN(I18N:LOCALE-CONV,)
 { /* call localeconv(3) */
-  struct lconv *lc;
-  begin_system_call(); lc = localeconv(); end_system_call();
+  begin_system_call();
+  struct lconv *lc = localeconv();
+  end_system_call();
   pushSTACK(asciz_to_string(lc->decimal_point,GLO(misc_encoding)));
   pushSTACK(asciz_to_string(lc->thousands_sep,GLO(misc_encoding)));
   thousands_sep_to_STACK(lc->grouping);
@@ -348,20 +347,23 @@ DEFUN(I18N:LOCALE-CONV,)
 }
 #elif defined(WIN32_NATIVE)
 static int my_atoi (char *res) {
-  int val;
-  begin_system_call(); val = atoi(res); end_system_call();
+  begin_system_call();
+  int val = atoi(res);
+  end_system_call();
   return val;
 }
 static void thousands_sep_to_STACK (int what, char** gres, int* res_size) {
   /* "1;2;3" ==> #(1 2 3) */
-  int start = 0, end = 0, count = 0, limit;
-  char *res;
   get_locale_info(what,gres,res_size,1);
-  res = *gres; limit = *res_size;
-  while (res[end] && (end < limit)) {
-    while (res[end] && (res[end] != ';') && (end < limit)) end++;
+  char *res = *gres;
+  int limit = *res_size;
+  int start = 0;
+  int end = 0;
+  int count = 0;
+  while ((end < limit) && res[end]) {
+    while ((end < limit) && res[end] != '\0' && (res[end] != ';')) end++;
     pushSTACK(sfixnum(my_atoi(res+start))); count++;
-    if (!res[end]) break;
+    if (!((end < limit) && res[end] != '\0')) break;
     start = ++end;
   }
   value1 = vectorof(count); pushSTACK(value1);
@@ -468,8 +470,10 @@ DEFCHECKER(check_nl_item,CODESET                                        \
            LOCALE_STIME LOCALE_STIMEFORMAT LOCALE_SYEARMONTH)
 #if defined(WIN32_NATIVE)
 # define get_lang_info(what,errorp)                                     \
-  if (get_locale_info(what,&res,&res_size,errorp)) funcall(`OS::ERRNO`,0); \
-  else VALUES1(asciz_to_string(res,GLO(misc_encoding)))
+  if (get_locale_info(what,&res,&res_size,errorp))                      \
+    funcall(`OS::ERRNO`,0);                                             \
+  else                                                                  \
+    VALUES1(asciz_to_string(res,GLO(misc_encoding)))
 # define DECLARE_RES  int res_size=GET_LOCALE_INFO_BUF_SIZE; char *res=(char*)clisp_malloc(res_size)
 # define FINISH_RES   begin_system_call(); free(res); end_system_call()
 #else

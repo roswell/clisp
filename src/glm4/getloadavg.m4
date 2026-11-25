@@ -1,13 +1,13 @@
+# getloadavg.m4
+# serial 14
+dnl Copyright (C) 1992-1996, 1999-2000, 2002-2003, 2006, 2008-2026 Free
+dnl Software Foundation, Inc.
+dnl This file is free software; the Free Software Foundation
+dnl gives unlimited permission to copy and/or distribute it,
+dnl with or without modifications, as long as this notice is preserved.
+dnl This file is offered as-is, without any warranty.
+
 # Check for getloadavg.
-
-# Copyright (C) 1992-1996, 1999-2000, 2002-2003, 2006, 2008-2021 Free Software
-# Foundation, Inc.
-
-# This file is free software; the Free Software Foundation
-# gives unlimited permission to copy and/or distribute it,
-# with or without modifications, as long as this notice is preserved.
-
-#serial 10
 
 # Autoconf defines AC_FUNC_GETLOADAVG, but that is obsolescent.
 # New applications should use gl_GETLOADAVG instead.
@@ -20,13 +20,18 @@ AC_DEFUN([gl_GETLOADAVG],
 # Persuade glibc <stdlib.h> to declare getloadavg().
 AC_REQUIRE([AC_USE_SYSTEM_EXTENSIONS])
 
-gl_save_LIBS=$LIBS
+gl_saved_LIBS=$LIBS
 
 # getloadavg is present in libc on glibc >= 2.2, Mac OS X, FreeBSD >= 2.0,
 # NetBSD >= 0.9, OpenBSD >= 2.0, Solaris >= 7.
 HAVE_GETLOADAVG=1
-AC_CHECK_FUNC([getloadavg], [],
-  [gl_func_getloadavg_done=no
+gl_CHECK_FUNCS_ANDROID([getloadavg], [[#include <stdlib.h>]])
+if test $ac_cv_func_getloadavg != yes; then
+   case "$gl_cv_onwards_func_getloadavg" in
+     future*) REPLACE_GETLOADAVG=1 ;;
+   esac
+
+   gl_func_getloadavg_done=no
 
    # Some systems with -lutil have (and need) -lkvm as well, some do not.
    # On Solaris, -lkvm requires nlist from -lelf, so check that first
@@ -73,14 +78,15 @@ AC_CHECK_FUNC([getloadavg], [],
           AC_DEFINE([DGUX], [1], [Define to 1 for DGUX with <sys/dg_sys_info.h>.])
           AC_CHECK_LIB([dgc], [dg_sys_info])])
      fi
-   fi])
+   fi
+fi
 
-if test "x$gl_save_LIBS" = x; then
+if test "x$gl_saved_LIBS" = x; then
   GETLOADAVG_LIBS=$LIBS
 else
-  GETLOADAVG_LIBS=`echo "$LIBS" | sed "s!$gl_save_LIBS!!"`
+  GETLOADAVG_LIBS=`echo "$LIBS" | sed "s!$gl_saved_LIBS!!"`
 fi
-LIBS=$gl_save_LIBS
+LIBS=$gl_saved_LIBS
 
 AC_SUBST([GETLOADAVG_LIBS])dnl
 
@@ -118,8 +124,7 @@ if test $gl_func_getloadavg_done = no; then
 fi
 
 # We cannot check for <dwarf.h>, because Solaris 2 does not use dwarf (it
-# uses stabs), but it is still SVR4.  We cannot check for <elf.h> because
-# Irix 4.0.5F has the header but not the library.
+# uses stabs), but it is still SVR4.
 if test $gl_func_getloadavg_done = no && test "$ac_cv_lib_elf_elf_begin" = yes \
     && test "$ac_cv_lib_kvm_kvm_open" = yes; then
   gl_func_getloadavg_done=yes

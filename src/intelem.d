@@ -18,7 +18,7 @@
   #define get_max32_Dptr(count,ptr)  \
     ((count)==0 ? 0 : (uint32)((ptr)[0]))
   #define set_max32_Dptr(count,ptr,value)  \
-    do { if ((count) != 0) (ptr)[0] = (uintD)(value);} while(0)
+    do { if ((count) != 0) (ptr)[0] = (uintD)(value); } while(0)
 #endif
 #if (intDsize==16)
   /* #define get_32_Dptr(ptr)  (((uint32)((ptr)[0])<<16) | ((uint32)((ptr)[1]))) */
@@ -29,10 +29,14 @@
     ((count)==0 ? 0 :                   \
      (count)<=16 ? (uint32)((ptr)[0]) : highlow32_at(ptr))
   #define set_max32_Dptr(count,ptr,value)               \
-    do { if ((count) != 0) {                            \
-      if ((count)<=16) (ptr)[0] = (uintD)(value);       \
-      else set_highlow32_at(ptr,value);                 \
-    }} while(0)
+    do {                                                \
+      if ((count) != 0) {                               \
+        if ((count)<=16)                                \
+          (ptr)[0] = (uintD)(value);                    \
+        else                                            \
+          set_highlow32_at(ptr,value);                  \
+      }                                                 \
+    } while(0)
 #endif
 
 /* conversion routines digit-sequence-part <--> longword:
@@ -179,7 +183,8 @@ modexp uint32 I_to_UL (object obj)
                && ( ((i-1)*intDsize-1 >= 32)                             \
                     || (bn->data[0] >= (uintD)bitc(32-(i-1)*intDsize)))) \
             goto bad;                                                    \
-          else return get_udelta;                                        \
+          else                                                           \
+            return get_udelta;                                           \
         }
     IF_LENGTH(1, get_uint1D_Dptr(bn->data))
     IF_LENGTH(2, get_uint2D_Dptr(bn->data))
@@ -188,6 +193,7 @@ modexp uint32 I_to_UL (object obj)
     IF_LENGTH(5, get_uint4D_Dptr(&bn->data[1]))
     #undef IF_LENGTH
    }
+    FALLTHROUGH;
    default:
    bad: /* unsuitable object */
      pushSTACK(obj); /* TYPE-ERROR slot DATUM */
@@ -240,7 +246,8 @@ modexp sint32 I_to_L (object obj)
                && ( ((i-1)*intDsize >= 32)                               \
                     || (bn->data[0] >= (uintD)bitc(31-(i-1)*intDsize)))) \
             goto bad;                                                    \
-          else return get_udelta;                                        \
+          else                                                           \
+            return get_udelta;                                           \
         }
     IF_LENGTH(1, get_uint1D_Dptr(bn->data))
     IF_LENGTH(2, get_uint2D_Dptr(bn->data))
@@ -269,7 +276,8 @@ modexp sint32 I_to_L (object obj)
                && ( ((i-1)*intDsize >= 32)                                 \
                     || (bn->data[0] < (uintD)(-bitc(31-(i-1)*intDsize))))) \
             goto bad;                                                      \
-          else return get_udelta;                                          \
+          else                                                             \
+            return get_udelta;                                             \
         }
     IF_LENGTH(1, get_sint1D_Dptr(bn->data))
     IF_LENGTH(2, get_sint2D_Dptr(bn->data))
@@ -286,8 +294,6 @@ modexp sint32 I_to_L (object obj)
      error(type_error,GETTEXT("not a 32-bit integer: ~S"));
   }
 }
-
-#if defined(HAVE_LONG_LONG_INT)
 
 /* converts integer >=0 into unsigned quadword.
  I_to_UQ(obj)
@@ -319,7 +325,8 @@ modexp uint64 I_to_UQ (object obj)
                  && ( ((i-1)*intDsize-1 >= 64)                             \
                       || (bn->data[0] >= (uintD)bitc(64-(i-1)*intDsize)))) \
               goto bad;                                                    \
-            else return get_udelta;                                        \
+            else                                                           \
+              return get_udelta;                                           \
           }
      #if (intDsize==32)
       IF_LENGTH(1, (uint64)get_uint1D_Dptr(bn->data))
@@ -335,6 +342,7 @@ modexp uint64 I_to_UQ (object obj)
      #endif
       #undef IF_LENGTH
     }
+      FALLTHROUGH;
     default:
     bad: /* unsuitable object */
       pushSTACK(obj); /* TYPE-ERROR slot DATUM */
@@ -343,10 +351,6 @@ modexp uint64 I_to_UQ (object obj)
       error(type_error,GETTEXT("not a 64-bit integer: ~S"));
   }
 }
-
-#endif
-
-#if defined(HAVE_LONG_LONG_INT)
 
 /* converts integer into signed quadword.
  I_to_Q(obj)
@@ -384,7 +388,8 @@ modexp sint64 I_to_Q (object obj)
                  && ( ((i-1)*intDsize >= 64)                               \
                       || (bn->data[0] >= (uintD)bitc(63-(i-1)*intDsize)))) \
               goto bad;                                                    \
-            else return get_udelta;                                        \
+            else                                                           \
+              return get_udelta;                                           \
           }
      #if (intDsize==32)
       IF_LENGTH(1, (uint64)get_uint1D_Dptr(bn->data))
@@ -412,7 +417,8 @@ modexp sint64 I_to_Q (object obj)
                  && ( ((i-1)*intDsize >= 64)                                 \
                       || (bn->data[0] < (uintD)(-bitc(63-(i-1)*intDsize))))) \
               goto bad;                                                      \
-            else return get_udelta;                                          \
+            else                                                             \
+              return get_udelta;                                             \
           }
      #if (intDsize==32)
       IF_LENGTH(1, (sint64)get_sint1D_Dptr(bn->data))
@@ -435,8 +441,6 @@ modexp sint64 I_to_Q (object obj)
       error(type_error,GETTEXT("not a 64-bit integer: ~S"));
   }
 }
-
-#endif
 
 /* converts longword into fixnum.
  L_to_FN(value)
@@ -782,7 +786,6 @@ modexp maygc object UL2_to_I (uint32 value_hi, uint32 value_lo)
 }
 #endif
 
-#if defined(intQsize) || (intVsize>32)
 /* converts quadword into integer.
  Q_to_I(value)
  > value: value of the integer, a signed 64-bit-integer.
@@ -846,7 +849,6 @@ modexp maygc object Q_to_I (sint64 value)
   #undef FILL_2_DIGITS
   #undef FILL_1_DIGIT
 }
-#endif
 
 #if defined(intQsize) || (intVsize>32) || defined(WIDE_HARD) || (SIZEOF_OFF_T > 4) || (SIZEOF_INO_T > 4)
 /* converts unsigned quadword into integer >=0 .

@@ -1,9 +1,9 @@
 #! /bin/sh
 # ylwrap - wrapper for lex/yacc invocations.
 
-scriptversion=2018-03-07.03; # UTC
+scriptversion=2026-05-29.23; # UTC
 
-# Copyright (C) 1996-2020 Free Software Foundation, Inc.
+# Copyright (C) 1996-2026 Free Software Foundation, Inc.
 #
 # Written by Tom Tromey <tromey@cygnus.com>.
 #
@@ -66,10 +66,6 @@ case "$1" in
     echo "$0: No files given.  Try '$0 --help' for more information." 1>&2
     exit 1
     ;;
-  --basedir)
-    basedir=$2
-    shift 2
-    ;;
   -h|--h*)
     cat <<\EOF
 Usage: ylwrap [--help|--version] INPUT [OUTPUT DESIRED]... -- PROGRAM [ARGS]...
@@ -85,11 +81,13 @@ Wrapper for lex/yacc invocations, renaming files as desired.
 Any number of OUTPUT,DESIRED pairs may be used.
 
 Report bugs to <bug-automake@gnu.org>.
+GNU Automake home page: <https://www.gnu.org/software/automake/>.
+General help using GNU software: <https://www.gnu.org/gethelp/>.
 EOF
     exit $?
     ;;
   -v|--v*)
-    echo "ylwrap $scriptversion"
+    echo "ylwrap (GNU Automake) $scriptversion"
     exit $?
     ;;
 esac
@@ -98,7 +96,7 @@ esac
 # The input.
 input=$1
 shift
-# We'll later need for a correct munging of "#line" directives.
+# We'll later need this for a correct munging of "#line" directives.
 input_sub_rx=`get_dirname "$input" | quote_for_sed`
 case $input in
   [\\/]* | ?:[\\/]*)
@@ -161,15 +159,19 @@ case $prog in
   *[\\/]*) prog=`pwd`/$prog ;;
 esac
 
+origdirname=`pwd`
 dirname=ylwrap$$
-do_exit="cd '`pwd`' && rm -rf $dirname > /dev/null 2>&1;"' (exit $ret); exit $ret'
+cleanup () {
+  cd "$origdirname" && rm -rf $dirname > /dev/null 2>&1
+}
+do_exit='cleanup; (exit $ret); exit $ret'
 trap "ret=129; $do_exit" 1
 trap "ret=130; $do_exit" 2
 trap "ret=141; $do_exit" 13
 trap "ret=143; $do_exit" 15
 mkdir $dirname || exit 1
 
-cd $dirname
+cd $dirname || exit 1
 
 case $# in
   0) "$prog" "$input" ;;
@@ -194,7 +196,7 @@ if test $ret -eq 0; then
       # destination of the .y.c rule in the Makefile.  Divert the
       # output of all other files to a temporary file so we can
       # compare them to existing versions.
-      if test $from != $parser; then
+      if test "$from" != "$parser"; then
         realtarget=$target
         target=tmp-`printf '%s\n' "$target" | sed 's|.*[\\/]||g'`
       fi
@@ -239,9 +241,9 @@ exit $ret
 # Local Variables:
 # mode: shell-script
 # sh-indentation: 2
-# eval: (add-hook 'before-save-hook 'time-stamp)
+# eval: (add-hook 'before-save-hook 'time-stamp nil t)
 # time-stamp-start: "scriptversion="
-# time-stamp-format: "%:y-%02m-%02d.%02H"
+# time-stamp-format: "%Y-%02m-%02d.%02H"
 # time-stamp-time-zone: "UTC0"
 # time-stamp-end: "; # UTC"
 # End:

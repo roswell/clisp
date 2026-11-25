@@ -171,7 +171,7 @@ local void UDS_to_digits (uintD* MSDptr, uintC len, uintD base, digits_t* erg)
     begin_arith_call();
     #define next_digit(d)  { *--erg_ptr = ascii(d<10 ? '0'+d : 'A'-10+d); }
     # normalisiere zu einer NUDS:
-    while (1) {
+    while (true) {
       if (len==0) { # 0 -> eine Ziffer '0'
         next_digit(0); goto done;
       }
@@ -180,7 +180,7 @@ local void UDS_to_digits (uintD* MSDptr, uintC len, uintD base, digits_t* erg)
       } else
         break;
     }
-    while (1) {
+    while (true) {
       # Noch die NUDS MSDptr/len/.. mit len>0 abzuarbeiten.
       # Single-Precision-Division durch b^k:
       var uintD rest = divu_loop_up(b_hoch_k,MSDptr,len);

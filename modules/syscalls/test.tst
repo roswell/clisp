@@ -8,11 +8,22 @@
 (os:hostent-p (show (os:resolve-host-ipaddr "localhost")))
 T
 
-(listp (show (os:resolve-host-ipaddr) :pretty t)) T
-(os:service-p (show (os:service "smtp"))) T
-(os:service-p (show (os:service 25))) T
-(> (length (show (os:service) :pretty t)) (length (os:service nil "tcp"))) T
-(equalp (os:service "www" "tcp") (os:service "http" "tcp")) T
+(listp (show (os:resolve-host-ipaddr) :pretty t))
+T
+(os:service-p (show (os:service "smtp")))
+T
+(os:service-p (show (os:service 25)))
+T
+(> (length (show (os:service) :pretty t)) (length (os:service nil "tcp")))
+T
+(let ((se1 (show (os:service "www" "tcp")))
+      (se2 (show (os:service "http" "tcp"))))
+  (if (equal (ext:operating-system-type) "AIX")
+    ; AIX /etc/services really defines the services www and http on different
+    ; lines, thus they are not considered aliases.
+    (equal (service-port se1) (service-port se2))
+    (equalp se1 se2)))
+T
 
 ;; same as "%F %T" on GNU, but more portable
 (let* ((fmt "%Y-%m-%d %H:%M:%S") (string (show (os:string-time fmt))))
@@ -32,13 +43,12 @@ WITH-C-TIME
 
 ;; for this to work, datum must specify _all_ fields in struct tm
 (defun check-time-date (fmt datum)
-  (and (fboundp 'os:getdate)
-       (with-C-time
-           (let ((gd (os:getdate datum))
-                 (st (os:string-time fmt datum)))
-             (show (list fmt datum gd (os:string-time "%Y-%m-%d %a %H:%M:%S" gd)))
-             (unless (= gd st)
-               (show (list st (os:string-time "%Y-%m-%d %a %H:%M:%S" st))))))))
+  (with-C-time
+      (let ((gd (os:getdate datum))
+            (st (os:string-time fmt datum)))
+        (show (list fmt datum gd (os:string-time "%Y-%m-%d %a %H:%M:%S" gd)))
+        (unless (= gd st)
+          (show (list st (os:string-time "%Y-%m-%d %a %H:%M:%S" st)))))))
 CHECK-TIME-DATE
 
 (check-time-date "%m/%d/%y %I %p" "10/1/87 4 PM") NIL
@@ -47,10 +57,9 @@ CHECK-TIME-DATE
 
 (defun check-time-date (fmt datum)
   (declare (ignore fmt))
-  (and (fboundp 'os:getdate)
-       (null (show (with-C-time
-                       (os:string-time "%Y-%m-%d %a %H:%M:%S"
-                                       (os:getdate datum)))))))
+  (null (show (with-C-time
+                  (os:string-time "%Y-%m-%d %a %H:%M:%S"
+                                  (os:getdate datum))))))
 CHECK-TIME-DATE
 
 (check-time-date "%m/%d/%y" "11/27/86") NIL
@@ -90,16 +99,22 @@ CHECK-TIME-DATE
   T)
 T
 
-#+unix (find :rdwr (show (os:stream-options *tmp1* :fl))) #+unix :RDWR
+#+unix (find :rdwr (show (os:stream-options *tmp1* :fl)))
+#+unix :RDWR
 #+unix (ext:appease-cerrors
         (with-open-file (s *tmp1*)
           (find :rdonly (show (os:stream-options s :fl)))))
 #+unix :RDONLY
-#+unix (os:stream-options *tmp1* :fd) NIL
-#+unix (os:stream-options *tmp1* :fd '(:cloexec)) NIL
-#+unix (os:stream-options *tmp1* :fd) #+unix (:cloexec)
-#+unix (os:stream-options *tmp1* :fd nil) NIL
-#+unix (os:stream-options *tmp1* :fd) NIL
+#+unix (os:stream-options *tmp1* :fd)
+#+unix NIL
+#+unix (os:stream-options *tmp1* :fd '(:cloexec))
+#+unix NIL
+#+unix (os:stream-options *tmp1* :fd)
+#+unix (:CLOEXEC)
+#+unix (os:stream-options *tmp1* :fd nil)
+#+unix NIL
+#+unix (os:stream-options *tmp1* :fd)
+#+unix NIL
 
 ;; may fail with ENOLCK or EOPNOTSUPP - in which case we do not test locking
 (handler-case (os:stream-lock *tmp1* t)
@@ -117,7 +132,8 @@ T
 ;; if FLOAT= fails, just replace it with FLOAT~
 (defun float= (x y) (= y (/ (+ x y) 2))) FLOAT=
 (defun float~ (x y)
-  (< (abs (/ (- x y) (+ x y) 1/2)) #.(sqrt double-float-epsilon)))
+  (< (without-floating-point-underflow (abs (/ (- x y) (+ x y) 1/2)))
+     #.(sqrt double-float-epsilon)))
 FLOAT~
 
 (float= (os:erf -6)     -1.0d0)  T
@@ -137,36 +153,35 @@ FLOAT~
 (float= (os:erfc -6)    2.0d0)  T
 (float= (os:erfc -5)    1.9999999999984626d0)  T
 (float= (os:erfc -4)    1.999999984582742d0)  T
-(float= (os:erfc -3)    1.9999779095030015d0)  T
+(float~ (os:erfc -3)    1.9999779095030015d0)  T ; mingw
 (float= (os:erfc -2)    1.9953222650189528d0)  T
 (float= (os:erfc -1)    1.842700792949715d0)  T
 (float= (os:erfc 0)     1.0d0)  T
 (float~ (os:erfc 1)     0.15729920705028513d0)  T ; MacOSX 10.4.11
 (float= (os:erfc 2)     0.004677734981047265d0)  T
-(float= (os:erfc 3)     2.209049699858544d-5)  T
-(float= (os:erfc 4)     1.541725790028002d-8)  T
-(float= (os:erfc 5)     1.5374597944280351d-12)  T
+(float~ (os:erfc 3)     2.209049699858544d-5)  T ; mingw
+(float~ (os:erfc 4)     1.541725790028002d-8)  T ; mingw
+(float~ (os:erfc 5)     1.5374597944280351d-12)  T ; Solaris 11.4
 (float~ (os:erfc 6)     2.1519736712498916d-17)  T ; MacOSX 10.4.11
 (float~ (os:erfc 7)     4.183825607779414d-23)  T  ; MacOSX 10.4.11
-(float= (os:erfc 8)     1.1224297172982928d-29)  T
+(float~ (os:erfc 8)     1.1224297172982928d-29)  T ; AIX 7.3
 (float= (os:erfc 9)     4.13703174651381d-37)  T
 (float= (os:erfc 10)    2.088487583762545d-45)  T
 (float~ (os:erfc 11)    1.4408661379436945d-54)  T ; Cygwin 2.9.0
-(float= (os:erfc 12)    1.3562611692059042d-64)  T
+(float~ (os:erfc 12)    1.3562611692059042d-64)  T ; mingw
 (float= (os:erfc 13)    1.7395573154667246d-75)  T
-(float= (os:erfc 14)    3.037229847750312d-87)  T
+(float~ (os:erfc 14)    3.037229847750312d-87)  T ; mingw
 (float~ (os:erfc 15)    7.212994172451206d-100)  T ; MacOSX 10.4.11
 (float= (os:erfc 16)    2.3284857515715308d-113)  T
 (float= (os:erfc 17)    1.0212280150942608d-127)  T
 (float~ (os:erfc 18)    6.082369231816399d-143)  T ; MacOSX 10.4.11
-(float= (os:erfc 19)    4.917722839256475d-159)  T
+(float~ (os:erfc 19)    4.917722839256475d-159)  T ; AIX 7.3
 (float= (os:erfc 20)    5.3958656116079005d-176)  T
-(float= (os:erfc 21)    8.032453871022456d-194)  T
-(float= (os:erfc 22)    1.6219058609334726d-212)  T
+(float~ (os:erfc 21)    8.032453871022456d-194)  T ; mingw
+(float~ (os:erfc 22)    1.6219058609334726d-212)  T ; AIX 7.3
 (float= (os:erfc 23)    4.441265948088057d-232)  T
-(float= (os:erfc 24)    1.6489825831519335d-252)  T
-;; NetBSD http://article..gmane.org/gmane.lisp.clisp.general/12716
-;; https://sourceforge.net/p/clisp/mailman/message/21248044/
+(float~ (os:erfc 24)    1.6489825831519335d-252)  T ; mingw
+;; NetBSD https://sourceforge.net/p/clisp/mailman/message/21248044/
 (float~ (os:erfc 25)    8.300172571196522d-274)  T
 (float~ (os:erfc 26)    5.663192408856143d-296)  T
 (float= (os:erfc 30)    0.0d0)  T
@@ -192,16 +207,24 @@ FLOAT~
 (float~ (os:y1 10.0)    0.24901542420695383d0)    T
 (float~ (os:yN 2 1.0)   -1.6506826068162543d0)    T
 (float~ (os:yN 2 10.0)  -0.005868082442208629d0)  T
-;; neither signgam not lgamma_r are defined on win32
-(multiple-value-list (os:lgamma 2))   (0.0d0 #+win32 nil #-win32 1)
+(os:lgamma 2)           0.0d0
+(mapcar (lambda (n)
+          (let ((lg (os:lgamma n)))
+            (list n (float (/ (! (1- n)) (exp lg)) 0f0))))
+        '(3 5 10 15 30 50 100))
+((3 1f0) (5 1f0) (10 1f0) (15 1f0) (30 1f0) (50 1f0) (100 1f0))
+;; neither signgam not lgamma_r are defined on win32/msvc
+#-win32
+(multiple-value-list (os:lgamma 2))
+#-win32
+(0.0d0 1)
+#-win32
 (mapcar (lambda (n)
           (multiple-value-bind (lg s) (os:lgamma n)
             (list n (float (/ (! (1- n)) (exp lg)) 0f0) s)))
         '(3 5 10 15 30 50 100))
-((3 1f0 #+win32 nil #-win32 1) (5 1f0 #+win32 nil #-win32 1)
- (10 1f0 #+win32 nil #-win32 1) (15 1f0 #+win32 nil #-win32 1)
- (30 1f0 #+win32 nil #-win32 1) (50 1f0 #+win32 nil #-win32 1)
- (100 1f0 #+win32 nil #-win32 1))
+#-win32
+((3 1f0 1) (5 1f0 1) (10 1f0 1) (15 1f0 1) (30 1f0 1) (50 1f0 1) (100 1f0 1))
 
 (loop :for n :upfrom 3 :for lg = (os:lgamma n)
   :unless (= 1 (/ (log (! (1- n))) lg)) :return n)
@@ -215,7 +238,6 @@ FLOAT~
   :unless (and (floatp lg) (floatp l!) (= 1 (float (/ l! lg) 0f0)))
   ;; round off at single precision: different gamma implementations have
   ;; very different levels of accuracy
-  ;; http://thread.gmane.org/gmane.lisp.clisp.devel/19047
   ;; https://sourceforge.net/p/clisp/mailman/message/20367574/
   :return (list n (float lg 0f0) l!))
 (172 711.7147f0 FLOATING-POINT-OVERFLOW)
@@ -239,63 +261,87 @@ NIL
   :return (list n tg))
 (172 FLOATING-POINT-OVERFLOW) ; ... but it IS accurate at single precision!
 
-#+unix (= (show (os:process-id)) (show (os:getppid))) #+unix NIL
-#+unix (let ((id (show (os:uid)))) (= id (setf (os:uid) id))) T
-#+unix (let ((id (show (os:gid)))) (= id (setf (os:gid) id))) T
-#+unix (let ((id (show (os:euid)))) (= id (setf (os:euid) id))) T
-#+unix (let ((id (show (os:egid)))) (= id (setf (os:egid) id))) T
+#+unix (= (show (os:process-id)) (show (os:getppid)))
+#+unix NIL
+#+unix (let ((id (show (os:uid)))) (= id (setf (os:uid) id)))
+#+unix T
+#+unix (let ((id (show (os:gid)))) (= id (setf (os:gid) id)))
+#+unix T
+#+unix (let ((id (show (os:euid)))) (= id (setf (os:euid) id)))
+#+unix T
+#+unix (let ((id (show (os:egid)))) (= id (setf (os:egid) id)))
+#+unix T
 #+unix (let* ((pid (os:process-id))
               (gid (show (os:pgid pid))))
          (check-os-error (= gid (setf (os:pgid pid) gid))
-                         (:eperm 1))) #+unix T
-#+unix (= (os:uid) (os:euid)) T
-#+unix (= (os:gid) (os:egid)) T
-#+unix (multiple-value-list (os:setreuid (os:uid) (os:euid))) NIL
-#+unix (multiple-value-list (os:setregid (os:gid) (os:egid))) NIL
-#+unix (multiple-value-list (os:setreuid -1 -1)) NIL
-#+unix (multiple-value-list (os:setregid -1 -1)) NIL
+                         (:eperm 1)))
+#+unix T
+#+unix (= (os:uid) (os:euid))
+#+unix T
+#+unix (= (os:gid) (os:egid))
+#+unix T
+#+unix (multiple-value-list (os:setreuid (os:uid) (os:euid)))
+#+unix NIL
+#+unix (multiple-value-list (os:setregid (os:gid) (os:egid)))
+#+unix NIL
+#+unix (multiple-value-list (os:setreuid -1 -1))
+#+unix NIL
+#+unix (multiple-value-list (os:setregid -1 -1))
+#+unix NIL
 #+unix (listp (show (if (fboundp 'os:groups) (os:groups)
-                        '(no os:groups)) :pretty t)) T
+                        '(no os:groups)) :pretty t))
+#+unix T
 #+unix (if (and (fboundp 'os:groups) (fboundp 'os::%setgroups))
            (let ((g (os:groups))) ; setgroups may fail with EPERM
-	     (eq g (or (ignore-errors (setf (os:groups) g)) g)))
-           t) T
+             (eq g (or (ignore-errors (setf (os:groups) g)) g)))
+           t)
+#+unix T
 
 #+unix (listp (show (if (fboundp 'os:sysconf)
-                        (os:sysconf) '(no os:sysconf)) :pretty t)) T
+                        (os:sysconf) '(no os:sysconf)) :pretty t))
+#+unix T
 #+unix (listp (show (if (fboundp 'os:confstr)
-                        (os:confstr) '(no os:confstr)) :pretty t)) T
+                        (os:confstr) '(no os:confstr)) :pretty t))
+#+unix T
 
 #+unix (listp (show (if (fboundp 'os:pathconf)
-                        (os:pathconf "/") '(no os:pathconf)) :pretty t)) T
+                        (os:pathconf "/") '(no os:pathconf)) :pretty t))
+#+unix T
 #+unix (listp (show (if (fboundp 'os:pathconf)
-                        (os:pathconf *tmp1*) '(no os:pathconf)) :pretty t)) T
+                        (os:pathconf *tmp1*) '(no os:pathconf)) :pretty t))
+#+unix T
 
 #+unix
 (listp (show (if (fboundp 'os:usage) (os:usage) '(no os:usage)) :pretty t))
-T
+#+unix T
 #+unix
 (listp (show (if (fboundp 'os:rlimit) (os:rlimit) '(no os:rlimit)) :pretty t))
-T
+#+unix T
 
 (os:uname-p (show (os:uname) :pretty t)) T
 
-#+unix (listp (show (os:user-info) :pretty t)) T
+#+unix (listp (show (os:user-info) :pretty t))
+#+unix T
 ;; (os:user-info :default) calls getlogin which may fail in cron
 #+unix (os:user-info-p
         (handler-case (show (os:user-info :default) :pretty t)
           (:error (c) (princ-error c)
-                  (use-value (os:make-user-info "" "" 0 0 "" "" ""))))) T
+                  (use-value (os:make-user-info "" "" 0 0 "" "" "")))))
+#+unix T
 ;; some SF CF hosts (solaris, openbsd) are misconfigured:
 ;; user GID is 100, but there is no group with GID 100
 #+unix (os:group-info-p
         (show
          (handler-bind ((error (lambda (c) (princ-error c) (use-value 0))))
            (os:group-info (os:user-info-gid (os:user-info (os:uid)))))
-         :pretty t)) T
-#+unix (listp (show (os:group-info) :pretty t)) T
-#+unix (= (os:uid) (os:user-info-uid (os:user-info (os:uid)))) T
-#+unix (= (os:gid) (os:user-info-gid (os:user-info (os:uid)))) T
+         :pretty t))
+#+unix T
+#+unix (listp (show (os:group-info) :pretty t))
+#+unix T
+#+unix (= (os:uid) (os:user-info-uid (os:user-info (os:uid))))
+#+unix T
+#+unix (= (os:gid) (os:user-info-gid (os:user-info (os:uid))))
+#+unix T
 
 (and (fboundp 'os:user-shells)
      (notevery #'stringp (show (os:user-shells)))) NIL
@@ -303,15 +349,17 @@ T
 (os:file-stat-p (show (os:file-stat *tmp1*) :pretty t)) T
 (os:file-stat-p (show (os:file-stat (pathname *tmp1*)) :pretty t)) T
 
-#-:win32 (= (posix:file-stat-ino (os:file-stat *tmp1*))
-            (posix:file-stat-ino (os:file-stat *tmp2*)))
-#-:win32 NIL
+#-win32 (= (posix:file-stat-ino (os:file-stat *tmp1*))
+           (posix:file-stat-ino (os:file-stat *tmp2*)))
+#-win32 NIL
 
-#+:unix
+#+unix
 (or (null (ext:probe-directory "/proc/"))
     (null (probe-file "/proc/kcore"))
+    ;; On Linux, in a Docker container, /proc/kcore may have size 0.
+    (zerop (os:euid))
     (plusp (posix:file-stat-size (show (posix:file-stat "/proc/kcore")))))
-#+:unix T
+#+unix T
 
 (os:convert-mode #o0666)
 (:RUSR :WUSR :RGRP :WGRP :ROTH :WOTH)
@@ -323,7 +371,6 @@ T
      (not (os:stat-vfs-p (show (os:stat-vfs *tmp2*) :pretty t))))
 NIL
 
-;; http://article.gmane.org/gmane.lisp.clisp.devel/19074
 ;; https://sourceforge.net/p/clisp/mailman/message/20367601/
 ;; (FILE-OWNER *TMP1*) ==> "BUILTIN\\Administrators"
 ;; - local group name, which actually owns the file and includes
@@ -334,7 +381,6 @@ NIL
 (string= (show #+win32 (ext:string-concat (ext:getenv "USERDOMAIN") "\\"
                                           (ext:getenv "USERNAME"))
                ;; $USER is void when running as root on MacOSX 10.4.11
-               ;; http://article.gmane.org/gmane.lisp.clisp.devel/20248
                ;; https://sourceforge.net/p/clisp/mailman/message/22834980/
                #+unix (or (ext:getenv "USER")
                           (posix:user-info-login-id
@@ -410,14 +456,12 @@ T
                                                :defaults *lib-directory*)))
       (liv (show (lisp-implementation-version))))
   (show filever :pretty t)
-  (and (string= (format nil "~D.~D~[~;+~]~[~;+~]"
-                        (os:file-version-major filever)
-                        (os:file-version-minor filever)
-                        (os:file-version-build filever)
-                        (os:file-version-revision filever))
-                liv :end2 (position #\Space liv))
-       (string= (os:file-version-product-version filever)
-                liv :end2 (length (os:file-version-product-version filever)))))
+  (and (let ((short-version (format nil "~D.~D"
+                                    (os:file-version-major filever)
+                                    (os:file-version-minor filever))))
+         (string= short-version liv :end2 (length short-version)))
+       (let ((long-version (os:file-version-product-version filever)))
+         (string= long-version liv :end2 (length long-version)))))
 #+win32 T
 
 #+(or win32 cygwin) (stringp (os:get-user-sid))
@@ -448,9 +492,9 @@ T
                 100)
                (t 1)))))
   (defun flush-clisp (stream)
-    (when #-:win32 (socket:socket-status (cons stream :input) timeout)
+    (when #-win32 (socket:socket-status (cons stream :input) timeout)
           ;; select on win32 does not work with pipes
-          #+:win32 (progn (sleep 1) (listen stream))
+          #+win32 (progn (sleep 1) (listen stream))
       ;; read from the clisp stream until the next prompt
       (setf (fill-pointer buf) 0)
       (loop :with pos-NL = 0 :for ch = (read-char stream)
@@ -552,7 +596,8 @@ T
     (delete-file file)))
 (T T)
 
-(posix:set-file-stat "this file does not exist" :uid (1+ (posix:uid))) ERROR
+#+unix (posix:set-file-stat "this file does not exist" :uid (1+ (posix:uid)))
+#+unix ERROR
 
 (let ((s (floor (os:file-size *tmp1*) 2)))
   (list (= s (setf (os:file-size *tmp1*) s))
@@ -598,30 +643,37 @@ T
 
 ;; unknown errnos are reported differently on different platforms.
 ;; linux: "unknown error 47"
+;; hurd: "Unknown error (os/?) 34742"
+;;       or "(system kern) error with unknown subsystem"
 ;; cygwin: "error 47"
 ;; win32: some localized abomination
 (loop :with all = (os:errno t)
-  :for e :from 0 :to (loop :for p :in all :for e = (car p) :maximize e)
+  :for e :from (loop :for p :in all :for e = (car p) :minimize e)
+         :to   (loop :for p :in all :for e = (car p) :maximize e)
   :do (print (list e (os:errno e) (os:strerror)))
   :finally (os:errno nil))
 ()
 
-#+(or :win32 :cygwin)
+#+(or win32 cygwin)
 (loop :with all = (os:last-error t)
   :for e :from 0 :to (loop :for p :in all :for e = (car p)
                        :when (< e #.(ash 1 16)) :maximize e)
   :do (print (list e (os:last-error e) (os:format-message)))
   :finally (os:last-error nil))
-#+(or :win32 :cygwin) ()
+#+(or win32 cygwin) ()
 
 (and (fboundp 'os:hostid) (not (integerp (show (os:hostid))))) NIL
 #+unix (and (fboundp 'os::%sethostid)
             (zerop (os:euid))
+            ;; On OpenBSD, this would fail with error EINVAL.
+            (not (equal (ext:operating-system-type) "OpenBSD"))
             (not (= (setf (os:hostid) (os:hostid)) (os:hostid))))
 #+unix NIL
 (and (fboundp 'os:domainname) (not (stringp (show (os:domainname))))) NIL
 #+unix (and (fboundp 'os::%setdomainname)
             (zerop (os:euid))
+            ;; On Linux, this would fail with error EPERM.
+            (not (equal (ext:operating-system-type) "Linux"))
             (not (string= (setf (os:domainname) (os:domainname))
                           (os:domainname))))
 #+unix NIL
@@ -681,15 +733,18 @@ RUN-SLEEP
 
 #+unix (posix:wait :pid (run-sleep 1) :nohang t) #+unix 0
 
-#+(and :unix (not :cygwin))
+#+(and unix (not cygwin))
 (let ((pid (run-sleep 1)))
   (posix:kill pid :SIGTERM)
   (multiple-value-bind (pid1 kind status rusage) (posix:wait :pid pid :usage t)
     (assert (= pid pid1) () "pid: ~S<>~S" pid pid1)
+    ;; Workaround for macOS >= 15, which returns :SIGKILL or :SIGTRAP.
+    #+macos (when (or (eq status ':SIGKILL) (eq status ':SIGTRAP))
+              (setq status ':SIGTERM))
     (list kind status (posix:usage-p (show rusage)))))
-#+(and :unix (not :cygwin)) (:SIGNALED :SIGTERM T)
+#+(and unix (not cygwin)) (:SIGNALED :SIGTERM T)
 
-#+(and :unix (not :cygwin))
+#+(and unix (not cygwin))
 (let ((pid (run-sleep 1)))
   (posix:kill pid :SIGSTOP)
   (multiple-value-bind (pid1 kind status) (posix:wait :pid pid :untraced t)
@@ -701,7 +756,7 @@ RUN-SLEEP
     (assert (= pid pid1) () "pid: ~S<>~S" pid pid1)
     (assert (eq kind :CONTINUED) () "kind=~S <> :CONTINUED" kind)
     (assert (null status) () "status=~S is non-NIL" status)))
-#+(and :unix (not :cygwin)) NIL
+#+(and unix (not cygwin)) NIL
 
 (every #'sys::double-float-p
        (show (handler-case (multiple-value-list (os:loadavg))
@@ -775,12 +830,18 @@ RUN-SLEEP
   (unwind-protect
       (list
         (mapcar l (directory w))
+        ;; Make the directory d unreadable.
         (os:set-file-stat d :mode 0)
-        (handler-case (directory w)
-          (error (e) (princ-error e) (type-of e)))
-        ;; http://article.gmane.org/gmane.lisp.clisp.general:13778
+        (if (or (zerop (os:euid)) #+cygwin t)
+          'OS-FILE-ERROR
+          ;; If not root: Expect an OS error EACCES.
+          (handler-case (directory w)
+            (error (e) (princ-error e) (type-of e))))
         ;; https://sourceforge.net/p/clisp/mailman/message/27584189/
-        (directory w :if-does-not-exist :keep) ; cannot recurse but no error
+        (if (or (zerop (os:euid)) #+cygwin t)
+          nil
+          ;; If not root: Cannot recurse but no error.
+          (directory w :if-does-not-exist :keep))
         (os:set-file-stat d :mode :RWXU)
         (mapcar l (directory w))
         (posix:file-tree-walk d1

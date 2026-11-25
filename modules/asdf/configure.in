@@ -1,0 +1,16 @@
+dnl AUTOCONF configuration for ASDF
+
+AC_PREREQ([2.64])
+AC_INIT(asdf, 1.0, clisp-list)
+AC_CONFIG_SRCDIR(asdf.lisp)
+AC_CONFIG_HEADERS(config.h)  dnl not needed, but this simplifies Makefile.devel
+
+RSE_BOLD
+BOLD_MSG([ASDF (Common)])
+CL_MODULE_COMMON_CHECKS()
+
+BOLD_MSG([ASDF (Output)])
+AC_CONFIG_FILES(Makefile)
+AC_OUTPUT
+
+BOLD_MSG([ASDF (Done)])

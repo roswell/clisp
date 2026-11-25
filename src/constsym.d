@@ -1223,15 +1223,6 @@ LISPSYM(Kinitial_bindings,"INITIAL-BINDINGS",keyword)
 LISPSYM(Kcstack_size,"CSTACK-SIZE",keyword)
 LISPSYM(Kvstack_size,"VSTACK-SIZE",keyword)
 LISPSYM(Krecursive_p,"RECURSIVE-P",keyword)
-
-#ifndef SOCKET_STREAMS
-  #error MULTITHREAD requires SOCKET_STREAMS
-/* actually two things are needed: :TIMEOUT and sec_usec() function from
-   streams.d. The former can be easily defined. The latter - maybe it is
-   good to move it out of SOCKET_STREAMS?
-   Anyway SOCKET_STREAMS are quite important and probably will/are always
-   available. */
-#endif
 LISPSYM(mutex,"MUTEX",mt) /* type for MUTEX */
 LISPSYM(mutexp,"MUTEXP",mt)
 LISPSYM(make_mutex,"MAKE-MUTEX",mt)

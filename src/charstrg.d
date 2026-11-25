@@ -1,11 +1,17 @@
 /*
  * Functions for characters and strings for CLISP
- * Bruno Haible 1990-2008, 2016-2017
+ * Bruno Haible 1990-2008, 2016-2017, 2025-2026
  * Sam Steingold 1998-2009, 2012
  * German comments translated into English: Stefan Kain 2002-09-20
  */
 
 #include "lispbibl.c"
+
+/* The optimized 'switch' statements in this compilation unit are intentional.
+   Silence the GCC warnings. */
+#if (defined __GNUC__ && __GNUC__ >= 7) || (defined __clang__ && __clang_major__ >= 4)
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 
 /* character conversion tables: */
 #if defined(ENABLE_UNICODE)
@@ -1389,15 +1395,18 @@ global object name_char (object string) {
         var uintL code = 0;
         var uintL index = 1;
         var const chart* tmpcharptr = charptr+1;
-        while (1) {
+        while (true) {
           var cint c = as_cint(*tmpcharptr++); /* next character */
           /* should be a hexadecimal digit: */
           if (c > 'f') break;
           if (c >= 'a') { c -= 'a'-'A'; }
           if (c < '0') break;
-          if (c <= '9') { c = c - '0'; }
-          else if ((c >= 'A') && (c <= 'F')) { c = c - 'A' + 10; }
-          else break;
+          if (c <= '9') {
+            c = c - '0';
+          } else if ((c >= 'A') && (c <= 'F')) {
+            c = c - 'A' + 10;
+          } else
+            break;
           code = 16*code + c; /* put in the digit */
           /* code should be < char_code_limit: */
           if (code >= char_code_limit) break; /* should not occur */
@@ -1418,7 +1427,7 @@ global object name_char (object string) {
            Also convert to upper case on the fly. */
         var char buf[UNINAME_MAX];
         var char* ptr = buf;
-        while (1) {
+        while (true) {
           var cint c = as_cint(*charptr++);
           if (!(c >= ' ' && c <= '~'))
             break;
@@ -1623,9 +1632,12 @@ LISPFUN(digit_char_p,seclass_foldable,1,1,norest,nokey,0,NIL)
   /* now: $00 <= ch <= $60. */
   if (c < '0') goto no;
   /* convert $30 <= c <= $60 into number value: */
-  if (c <= '9') { c = c - '0'; }
-  else if (c >= 'A') { c = c - 'A' + 10; }
-  else goto no;
+  if (c <= '9') {
+    c = c - '0';
+  } else if (c >= 'A') {
+    c = c - 'A' + 10;
+  } else
+    goto no;
  #endif
   /* now, c is the number value of the digit, >=0, <=41. */
   if (c >= radix) goto no; /* only valid, if 0 <= c < radix. */
@@ -2569,7 +2581,7 @@ local signean string_comp (stringarg* arg1, const stringarg* arg2) {
     if (len2==0) goto A_string2_end;
     SstringDispatch(arg2->string,X2, {
       var const cintX2* charptr2 = &((SstringX2)TheVarobject(arg2->string))->data[arg2->offset+arg2->index];
-      while (1) {
+      while (true) {
         /* compare next characters: */
         if (!chareq(as_chart(*charptr1++),as_chart(*charptr2++))) break;
         /* decrease both counters: */
@@ -2602,7 +2614,7 @@ local signean string_comp (stringarg* arg1, const stringarg* arg2) {
     if (len2==0) goto B_string2_end;
     SstringDispatch(arg2->string,X2, {
       var const cintX2* charptr2 = &((SstringX2)TheVarobject(arg2->string))->data[arg2->offset+arg2->index];
-      while (1) {
+      while (true) {
         /* compare next characters: */
         if (!chareq(as_chart(*charptr1++),as_chart(*charptr2++))) break;
         /* decrease both counters: */
@@ -2635,7 +2647,7 @@ local signean string_comp (stringarg* arg1, const stringarg* arg2) {
     if (len2==0) goto C_string2_end;
     SstringDispatch(arg2->string,X2, {
       var const cintX2* charptr2 = &((SstringX2)TheVarobject(arg2->string))->data[arg2->offset+arg2->index];
-      while (1) {
+      while (true) {
         /* compare next characters: */
         if (!chareq(as_chart(*charptr1++),as_chart(*charptr2++))) break;
         /* decrease both counters: */
@@ -2871,7 +2883,7 @@ local signean string_comp_ci (stringarg* arg1, const stringarg* arg2)
     if (len2==0) goto A_string2_end;
     SstringDispatch(arg2->string,X2, {
       var const cintX2* charptr2 = &((SstringX2)TheVarobject(arg2->string))->data[arg2->offset+arg2->index];
-      while (1) {
+      while (true) {
         /* compare next characters: */
         if (!chareq(ch1 = up_case(as_chart(*charptr1++)), ch2 = up_case(as_chart(*charptr2++)))) break;
         /* decrease both counters: */
@@ -2906,7 +2918,7 @@ local signean string_comp_ci (stringarg* arg1, const stringarg* arg2)
     if (len2==0) goto B_string2_end;
     SstringDispatch(arg2->string,X2, {
       var const cintX2* charptr2 = &((SstringX2)TheVarobject(arg2->string))->data[arg2->offset+arg2->index];
-      while (1) {
+      while (true) {
         /* compare next characters: */
         if (!chareq(ch1 = up_case(as_chart(*charptr1++)), ch2 = up_case(as_chart(*charptr2++)))) break;
         /* decrease both counters: */
@@ -2941,7 +2953,7 @@ local signean string_comp_ci (stringarg* arg1, const stringarg* arg2)
     if (len2==0) goto C_string2_end;
     SstringDispatch(arg2->string,X2, {
       var const cintX2* charptr2 = &((SstringX2)TheVarobject(arg2->string))->data[arg2->offset+arg2->index];
-      while (1) {
+      while (true) {
         /* compare next characters: */
         if (!chareq(ch1 = up_case(as_chart(*charptr1++)), ch2 = up_case(as_chart(*charptr2++)))) break;
         /* decrease both counters: */
@@ -3457,7 +3469,7 @@ global maygc void nstring_capitalize (object dv, uintL offset, uintL len) {
       /* Found the start of a word. */
      wordstart_8:
       dv = sstring_store(dv,offset,up_case(ch));
-      while (1) {
+      while (true) {
         offset++;
         if (sstring_reallocatedp(TheSstring(dv))) { /* has it been reallocated? */
           dv = TheSistring(dv)->data;
@@ -3485,7 +3497,7 @@ global maygc void nstring_capitalize (object dv, uintL offset, uintL len) {
       /* Found the start of a word. */
      wordstart_16:
       dv = sstring_store(dv,offset,up_case(ch));
-      while (1) {
+      while (true) {
         offset++;
         if (sstring_reallocatedp(TheSstring(dv))) { /* has it been reallocated? */
           dv = TheSistring(dv)->data;
@@ -3513,7 +3525,7 @@ global maygc void nstring_capitalize (object dv, uintL offset, uintL len) {
       /* Found the start of a word. */
      wordstart_32:
       TheS32string(dv)->data[offset] = as_cint(up_case(ch));
-      while (1) {
+      while (true) {
         offset++;
       in_word_32:
         if (--len==0)

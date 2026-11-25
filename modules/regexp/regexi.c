@@ -2,6 +2,7 @@
  * CLISP interface to GNU regex
  * originally by Bruno Haible 1995-04-14
  * rewritten by Sam Steingold 2003-08-06
+ * Bruno Haible 2026
  */
 
 #include "clisp.h"
@@ -25,10 +26,9 @@ DEFUN(REGEXP::REGEXP-COMPILE, pattern &key EXTENDED IGNORE-CASE NEWLINE NOSUB)
 { /* compile the pattern into a regular expression */
   int cflags = regexp_compile_flags();
   object pattern = check_string(popSTACK());
+ restart_regcomp: ;
+  regex_t* re = (regex_t*)clisp_malloc(sizeof(regex_t));
   int status;
-  regex_t* re;
- restart_regcomp:
-  re = (regex_t*)clisp_malloc(sizeof(regex_t));
   with_string_0(pattern,Symbol_value(S(utf_8)),patternz, {
     begin_system_call();
     status = regcomp(re,patternz,cflags);
@@ -63,8 +63,10 @@ DEFUN(REGEXP::REGEXP-FREE, compiled)
       TheFpointer(fp)->fp_pointer = NULL;
       mark_fp_invalid(TheFpointer(fp));
       VALUES1(T);
-    } else VALUES1(NIL);
-  } else VALUES1(NIL);
+    } else
+      VALUES1(NIL);
+  } else
+    VALUES1(NIL);
 }
 
 typedef enum { ret_values, ret_list, ret_vector, ret_bool } rettype_t;
@@ -83,13 +85,10 @@ DEFUN(REGEXP::REGEXP-EXEC,pattern string &key           \
   unsigned int length = vector_length(string);
   unsigned int start = check_uint_defaulted(STACK_1,0);
   unsigned int end = check_uint_defaulted(STACK_0,length);
-  int status;
   rettype_t rettype = CHECK_RETTYPE(STACK_2);
-  regex_t *re;
-  regmatch_t *ret;
-  size_t ret_buffer_size;
   skipSTACK(3);                 /* drop all options */
-  for (;;) {
+  regex_t *re;
+  while (true) {
     STACK_1 = check_fpointer(STACK_1,true);
     re = (regex_t*)TheFpointer(STACK_1)->fp_pointer;
     if (re != NULL) break;
@@ -107,7 +106,8 @@ DEFUN(REGEXP::REGEXP-EXEC,pattern string &key           \
     funcall(L(make_array),7);
     string = value1;
   }
-  ret_buffer_size = (re->re_nsub+1)*sizeof(regmatch_t);
+  size_t ret_buffer_size = (re->re_nsub+1)*sizeof(regmatch_t);
+  regmatch_t *ret;
   if (ret_buffer_size <= BUFSIZ) {
     begin_system_call();
     ret = (regmatch_t*)alloca(ret_buffer_size);
@@ -119,7 +119,7 @@ DEFUN(REGEXP::REGEXP-EXEC,pattern string &key           \
   }
   with_string_0(string,Symbol_value(S(utf_8)),stringz, {
     begin_system_call();
-    status = regexec(re,stringz,re->re_nsub+1,ret,eflags);
+    int status = regexec(re,stringz,re->re_nsub+1,ret,eflags);
     end_system_call();
     if (status) {
       switch (rettype) {
@@ -142,7 +142,8 @@ DEFUN(REGEXP::REGEXP-EXEC,pattern string &key           \
                                                                         (const uintB*)stringz,
                                                                         (const uintB*)stringz+ret[re_count].rm_eo)));
             funcall(`REGEXP::MAKE-MATCH-BOA`,2); pushSTACK(value1);
-          } else pushSTACK(NIL);
+          } else
+            pushSTACK(NIL);
       }
       switch (rettype) {
         case ret_values:

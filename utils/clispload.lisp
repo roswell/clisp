@@ -230,7 +230,7 @@
 ;; For ENSURE-DIRECTORIES-EXIST.8
 (when (ext:probe-directory "scratch/")
   (mapc #'delete-file (directory "scratch/*"))
-  (ext:delete-dir "scratch/"))
+  (ext:delete-directory "scratch/"))
 
 ;; A few tests call DISASSEMBLE. Make it work without user intervention.
 (setf (ext:getenv "PAGER") "cat")

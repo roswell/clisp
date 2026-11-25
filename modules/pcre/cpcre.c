@@ -107,11 +107,11 @@ DEFUN(PCRE:PCRE-COMPILE,string &key STUDY IGNORE-CASE MULTILINE DOTALL  \
   gcv_object_t *string = &STACK_1;
  pcre_compile_restart:
   with_string_0(check_string(*string),Symbol_value(S(utf_8)),pattern, {
-      begin_system_call();
-      compiled_pattern = pcre_compile(pattern,options,&error_message,
-                                      &error_offset,NULL);
-      end_system_call();
-    });
+    begin_system_call();
+    compiled_pattern = pcre_compile(pattern,options,&error_message,
+                                    &error_offset,NULL);
+    end_system_call();
+  });
   if (compiled_pattern == NULL) { /* error */
     pushSTACK(NIL);               /* no PLACE */
     pushSTACK(safe_to_string(error_message));
@@ -365,8 +365,8 @@ DEFUN(PCRE:PCRE-NAME-TO-INDEX,pattern name)
 #if defined(HAVE_PCRE_GET_STRINGNUMBER)
  restart_pcre_get_stringnumber:
   with_string_0(check_string(STACK_0),Symbol_value(S(utf_8)),name, {
-      index = pcre_get_stringnumber(c_pat,name);
-    });
+    index = pcre_get_stringnumber(c_pat,name);
+  });
   if (index>0) VALUES1(fixnum(index));
   else { /* error */
     pushSTACK(NIL);             /* no PLACE */
@@ -413,40 +413,40 @@ DEFUN(PCRE:PCRE-EXEC,pattern subject &key WORK-SPACE DFA BOOLEAN OFFSET \
               pcre_exec(re,st,su,sb,of,op,ov,os)
 # endif
   with_string_0(STACK_0,Symbol_value(S(utf_8)),subject, {
-     pcre_exec_retry:
-      ovector = (int*)alloca(sizeof(int)*ovector_size);
-      begin_system_call();
-      /* subject_bytelen is the length of subject in bytes,
-         defined in with_string_0 */
-      ret = dfa_p
-        ? pcre_dfa_exec(c_pat,study,subject,subject_bytelen,offset,options,
-                        ovector,ovector_size,
-                        (int*)alloca(sizeof(int)*workspace_size),workspace_size)
-        : pcre_exec(c_pat,study,subject,subject_bytelen,offset,options,
-                    ovector,ovector_size);
-      end_system_call();
-      if (ret == PCRE_ERROR_NOMATCH) VALUES1(NIL);
-      else if (ret == 0) {          /* not enough space in ovector */
-        ovector_size <<= 1;
-        goto pcre_exec_retry;
-      } else if (ret > 0) {
-        if (bool_p) VALUES1(T); /* success indicator */
-        else { /* return a vector */
-          int pos; int ov_pos;  /* pacify the CPP parsing of macro with_string_0 */
-          ASSERT(ret <= ovector_size);
-          pushSTACK(allocate_vector(ret)); /* return value */
-          for (pos = ov_pos = 0; pos < ret; pos++, ov_pos+=2)
-            if (ovector[ov_pos] >= 0) {
-              const uintB* sub = (const uintB*)subject;
-              pushSTACK(L_to_I(Encoding_mblen(Symbol_value(S(utf_8)))(Symbol_value(S(utf_8)),sub,sub+ovector[ov_pos])));
-              pushSTACK(L_to_I(Encoding_mblen(Symbol_value(S(utf_8)))(Symbol_value(S(utf_8)),sub,sub+ovector[ov_pos+1])));
-              funcall(`PCRE::MAKE-MATCH-BOA`,2);
-              TheSvector(STACK_0)->data[pos] = value1;
-            }
-          VALUES1(popSTACK());
-        }
-      } else error_pcre(ret);
-    });
+   pcre_exec_retry:
+    ovector = (int*)alloca(sizeof(int)*ovector_size);
+    begin_system_call();
+    /* subject_bytelen is the length of subject in bytes,
+       defined in with_string_0 */
+    ret = dfa_p
+      ? pcre_dfa_exec(c_pat,study,subject,subject_bytelen,offset,options,
+                      ovector,ovector_size,
+                      (int*)alloca(sizeof(int)*workspace_size),workspace_size)
+      : pcre_exec(c_pat,study,subject,subject_bytelen,offset,options,
+                  ovector,ovector_size);
+    end_system_call();
+    if (ret == PCRE_ERROR_NOMATCH) VALUES1(NIL);
+    else if (ret == 0) {          /* not enough space in ovector */
+      ovector_size <<= 1;
+      goto pcre_exec_retry;
+    } else if (ret > 0) {
+      if (bool_p) VALUES1(T); /* success indicator */
+      else { /* return a vector */
+        int pos; int ov_pos;  /* pacify the CPP parsing of macro with_string_0 */
+        ASSERT(ret <= ovector_size);
+        pushSTACK(allocate_vector(ret)); /* return value */
+        for (pos = ov_pos = 0; pos < ret; pos++, ov_pos+=2)
+          if (ovector[ov_pos] >= 0) {
+            const uintB* sub = (const uintB*)subject;
+            pushSTACK(L_to_I(Encoding_mblen(Symbol_value(S(utf_8)))(Symbol_value(S(utf_8)),sub,sub+ovector[ov_pos])));
+            pushSTACK(L_to_I(Encoding_mblen(Symbol_value(S(utf_8)))(Symbol_value(S(utf_8)),sub,sub+ovector[ov_pos+1])));
+            funcall(`PCRE::MAKE-MATCH-BOA`,2);
+            TheSvector(STACK_0)->data[pos] = value1;
+          }
+        VALUES1(popSTACK());
+      }
+    } else error_pcre(ret);
+  });
   skipSTACK(2);                 /* drop pattern & subject */
 }
 

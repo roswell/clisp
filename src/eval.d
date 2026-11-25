@@ -1,10 +1,16 @@
 /*
  * EVAL, APPLY and bytecode interpreter for CLISP
- * Bruno Haible 1990-2008, 2016-2017
+ * Bruno Haible 1990-2008, 2016-2025
  * Sam Steingold 1998-2012, 2016-2017
  * German comments translated into English: Stefan Kain 2001-08-13
  */
 #include "lispbibl.c"
+
+/* The optimized 'switch' statements in this compilation unit are intentional.
+   Silence the GCC warnings. */
+#if (defined __GNUC__ && __GNUC__ >= 7) || (defined __clang__ && __clang_major__ >= 4)
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 
 /* function-table:
  In this table only SUBRS are listed, which may be inlined by the compiler.
@@ -303,7 +309,7 @@ local /*maygc*/ Values interpret_bytecode_ (object closure, Sbvector codeptr,
 /* GCC can jump directly to labels.
    This results in faster code than switch(). */
 #if defined(GNU) && !(__APPLE_CC__ > 1)
-  #if !defined(UNIX_HPUX) && !defined(NO_FAST_DISPATCH) /* work around HP-UX Linker Bug */
+  #if !defined(NO_FAST_DISPATCH)
     #define FAST_DISPATCH
     #define FAST_DISPATCH_THREADED
   #endif
@@ -315,8 +321,10 @@ local /*maygc*/ Values jitc_run (object closure_in, Sbvector codeptr,
                                  const uintB* byteptr_in);
 local inline /*maygc*/ Values cclosure_run (object closure_in, Sbvector codevec,
                                             const uintB* byteptr_in) {
-  if (cclosure_jitc_p(closure_in)) jitc_run(closure_in,codevec,byteptr_in);
-  else interpret_bytecode_(closure_in,codevec,byteptr_in);
+  if (cclosure_jitc_p(closure_in))
+    jitc_run(closure_in,codevec,byteptr_in);
+  else
+    interpret_bytecode_(closure_in,codevec,byteptr_in);
 }
 #define interpret_bytecode(closure,codevec,index)                       \
   with_saved_back_trace_cclosure(closure,                               \
@@ -409,7 +417,7 @@ global /*maygc*/ void unwind (void)
                || frame_info == EVAL_frame_info || frame_info == TRAPPED_EVAL_frame_info,
                GCTRIGGER1(mv_space));
  #ifdef unwind_bit_t
-  if (frame_info & bit(unwind_bit_t)) /* anything to do? */
+  if (frame_info & fbit(unwind_bit_t)) /* anything to do? */
  #else
   if (frame_info >= unwind_limit_t) /* anything to do? */
  #endif
@@ -417,7 +425,7 @@ global /*maygc*/ void unwind (void)
          IBLOCK or ITAGBODY unnested) */
       if (frame_info < skip2_limit_t) { /* ENV- or DYNBIND-Frame? */
        #ifdef entrypoint_bit_t
-        if (frame_info & bit(entrypoint_bit_t)) /* BLOCK, TAGBODY, CATCH etc. ? */
+        if (frame_info & fbit(entrypoint_bit_t)) /* BLOCK, TAGBODY, CATCH etc. ? */
        #else
         if (frame_info < entrypoint_limit_t) /* BLOCK, TAGBODY, CATCH etc. ? */
        #endif
@@ -438,7 +446,7 @@ global /*maygc*/ void unwind (void)
             /* UNWIND_PROTECT_FRAME DRIVER_FRAME or trapped APPLY/EVAL_FRAME */
             if (frame_info & dynjump_mask_t) {
               /* UNWIND_PROTECT_FRAME or DRIVER_FRAME */
-              if (frame_info & bit(driver_bit_t)) {
+              if (frame_info & fbit(driver_bit_t)) {
                 /* DRIVER_FRAME */
               } else {
                 /* UNWIND_PROTECT_FRAME */
@@ -461,7 +469,7 @@ global /*maygc*/ void unwind (void)
           }
         else {
          #ifdef HAVE_SAVED_REGISTERS
-          if ((frame_info & bit(callback_bit_t)) == 0) {
+          if ((frame_info & fbit(callback_bit_t)) == 0) {
             /* CALLBACK_FRAME */
             var gcv_object_t* new_STACK = topofframe(STACK_0); /* Pointer to Frame */
             /* set callback_saved_registers: */
@@ -474,7 +482,7 @@ global /*maygc*/ void unwind (void)
           {
             /* VAR_FRAME or FUN_FRAME */
             var gcv_object_t* new_STACK = topofframe(STACK_0); /* Pointer to Frame */
-            if (frame_info & bit(fun_bit_t)) {
+            if (frame_info & fbit(fun_bit_t)) {
               /* for functions: do nothing */
             } else {
               /* VAR_FRAME, bindingptr iterates over the bindings */
@@ -498,7 +506,7 @@ global /*maygc*/ void unwind (void)
         }
       } else {
         /* DYNBIND_FRAME or CALLBACK_FRAME or ENV_FRAME */
-        if (frame_info & bit(envbind_bit_t)) {
+        if (frame_info & fbit(envbind_bit_t)) {
           /* ENV_FRAME */
           var gcv_object_t* ptr = &STACK_1;
           switch (frame_info & envbind_case_mask_t) {
@@ -549,14 +557,17 @@ global /*maygc*/ void unwind (void)
 /* UP: "unwinds" the STACK up to the next DRIVER_FRAME and
  jumps into the corresponding top-level-loop.
  if count=0, unwind to TOP; otherwise reset that many times */
+local _GL_NORETURN_FUNCPTR void reset_restartf (gcv_object_t* upto_frame) {
+  reset(0);
+}
 global _GL_NORETURN_FUNC void reset (uintL count) {
   /* when unwinding UNWIND-PROTECT-frames, don't save values: */
   bool top_p = (count==0);
   gcv_object_t *last_driver_frame = NULL;
   VALUES0;
-  unwind_protect_to_save.fun = (restartf_t)&reset;
+  unwind_protect_to_save.fun = &reset_restartf;
   unwind_protect_to_save.upto_frame = NULL;
-  while (1) {
+  while (true) {
     /* does STACK end here? */
     if (eq(STACK_0,nullobj) && eq(STACK_1,nullobj)) { /* check STACK_start? */
       if (last_driver_frame) {  /* restart at last driver frame */
@@ -567,11 +578,11 @@ global _GL_NORETURN_FUNC void reset (uintL count) {
          does not clean up SP & back_trace, just STACK, see
          https://sourceforge.net/p/clisp/bugs/327/
          we probably cannot even do NOTREACHED - the STACK is bad. */
-      fprintf(stderr,"\n[%s:%d] reset() found no driver frame (sp=0x%lx-0x%lx)\n",
-              __FILE__,__LINE__,(unsigned long)SP_anchor,(unsigned long)SP());
+      fprintf(stderr,"\n[%s:%d] reset() found no driver frame (sp=0x%llx-0x%llx)\n",
+              __FILE__,__LINE__,(unsigned long long)SP_anchor,(unsigned long long)SP());
       abort();
     }
-    if (framecode(STACK_0) & bit(frame_bit_t)) {
+    if (framecode(STACK_0) & fbit(frame_bit_t)) {
       /* at STACK_0: beginning of a frame */
       if (framecode(STACK_0) == DRIVER_frame_info) { /* DRIVER_FRAME ? */
         last_driver_frame = STACK; /* save the frame */
@@ -612,12 +623,12 @@ global maygc void progv (object symlist, object vallist) {
       }
       Car(STACK_0) = sym;
     }
-  #ifdef MULTITHREAD
-    /* allocate per thread value cell for the symbol if it does not have */
-    if (TheSymbol(sym)->tls_index == SYMBOL_TLS_INDEX_NONE) {
-      add_per_thread_special_var(sym);
-    }
-  #endif
+    #ifdef MULTITHREAD
+      /* allocate per thread value cell for the symbol if it does not have */
+      if (TheSymbol(sym)->tls_index == SYMBOL_TLS_INDEX_NONE) {
+        add_per_thread_special_var(sym);
+      }
+    #endif
   }
   skipSTACK(1); vallist = popSTACK(); symlist = popSTACK();
   /* demand room on STACK: */
@@ -662,7 +673,7 @@ global _GL_NORETURN_FUNC /*maygc*/ void unwind_upto (gcv_object_t* upto_frame) {
   unwind_protect_to_save.fun        = &unwind_upto;
   unwind_protect_to_save.upto_frame = upto_frame;
   while (STACK != upto_frame) { /* arrived at target-frame? */
-    if (framecode(STACK_0) & bit(frame_bit_t)) { /* is it a frame? */
+    if (framecode(STACK_0) & fbit(frame_bit_t)) { /* is it a frame? */
       unwind(); /* yes -> unwind */
       /* (if this is a Unwind-Protect-Frame, then
          unwind_upto(upto_frame) is called again, and we are again here.) */
@@ -680,11 +691,11 @@ global _GL_NORETURN_FUNC /*maygc*/ void unwind_upto (gcv_object_t* upto_frame) {
 global void throw_to (object tag) {
   /* search for Catch-Frame with Tag = tag: */
   var gcv_object_t* FRAME = STACK;
-  while (1) { /* search in the Stack starting at FRAME
-                 for a CATCH-Frame with the same Tag: */
+  while (true) { /* search in the Stack starting at FRAME
+                    for a CATCH-Frame with the same Tag: */
     if (eq(FRAME_(0),nullobj)) /* end of Stack? */
       return; /* yes -> no suitable Catch there -> jump back */
-    if (framecode(FRAME_(0)) & bit(frame_bit_t)) {
+    if (framecode(FRAME_(0)) & fbit(frame_bit_t)) {
       /* found frame */
       if ((framecode(FRAME_(0)) == CATCH_frame_info) /* Catch-Frame? */
           && eq(FRAME_(frame_tag),tag)) /* with the same tag? */
@@ -712,14 +723,14 @@ global maygc void invoke_handlers (object cond) {
   var stack_range_t new_range;
   /* Search for Handler-Frame, that handles a Type with (TYPEP cond type): */
   var gcv_object_t* FRAME = STACK;
-  while (1) {
+  while (true) {
     /* search in Stack starting at FRAME for a suitable HANDLER-Frame: */
     if (!(other_ranges == NULL) && (FRAME == other_ranges->low_limit)) {
       FRAME = other_ranges->high_limit;
       other_ranges = other_ranges->next;
     } else if (eq(FRAME_(0),nullobj)) { /* End of Stack? */
       break; /* yes -> finised, jump back */
-    } else if (framecode(FRAME_(0)) & bit(frame_bit_t)) {
+    } else if (framecode(FRAME_(0)) & fbit(frame_bit_t)) {
       /* found frame */
       var fcint frame_info = framecode(FRAME_(0));
       if (frame_info == HANDLER_frame_info || frame_info == C_HANDLER_frame_info) { /* Handler-Frame? */
@@ -857,7 +868,7 @@ local maygc inline gcv_object_t* symbol_env_search (object sym, object venv)
     goto next_env;
   }
   var bool from_inside_macrolet = false;
-  for (;;) {
+  while (true) {
     if (simple_vector_p(venv)) {
       /* environment is a simple-vector */
       var uintL count = floor(Svector_length(venv),2); /* number of bindings */
@@ -1042,7 +1053,7 @@ global object sym_function (object sym, object env)
       goto next_env;
     }
     var bool from_inside_macrolet = false;
-    for (;;) {
+    while (true) {
       if (simple_vector_p(env)) {
         /* Environment is a Simple-Vector */
         var uintL count = floor(Svector_length(env),2); /* number of bindings */
@@ -1287,7 +1298,7 @@ global maygc gcv_environment_t* nest_env (gcv_environment_t* env5)
         /* env is a pointer into the STACK to a ITAGBODY-frame. */
         check_STACK();
         FRAME = TheFramepointer(env);
-        if (framecode(FRAME_(0)) & bit(nested_bit_t)) { /* frame already nested? */
+        if (framecode(FRAME_(0)) & fbit(nested_bit_t)) { /* frame already nested? */
           env = FRAME_(frame_next_env); /* yes -> fetch former Alist */
         } else {
           pushSTACK(env); /* save env */
@@ -1348,7 +1359,7 @@ global maygc gcv_environment_t* nest_env (gcv_environment_t* env5)
         /* env is a pointer into the STACK to a IBLOCK-Frame. */
         check_STACK();
         FRAME = TheFramepointer(env);
-        if (framecode(FRAME_(0)) & bit(nested_bit_t)) { /* Frame already nested? */
+        if (framecode(FRAME_(0)) & fbit(nested_bit_t)) { /* Frame already nested? */
           env = FRAME_(frame_next_env); /* yes -> fetch previous Alist */
         } else {
           pushSTACK(env); /* save env */
@@ -1977,7 +1988,7 @@ global maygc object get_closure (object lambdabody, object name, bool blockp,
       if (eq(item,S(LLbody)))             goto badLLkey;    /* &BODY ? */ \
     }
  req: /* process required-parameter push on STACK: */
-  while (1) {
+  while (true) {
     NEXT_ITEM(opt,rest,key,badLLkey,aux,ende);
     item = check_symbol_non_constant(item,S(function));
     Car(*lalist_save_) = item;
@@ -2682,7 +2693,7 @@ local maygc Values funcall_iclosure (object closure, gcv_object_t* args_pointer,
         /* yes -> collect residual arguments in a list: */
         pushSTACK(NIL); /* start of list */
         if (argcount>0) {
-          var gcv_object_t* ptr = args_pointer STACKop -(uintP)argcount;
+          var gcv_object_t* ptr = args_pointer STACKop -(sintP)argcount;
           var uintC count;
           dotimespC(count,argcount, {
             var object new_cons = allocate_cons();
@@ -3256,7 +3267,7 @@ local maygc Values eval_fsubr (object fun, object args)
     error_toofew:       /* argument-list args is an atom, prematurely */
       if (!nullp(args)) goto error_dotted;
       /* clean up STACK up to the calling EVAL-Frame: */
-      while (!(framecode(STACK_0) & bit(frame_bit_t))) {
+      while (!(framecode(STACK_0) & fbit(frame_bit_t))) {
         skipSTACK(1);
       }
       {
@@ -3269,7 +3280,7 @@ local maygc Values eval_fsubr (object fun, object args)
     error_toomany:       /* argument-list args is not NIL at the tail */
       if (atomp(args)) goto error_dotted;
       /* clean up STACK up to the calling EVAL-Frame: */
-      while (!(framecode(STACK_0) & bit(frame_bit_t))) {
+      while (!(framecode(STACK_0) & fbit(frame_bit_t))) {
         skipSTACK(1);
       }
       {
@@ -3281,7 +3292,7 @@ local maygc Values eval_fsubr (object fun, object args)
       }
     error_dotted:         /* argument-list args ends with Atom /= NIL */
       /* clean up STACK up to the calling EVAL-Frame: */
-      while (!(framecode(STACK_0) & bit(frame_bit_t))) {
+      while (!(framecode(STACK_0) & fbit(frame_bit_t))) {
         skipSTACK(1);
       }
       {
@@ -4408,7 +4419,7 @@ local maygc Values apply_subr (object fun, uintC args_on_stack, object args)
     argcount = args_on_stack;
     get_space_on_STACK(sizeof(gcv_object_t) * (uintL)key_count);
     {
-      var gcv_object_t* new_args_end_pointer = args_end_pointer STACKop -(uintP)key_count;
+      var gcv_object_t* new_args_end_pointer = args_end_pointer STACKop -(sintP)key_count;
       var gcv_object_t* ptr1 = args_end_pointer;
       var gcv_object_t* ptr2 = new_args_end_pointer;
       var uintC count;
@@ -4778,7 +4789,7 @@ local maygc Values apply_closure (object closure, uintC args_on_stack, object ar
           shift++;              /* poss. 1 more for Rest-Parameter */
         argcount = args_on_stack;
         get_space_on_STACK(sizeof(gcv_object_t) * shift);
-        var gcv_object_t* new_args_end_pointer = args_end_pointer STACKop -(uintP)shift;
+        var gcv_object_t* new_args_end_pointer = args_end_pointer STACKop -(sintP)shift;
         var gcv_object_t* ptr1 = args_end_pointer;
         var gcv_object_t* ptr2 = new_args_end_pointer;
         var uintC count;
@@ -5225,7 +5236,7 @@ local maygc Values funcall_subr (object fun, uintC args_on_stack)
     argcount = args_on_stack;                 /* (> 0) */
     get_space_on_STACK(sizeof(gcv_object_t) * (uintL)key_count);
     {
-      var gcv_object_t* new_args_end_pointer = args_end_pointer STACKop -(uintP)key_count;
+      var gcv_object_t* new_args_end_pointer = args_end_pointer STACKop -(sintP)key_count;
       var gcv_object_t* ptr1 = args_end_pointer;
       var gcv_object_t* ptr2 = new_args_end_pointer;
       var uintC count;
@@ -5620,7 +5631,7 @@ local maygc Values funcall_closure (object closure, uintC args_on_stack)
           shift++;              /* poss. 1 more for Rest-Parameter */
         argcount = args_on_stack;
         get_space_on_STACK(sizeof(gcv_object_t) * shift);
-        var gcv_object_t* new_args_end_pointer = args_end_pointer STACKop -(uintP)shift;
+        var gcv_object_t* new_args_end_pointer = args_end_pointer STACKop -(sintP)shift;
         var gcv_object_t* ptr1 = args_end_pointer;
         var gcv_object_t* ptr2 = new_args_end_pointer;
         var uintC count;
@@ -6454,15 +6465,15 @@ local /*maygc*/ Values interpret_bytecode_ (object closure_in, Sbvector codeptr,
     CASE cod_bind: {            /* (BIND n) */
       var uintL n;
       U_operand(n);
-    #if defined(MULTITHREAD)
-      var object symbol = TheCclosure(closure)->clos_consts[n];
-      if (TheSymbol(symbol)->tls_index == SYMBOL_TLS_INDEX_NONE) {
-        var uintC mvc = mv_count;
-        mv_to_STACK(); /* save mv_space */
-        with_saved_context({add_per_thread_special_var(symbol); /* maygc */});
-        STACK_to_mv(mvc); /* restore mv_space */
-      }
-    #endif
+      #if defined(MULTITHREAD)
+        var object symbol = TheCclosure(closure)->clos_consts[n];
+        if (TheSymbol(symbol)->tls_index == SYMBOL_TLS_INDEX_NONE) {
+          var uintC mvc = mv_count;
+          mv_to_STACK(); /* save mv_space */
+          with_saved_context({add_per_thread_special_var(symbol); /* maygc */});
+          STACK_to_mv(mvc); /* restore mv_space */
+        }
+      #endif
       dynamic_bind(TheCclosure(closure)->clos_consts[n],value1);
     } goto next_byte;
     CASE cod_unbind1:           /* (UNBIND1) */
@@ -6585,9 +6596,9 @@ local /*maygc*/ Values interpret_bytecode_ (object closure_in, Sbvector codeptr,
     #define NOTJMP()  \
       { L_operand_ignore(); goto next_byte; }
     jmp0:
-#ifdef MULTITHREAD
+     #ifdef MULTITHREAD
       mv_count=0;
-#endif
+     #endif
     CASE cod_jmp: jmp:          /* (JMP label) */
       JMP();
     CASE cod_jmpif:             /* (JMPIF label) */
@@ -6995,7 +7006,7 @@ local /*maygc*/ Values interpret_bytecode_ (object closure_in, Sbvector codeptr,
       count--;
       { /* at least 2 values desired and present */
         var object* mvp = &mv_space[1];
-        while (1) {
+        while (true) {
           pushSTACK(*mvp++);
           n--; if (n==0) goto nv_to_stack_end; /* no further value desired -> finished */
           count--; if (count==0) goto nv_to_stack_fill; /* no further value present -> fill with NILs */

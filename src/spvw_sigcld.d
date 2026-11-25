@@ -31,22 +31,23 @@ local void install_sigcld_handler (void);
 
 local int sigcld_enabled = 0;
 #if defined(MULTITHREAD)
-/* TODO: following should be just atomic increment/decrement.
-   should add atomic primitives to xthread.d  */
-local spinlock_t sigcld_enabled_lock;
-#define sigcld_enabled_INCF(v)                  \
-  spinlock_acquire(&sigcld_enabled_lock);       \
-  v = sigcld_enabled++;                         \
-  spinlock_release(&sigcld_enabled_lock)
-#define sigcld_enabled_DECF(v)                  \
-  spinlock_acquire(&sigcld_enabled_lock);       \
-  if (sigcld_enabled)                           \
-    v = --sigcld_enabled;                       \
-  else v = 0;                                   \
-  spinlock_release(&sigcld_enabled_lock)
+  /* TODO: following should be just atomic increment/decrement.
+     should add atomic primitives to xthread.d  */
+  local spinlock_t sigcld_enabled_lock;
+  #define sigcld_enabled_INCF(v)                  \
+    spinlock_acquire(&sigcld_enabled_lock);       \
+    v = sigcld_enabled++;                         \
+    spinlock_release(&sigcld_enabled_lock)
+  #define sigcld_enabled_DECF(v)                  \
+    spinlock_acquire(&sigcld_enabled_lock);       \
+    if (sigcld_enabled)                           \
+      v = --sigcld_enabled;                       \
+    else                                          \
+      v = 0;                                      \
+    spinlock_release(&sigcld_enabled_lock)
 #else
-#define sigcld_enabled_INCF(v)  v = sigcld_enabled++
-#define sigcld_enabled_DECF(v)  v = --sigcld_enabled
+  #define sigcld_enabled_INCF(v)  v = sigcld_enabled++
+  #define sigcld_enabled_DECF(v)  v = --sigcld_enabled
 #endif
 
 local void install_sigcld_handler (void) {

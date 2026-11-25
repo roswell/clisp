@@ -109,7 +109,7 @@ static gcv_object_t* dir_key_slots (object obj) {
 static object test_dir_key (object obj, bool check_open) {
  start: {
     gcv_object_t *slots = dir_key_slots(obj);
-    if (NULL == slots) {
+    if (slots == NULL) {
       pushSTACK(NIL); /* no PLACE */
       pushSTACK(obj); /* TYPE-ERROR slot DATUM */
       pushSTACK(`LDAP::DIR-KEY`); /* TYPE-ERROR slot EXPECTED-TYPE */
@@ -372,7 +372,7 @@ DEFUN(LDAP::DIR-KEY-OPEN, key path &key DIRECTION IF-DOES-NOT-EXIST) {
   /* create the key handle */
 # if defined(WIN32_REGISTRY)
   if (eq(type,`:WIN32`)) {
-    if (NULL != slots) {
+    if (slots != NULL) {
       root = test_dir_key(root,true);
       slots = dir_key_slots(root);
       with_string_0(path,GLO(misc_encoding),pathz,{
@@ -390,7 +390,7 @@ DEFUN(LDAP::DIR-KEY-OPEN, key path &key DIRECTION IF-DOES-NOT-EXIST) {
 # endif
 # if defined(ACCESS_LDAP)
   if (eq(type,`:LDAP`)) {
-    if (NULL != slots) {
+    if (slots != NULL) {
       root = test_dir_key(root,true);
       begin_blocking_system_call();
       with_string_0(path,GLO(misc_encoding),pathz,{
@@ -440,7 +440,7 @@ DEFUN(LDAP::DIR-KEY-OPEN, key path &key DIRECTION IF-DOES-NOT-EXIST) {
   /* create the DIR-KEY */
   pushSTACK(type);
   pushSTACK(STACK_(1+1)); /* direction */
-  if (NULL != slots) {
+  if (slots != NULL) {
     pushSTACK(slots[DK_PATH]);
 #  if defined(WIN32_NATIVE)
     if (eq(slots[DK_TYPE],`:WIN32`))
@@ -628,7 +628,7 @@ static void init_iteration_node (object state, object subkey,
  {object dk = test_dir_key(ITST_DKEY(STACK_4/*state*/),true);
   gcv_object_t *slots = dir_key_slots(dk);
   FOREIGN fp;
-  with_string_0(*new_path,GLO(misc_encoding),pathz,{
+  with_string_0(*new_path,GLO(misc_encoding),pathz, {
     open_reg_key((HKEY)SLOT_HANDLE(slots),pathz,check_direction(slots[DK_DIR]),
                  IF_DOES_NOT_EXIST_UNBOUND/*ignore*/,(HKEY*)&fp);
   });
@@ -784,7 +784,7 @@ DEFUN(LDAP::DIR-KEY-VALUE, key name &optional default) {
  {object dkey = test_dir_key(STACK_2,true);
   object name = STACK_1;
   object default_value = STACK_0;
-  with_string_0(name,GLO(misc_encoding),namez,{
+  with_string_0(name,GLO(misc_encoding),namez, {
     DWORD status;
     DWORD type;
     DWORD size;
@@ -852,7 +852,8 @@ DEFUN(LDAP::SET-DKEY-VALUE, key name value)
   object name = STACK_0; skipSTACK(2);                                  \
   with_string_0(name,GLO(misc_encoding),namez,{                         \
     SYSCALL_WIN32(call((HKEY)SLOT_HANDLE(dir_key_slots(dkey)),namez));  \
-    });}                                                                \
+  });                                                                   \
+ }                                                                      \
   VALUES1(NIL)
 
 DEFUN(LDAP::DIR-KEY-SUBKEY-DELETE, key name)

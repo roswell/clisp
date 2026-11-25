@@ -782,7 +782,7 @@ LISPFUN(last,seclass_read,1,1,norest,nokey,0,NIL)
       var object list2;
       var object slow = list;
       if (consp(list)) {
-        while (1) {
+        while (true) {
           /* list is a Cons. */
           list2 = Cdr(list); if (atomp(list2)) break; list = list2;
           if (eq(list,slow)) {
@@ -1011,7 +1011,7 @@ LISPFUN(nconc,seclass_default,0,0,rest,nokey,0,NIL)
         /* Add result list to (cdr (last STACK_1)): */
         var object list1 = STACK_1;
         var object list2;
-        while (1) {
+        while (true) {
           /* Here list1 is a Cons. */
           list2 = Cdr(list1);
           if (atomp(list2))
@@ -1120,14 +1120,16 @@ LISPFUNNR(ldiff,2)
   /* Copy list elements one by one, until new_list is full: */
   var object new_run = new_list; /* runs through the new list */
   var object old_run = popSTACK(); /* runs through the old list */
-  if (consp(new_run)) while (1) {  /* loop! */
-    Car(new_run) = Car(old_run);
-    if (atomp(Cdr(new_run))) {
-      if (!found_p)
-        Cdr(new_run) = Cdr(old_run);
-      break;
+  if (consp(new_run)) {
+    while (true) { /* loop! */
+      Car(new_run) = Car(old_run);
+      if (atomp(Cdr(new_run))) {
+        if (!found_p)
+          Cdr(new_run) = Cdr(old_run);
+        break;
+      }
+      old_run = Cdr(old_run); new_run = Cdr(new_run);
     }
-    old_run = Cdr(old_run); new_run = Cdr(new_run);
   }
   VALUES1(new_list);
 }
@@ -1580,7 +1582,7 @@ LISPFUNNR(tailp,2) /* (TAILP sublist list), CLTL p. 275 */
   if (nullp(sublist))
     goto yes;
   #else
-  while (1) {
+  while (true) {
     if (eql(list,sublist))
       goto yes;
     if (atomp(list))
@@ -1635,7 +1637,7 @@ LISPFUN(pairlis,seclass_read,2,1,norest,nokey,0,NIL)
     STACK_0=NIL; /* ALIST defaults to NIL */
   pushSTACK(STACK_2);     /* keys */
   pushSTACK(STACK_(1+1)); /* data */
-  while (1) { /* stack layout: keys, data, alist, keysr, datar. */
+  while (true) { /* stack layout: keys, data, alist, keysr, datar. */
     if (endp(STACK_0)) /* data is over? */
       if (endp(STACK_1)) /* keys are over? */
         goto end;
@@ -1821,7 +1823,7 @@ LISPFUNN(list_access_set,3)
 local object elt_up (object seq, object index) {
   var object l = seq;
   var object n = Fixnum_0;
-  while (1) {
+  while (true) {
     if (atomp(l))
       goto index_too_large;
     if (eq(n,index))
@@ -1909,7 +1911,7 @@ LISPFUNN(list_fe_init_end,2)
   pushSTACK(NIL);                               /* L1 := nil */
   { var object seq = STACK_2; pushSTACK(seq); } /* L2 := seq */
   pushSTACK(Fixnum_0);                          /* i := 0 */
-  while (1) {
+  while (true) {
     /* stack layout: seq, index, L1, L2, i */
     if (eq(STACK_0,STACK_3))    /* i=index ? */
       goto end;

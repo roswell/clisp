@@ -1,33 +1,5 @@
-User visible changes
---------------------
-
-* FFI: DEF-CALL-OUT and DEF-C-VAR now accept the :GUARD argument (rfe#21).
-  See <http://clisp.org/impnotes/dffi.html#def-call-out> for details.
-
-* Use of the LOOP macro with a syntax that has an implementation-dependent
-  interpretation (cf. ANSI CL 6.1.1.4) now triggers a warning.
-
-* Some old functions that have been deprecated for 10+ years have been removed:
-      SOCKET-SERVER-PORT: use SERVICE instead,
-      TYPE-EXPAND-1: use TYPE-EXPAND instead,
-      FOREIGN-ADDRESS-NULL: use NULL instead,
-      DELETE-DIR: use DELETE-DIRECTORY instead,
-      MAKE-DIR: use MAKE-DIRECTORY instead,
-      RENAME-DIR: use RENAME-DIRECTORY instead.
-
-* clhs.el is no longer installed in ${datadir}/emacs/site-lisp/.
-  You can get it from https://gitlab.com/sam-s/clhs instead.
-
-* Bug fixes:
-  + Better UNICODE handling in the regexp module (bug#691).
-  + DIRECTORY matches like PATHNAME-MATCH-P (bug#724).
-  + Fixed a compiler bug that could lead to a "Compiler bug!!" error.
-    <https://gitlab.com/gnu-clisp/clisp/issues/14>
-  + Fixed an error during the build on macOS (bug#740).
-
-
-2.50 branch, not yet released
-=============================
+master branch, not yet released
+===============================
 
 Important notes
 ---------------
@@ -79,14 +51,16 @@ of platforms:
   AIX 7            | POWER 64-bit   | 64-bit, 32-bit
   HP-UX 11         | HPPA 64-bit    | 64-bit, 32-bit
   HP-UX 11         | IA64           | 64-bit, 32-bit
-  IRIX 6.5         | MIPS 64-bit    | n32, o32
   Solaris 10, 11   | x86_64         | 64-bit, 32-bit (i386)
   Solaris 10       | SPARC 64-bit   | 64-bit, 32-bit
   Haiku            | i386           | i386
   Minix 3          | i386           | i386
   Windows 10       | x86_64         | Linux/x86_64 (WSL)
-  Windows          | x86_64         | Cygwin 64-bit, Cygwin 32-bit
-  Windows          | i386           | Cygwin 32-bit
+  Windows          | x86_64         | Cygwin 64-bit,32-bit,
+                   |                | mingw 64-bit,32-bit, MSVC 64-bit,32-bit
+  Windows          | i386           | Cygwin 32-bit,
+                   |                | mingw 32-bit, MSVC 32-bit
+  Windows 11       | ARM64          | 64-bit
 
 The Foreign Function Interface (FFI) is now supported as well, on all of these
 platforms (except HP-UX), through libffcall-2.1.
@@ -100,6 +74,14 @@ Incompatible changes
 * On Max OS X the value of *PATHNAME-ENCODING* is set to UTF-8 and cannot
   be changed because Mac OS X pathnames are UTF-8 strings, not byte sequences.
   See <http://clisp.org/impnotes/encoding.html#path-enc> for details.
+
+* Some old functions that have been deprecated for 10+ years have been removed:
+      SOCKET-SERVER-PORT: use SERVICE instead,
+      TYPE-EXPAND-1: use TYPE-EXPAND instead,
+      FOREIGN-ADDRESS-NULL: use NULL instead,
+      DELETE-DIR: use DELETE-DIRECTORY instead,
+      MAKE-DIR: use MAKE-DIRECTORY instead,
+      RENAME-DIR: use RENAME-DIRECTORY instead.
 
 * Module WILDCARD has been removed.
   Functions WILDCARD:MATCH and WILDCARD:WILDCARD-MATCHER are deprecated
@@ -126,6 +108,9 @@ Incompatible changes
     See <http://clisp.org/impnotes/rawsock.html#rawsock-convert-address>
     for details.
 
+* clhs.el is no longer installed in ${datadir}/emacs/site-lisp/.
+  You can get it from https://gitlab.com/sam-s/clhs instead.
+
 Improvements
 ............
 
@@ -140,6 +125,9 @@ Improvements
   for details.
 
 * FFI now converts REALs to FLOATs automatically as necessary.
+
+* Use of the LOOP macro with a syntax that has an implementation-dependent
+  interpretation (cf. ANSI CL 6.1.1.4) now triggers a warning.
 
 New customizations
 ..................
@@ -178,6 +166,9 @@ New features
     linking-set or not.
   See <http://clisp.org/impnotes/image.html#images-in-distros> for how to use
   these options.
+
+* FFI: DEF-CALL-OUT and DEF-C-VAR now accept the :GUARD argument (rfe#21).
+  See <http://clisp.org/impnotes/dffi.html#def-call-out> for details.
 
 Modules
 .......
@@ -259,6 +250,11 @@ Bug fixes
   + Fix a problem with non-ASCII characters in file names on Windows (#10).
   + Made the result of SOCKET-CONNECT with :TIMEOUT 0 the same across platforms.
     <https://gitlab.com/gnu-clisp/clisp/-/issues/25>
+  + Better UNICODE handling in the regexp module (bug#691).
+  + DIRECTORY matches like PATHNAME-MATCH-P (bug#724).
+  + Fixed a compiler bug that could lead to a "Compiler bug!!" error.
+    <https://gitlab.com/gnu-clisp/clisp/issues/14>
+  + Fixed an error during the build on macOS (bug#740).
 
 
 2.49 (2010-07-07)

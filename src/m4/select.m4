@@ -1,5 +1,5 @@
 dnl -*- Autoconf -*-
-dnl Copyright (C) 1993-2004, 2007-2008, 2017, 2021 Free Software Foundation, Inc.
+dnl Copyright (C) 1993-2026 Free Software Foundation, Inc.
 dnl This file is free software, distributed under the terms of the GNU
 dnl General Public License.  As a special exception to the GNU General
 dnl Public License, this file may be distributed as part of a program
@@ -16,12 +16,12 @@ AC_DEFUN([CL_SELECT],
   AC_CACHE_CHECK([for select], [ac_cv_func_select],
     [AC_LINK_IFELSE(
        [AC_LANG_PROGRAM(
-          [[#ifdef __BEOS__
-             #include <sys/socket.h>
-            #endif
-            #include <sys/time.h>
+          [[#include <sys/time.h>
            ]AC_LANG_EXTERN[
-            #ifdef __cplusplus
+            /* Here we test for __STDC_VERSION__ >= 202311L or the value set by
+               "gcc -std=gnu2x" (gcc version >= 13) or
+               "clang -std=gnu2x" (clang version >= 15). */
+            #if defined __cplusplus || __STDC_VERSION__ >= 202000L
             int select(int, fd_set*, fd_set*, fd_set*, struct timeval *);
             #else
             int select();
@@ -33,10 +33,7 @@ AC_DEFUN([CL_SELECT],
   if test $ac_cv_func_select = yes; then
     AC_DEFINE([HAVE_SELECT], [1], [Define if you have the select() function.])
     CL_COMPILE_CHECK([sys/select.h], [cl_cv_header_sys_select_h],
-      [#ifdef __BEOS__
-        #include <sys/socket.h>
-       #endif
-       #include <sys/time.h>
+      [#include <sys/time.h>
        #include <sys/select.h>
       ],
       [],
@@ -52,9 +49,6 @@ AC_DEFUN([CL_SELECT],
                   #include <unistd.h>
                  #endif
                  #include <sys/types.h>
-                 #ifdef __BEOS__
-                  #include <sys/socket.h>
-                 #endif
                  #include <sys/time.h>
                  #ifdef HAVE_SYS_SELECT_H
                   #include <sys/select.h>
@@ -92,9 +86,6 @@ AC_DEFUN([CL_SELECT],
              #include <unistd.h>
             #endif
             #include <sys/types.h>
-            #ifdef __BEOS__
-             #include <sys/socket.h>
-            #endif
             #include <sys/time.h>
             #ifdef HAVE_SYS_SELECT_H
              #include <sys/select.h>

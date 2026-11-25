@@ -746,12 +746,6 @@ IDFPFUN
 
 (makunbound '*fpcallback*) *FPCALLBACK*
 
-;; Some platforms might not define HAVE_LONG_LONG_INT (what are they?),
-;; so the int64 tests will fail there.
-;; We might conditionalize such tests on #+word-size=64...
-;; [actually, word-size=64 (== WIDE_HARD) is a _stronger_ condition than
-;; HAVE_LONG_LONG_INT which is required for 64-bit integers to work]
-;; https://sourceforge.net/p/clisp/bugs/535/
 (with-c-var (x 'sint64) x)
 0
 
@@ -1211,7 +1205,6 @@ FM
   (stringp (command-line)))
 #+win32 T
 
-#-BeOS ; FFI::FOREIGN-LIBRARY-FUNCTION not defined on BeOS
 (list
  (def-call-out c-malloc (:arguments (l long))
    (:name "malloc") (:language :stdc) (:return-type c-pointer)
@@ -1219,12 +1212,10 @@ FM
  (def-call-out c-free (:arguments (p c-pointer))
    (:name "free") (:language :stdc) (:return-type nil)
    (:library :default))) ; use foreign-free instead!
-#-BeOS
 (c-malloc c-free)
 
 ;; this is ugly and inefficient; if you find yourself doing this,
 ;; you probably want to do it in C
-#-BeOS
 (let ((m (c-malloc 4)) ret)
   (unwind-protect
        (with-c-var (v '(c-ptr (c-array uint8 4)))
@@ -1241,12 +1232,11 @@ FM
                        (= i (+ (ash 4 24) (ash 3 16) (ash 2 8) 1)))))
          (nreverse ret))
     (c-free m)))
-#-BeOS
 (#A((unsigned-byte 8) (4) (0 0 0 0))
  #A((unsigned-byte 8) (4) (255 255 255 255)))
 
-#-BeOS (integerp (sys::code-address-of #'c-malloc)) T
-#-BeOS (stringp (nth-value 2 (function-lambda-expression #'c-malloc))) T
+(integerp (sys::code-address-of #'c-malloc)) T
+(stringp (nth-value 2 (function-lambda-expression #'c-malloc))) T
 
 (type-of (ffi:open-foreign-library :default))  ffi:foreign-pointer
 

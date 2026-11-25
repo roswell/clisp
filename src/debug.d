@@ -1,6 +1,6 @@
 /*
  * top level loop, aux functions for the debugger, stepper for CLISP
- * Bruno Haible 1990-2005, 2016-2017
+ * Bruno Haible 1990-2005, 2016-2026
  * ILISP friendliness: Marcus Daniels 8.4.1994
  * Sam Steingold 2001-2011
  * German comments translated into English: Stefan Kain 2004-08-30
@@ -420,7 +420,7 @@ LISPFUN(read_eval_print,seclass_default,1,1,norest,nokey,0,NIL)
   STACK_(1+2) = var_stream(S(standard_output),strmflags_wr_ch_B);
  #if 0
   if (mconsp(STACK_0)) {
-    while (1) {
+    while (true) {
       var object valsr = STACK_0;
       STACK_0 = Cdr(valsr);
       terpri(&STACK_(1+2));
@@ -442,7 +442,7 @@ LISPFUN(read_eval_print,seclass_default,1,1,norest,nokey,0,NIL)
    automatically, this new line really cannot be avoided.) */
   fresh_line(&STACK_(1+2));     /* (fresh-line ostream) */
   if (mconsp(STACK_0)) {
-    while (1) {
+    while (true) {
       var object valsr = STACK_0;
       STACK_0 = Cdr(valsr);
       prin1(&STACK_(1+2),Car(valsr)); /* print next value */
@@ -471,7 +471,7 @@ global void driver (void)
   bt_here.bt_stack = STACK STACKop -1;
   bt_here.bt_num_arg = -1;
   back_trace = &bt_here;
-  while (1) {
+  while (true) {
     var object driverfun = Symbol_value(S(driverstar)); /* value of *DRIVER* */
     if (nullp(driverfun))
       break;
@@ -484,7 +484,7 @@ global void driver (void)
     var sp_jmp_buf returner;                /* memorize return point */
     finish_entry_frame(DRIVER,returner,,;);
     /* this is the entry point. */
-    while (1) {
+    while (true) {
       /* execute (SYS::READ-EVAL-PRINT "> "): */
       pushSTACK(O(prompt_string)); /* Prompt "> " */
       funcall(L(read_eval_print),1);
@@ -553,7 +553,7 @@ global maygc void break_driver (bool continuable_p) {
       var sp_jmp_buf returner; /* return point */
       finish_entry_frame(DRIVER,returner,,;);
       /* re-entry point is here */
-      while (1) {
+      while (true) {
         /* (SYS::READ-EVAL-PRINT Prompt) */
         pushSTACK(STACK_(0+2)); /* Prompt "nnn. Break> " */
         funcall(L(read_eval_print),1);
@@ -596,7 +596,7 @@ LISPFUNN(load,1)
 {
   funcall(L(open),1);           /* (OPEN filename) */
   pushSTACK(value1);            /* save stream */
-  while (1) {
+  while (true) {
     var object obj = stream_read(&STACK_0,NIL,NIL); /* read object */
     if (eq(obj,eof_value))                          /* EOF -> done */
       break;
@@ -689,12 +689,12 @@ local bool blockgo_frame_p(fcint frame_info)
 
 /* Macro: Tests, if the frame at FRAME is an EVAL/APPLY frame. */
 #define evalapply_frame_p()  \
-  ((framecode(FRAME_(0)) & ~(bit(eval_bit_t)|bit(trapped_bit_t))) == \
-   ((EVAL_frame_info|APPLY_frame_info) & ~(bit(eval_bit_t)|bit(trapped_bit_t))))
+  ((framecode(FRAME_(0)) & ~(fbit(eval_bit_t)|fbit(trapped_bit_t))) == \
+   ((EVAL_frame_info|APPLY_frame_info) & ~(fbit(eval_bit_t)|fbit(trapped_bit_t))))
 
 /* Macro: Tests, if the frame at FRAME is an APPLY frame. */
 #define apply_frame_p()  \
-  ((framecode(FRAME_(0)) & ~bit(trapped_bit_t)) == (APPLY_frame_info & ~bit(trapped_bit_t)))
+  ((framecode(FRAME_(0)) & ~fbit(trapped_bit_t)) == (APPLY_frame_info & ~fbit(trapped_bit_t)))
 
 /* UP: jumps up one stackitem */
 local gcv_object_t* frame_up_1 (gcv_object_t* stackptr)
@@ -725,7 +725,7 @@ local gcv_object_t* frame_up_2 (gcv_object_t* stackptr)
     FRAME = topofframe(FRAME_(0)); /* pointer top of frame */
   else
     FRAME skipSTACKop 1;        /* pointer to next object */
-  while (1) {
+  while (true) {
     if (stack_upend_p())
       return stackptr;
     if (as_oint(FRAME_(0)) & wbit(frame_bit_o))
@@ -750,7 +750,7 @@ local gcv_object_t* frame_up_3 (gcv_object_t* stackptr)
     FRAME = topofframe(FRAME_(0)); /* pointer top of frame */
   else
     FRAME skipSTACKop 1;      /* pointer to next object */
-  while (1) {
+  while (true) {
     if (stack_upend_p())
       return stackptr;
     if (frame_p()) {
@@ -767,7 +767,7 @@ local gcv_object_t* frame_up_3 (gcv_object_t* stackptr)
 local gcv_object_t* frame_down_3 (gcv_object_t* stackptr)
 {
   var gcv_object_t* FRAME = stackptr;
-  while (1) {
+  while (true) {
     next_frame_down();        /* search next frame below */
     if (stack_downend_p())
       return stackptr;
@@ -785,7 +785,7 @@ local gcv_object_t* frame_up_4 (gcv_object_t* stackptr)
     FRAME = topofframe(FRAME_(0)); /* pointer top of frame */
   else
     FRAME skipSTACKop 1;      /* pointer to next object */
-  while (1) {
+  while (true) {
     if (stack_upend_p())
       return stackptr;
     if (frame_p()) {
@@ -802,7 +802,7 @@ local gcv_object_t* frame_up_4 (gcv_object_t* stackptr)
 local gcv_object_t* frame_down_4 (gcv_object_t* stackptr)
 {
   var gcv_object_t* FRAME = stackptr;
-  while (1) {
+  while (true) {
     next_frame_down();        /* search next frame below */
     if (stack_downend_p())
       return stackptr;
@@ -820,7 +820,7 @@ local gcv_object_t* frame_up_5 (gcv_object_t* stackptr)
     FRAME = topofframe(FRAME_(0)); /* pointer top of frame */
   else
     FRAME skipSTACKop 1;      /* pointer to next object */
-  while (1) {
+  while (true) {
     if (stack_upend_p())
       return stackptr;
     if (frame_p()) {
@@ -837,7 +837,7 @@ local gcv_object_t* frame_up_5 (gcv_object_t* stackptr)
 local gcv_object_t* frame_down_5 (gcv_object_t* stackptr)
 {
   var gcv_object_t* FRAME = stackptr;
-  while (1) {
+  while (true) {
     next_frame_down();        /* search next frame below */
     if (stack_downend_p())
       return stackptr;
@@ -908,11 +908,13 @@ local maygc Values climb_stack (const climb_fun_t* table) {
   if (uint32_p(repeat_arg)) {
     uint32 count = I_to_uint32(repeat_arg);
     while (count--) stackptr = (*climber)(stackptr);
-  } else while (1) { /* climb as far as possible: */
-    gcv_object_t* next_stackptr = (*climber)(stackptr);
-    if (next_stackptr == stackptr)
-      break;
-    stackptr = next_stackptr;
+  } else {
+    while (true) { /* climb as far as possible: */
+      gcv_object_t* next_stackptr = (*climber)(stackptr);
+      if (next_stackptr == stackptr)
+        break;
+      stackptr = next_stackptr;
+    }
   }
   VALUES1(make_framepointer(stackptr));
 }
@@ -950,9 +952,9 @@ local void same_env_as (void)
   var object found_go_env = nullobj;
   var object found_decl_env = nullobj;
   /* and fill: */
-  while (1) {
+  while (true) {
     /* search at FRAME downwards for ENV-frames: */
-    while (1) {
+    while (true) {
       FRAME skipSTACKop -1;
       if (FRAME==STACK)       /* done? */
         goto end;
@@ -1581,11 +1583,7 @@ LISPFUNN(proom,0)
   pushSTACK(uintM_to_I(free_space()));
   pushSTACK(uintM_to_I(static_space()));
   pushSTACK(UL_to_I(gc_count));
- #ifdef intQsize
   pushSTACK(UQ_to_I(gc_space));
- #else
-  pushSTACK(UL2_to_I(gc_space.hi,gc_space.lo));
- #endif
   pushSTACK(internal_time_to_I(&gc_time));
   STACK_to_mv(6);
 }

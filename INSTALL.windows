@@ -6,17 +6,16 @@ There are three ways to create binaries of this package for Microsoft Windows:
 3) Binaries for the Cygwin environment.
 
 Note: For the moment, the status of the target platforms is as follows:
-  - mingw, 32-bit: supported.
-  - mingw, 64-bit: not supported.
-  - MSVC, 32-bit: not supported.
-  - MSVC, 64-bit: not supported.
-  - Cygwin, 32-bit: supported.
-  - Cygwin, 64-bit: supported, but libsigsegv is not supported.
+  - mingw, 32-bit or 64-bit: supported.
+  - MSVC, 32-bit or 64-bit: supported, with restrictions:
+      - libffcall must have been built with --disable-shared.
+      - libintl (GNU gettext) must have been built with --disable-shared (?).
+  - Cygwin, 32-bit or 64-bit: supported.
 
 ===============================================================================
 1) Native binaries, built using the mingw tool chain.
 
-   I recommend to use the Cygwin environment as the development environment
+   I recommend to use the Cygwin environment as the development environment (*)
    and mingw only as the target (runtime, deployment) environment.
    For this, you need to install
      * Cygwin (from https://cygwin.com/),
@@ -64,6 +63,13 @@ Note: For the moment, the status of the target platforms is as follows:
    Installation:
 
       make install
+
+   (*) Note: The MSYS2 environment as a development environment is *not*
+       supported.  This environment contains an ignoble and ignominious hack:
+       In a program invocation, the program *by default* receives different
+       arguments than the ones that the caller has passed.  See
+       <https://www.msys2.org/wiki/Porting/#filesystem-namespaces>.
+       All program invocations in this environment are therefore unreliable.
 
 ===============================================================================
 2) Native binaries, built using the MS Visual C/C++ tool chain.
@@ -126,6 +132,10 @@ Note: For the moment, the status of the target platforms is as follows:
       INCLUDE="${WindowsSdkIncludeDir}um;${WindowsSdkIncludeDir}shared;$INCLUDE"
       LIB="${WindowsSdkLibDir}x86;$LIB"
 
+      # Windows tools.
+      WindowsSdkBinDir='C:\Program Files (x86)\Windows Kits\8.1\bin\'
+      PATH=`cygpath -u "${WindowsSdkBinDir}x86"`:"$PATH"
+
       # Visual C++ tools, headers and libraries.
       VSINSTALLDIR='C:\Program Files (x86)\Microsoft Visual Studio 14.0'
       VCINSTALLDIR="${VSINSTALLDIR}"'\VC'
@@ -137,29 +147,33 @@ Note: For the moment, the status of the target platforms is as follows:
 
    - for creating 64-bit binaries: through the following bash commands:
 
-     # Set environment variables for using MSVC 14,
-     # for creating native 64-bit Windows executables.
+      # Set environment variables for using MSVC 14,
+      # for creating native 64-bit Windows executables.
 
-     # Windows C library headers and libraries.
-     WindowsCrtIncludeDir='C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt'
-     WindowsCrtLibDir='C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\ucrt\'
-     INCLUDE="${WindowsCrtIncludeDir};$INCLUDE"
-     LIB="${WindowsCrtLibDir}x64;$LIB"
+      # Windows C library headers and libraries.
+      WindowsCrtIncludeDir='C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt'
+      WindowsCrtLibDir='C:\Program Files (x86)\Windows Kits\10\Lib\10.0.10240.0\ucrt\'
+      INCLUDE="${WindowsCrtIncludeDir};$INCLUDE"
+      LIB="${WindowsCrtLibDir}x64;$LIB"
 
-     # Windows API headers and libraries.
-     WindowsSdkIncludeDir='C:\Program Files (x86)\Windows Kits\8.1\Include\'
-     WindowsSdkLibDir='C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\'
-     INCLUDE="${WindowsSdkIncludeDir}um;${WindowsSdkIncludeDir}shared;$INCLUDE"
-     LIB="${WindowsSdkLibDir}x64;$LIB"
+      # Windows API headers and libraries.
+      WindowsSdkIncludeDir='C:\Program Files (x86)\Windows Kits\8.1\Include\'
+      WindowsSdkLibDir='C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\'
+      INCLUDE="${WindowsSdkIncludeDir}um;${WindowsSdkIncludeDir}shared;$INCLUDE"
+      LIB="${WindowsSdkLibDir}x64;$LIB"
 
-     # Visual C++ tools, headers and libraries.
-     VSINSTALLDIR='C:\Program Files (x86)\Microsoft Visual Studio 14.0'
-     VCINSTALLDIR="${VSINSTALLDIR}"'\VC'
-     PATH=`cygpath -u "${VCINSTALLDIR}"`/bin/amd64:"$PATH"
-     INCLUDE="${VCINSTALLDIR}"'\include;'"${INCLUDE}"
-     LIB="${VCINSTALLDIR}"'\lib\amd64;'"${LIB}"
+      # Windows tools.
+      WindowsSdkBinDir='C:\Program Files (x86)\Windows Kits\8.1\bin\'
+      PATH=`cygpath -u "${WindowsSdkBinDir}x64"`:"$PATH"
 
-     export INCLUDE LIB
+      # Visual C++ tools, headers and libraries.
+      VSINSTALLDIR='C:\Program Files (x86)\Microsoft Visual Studio 14.0'
+      VCINSTALLDIR="${VSINSTALLDIR}"'\VC'
+      PATH=`cygpath -u "${VCINSTALLDIR}"`/bin/amd64:"$PATH"
+      INCLUDE="${VCINSTALLDIR}"'\include;'"${INCLUDE}"
+      LIB="${VCINSTALLDIR}"'\lib\amd64;'"${LIB}"
+
+      export INCLUDE LIB
 
    Building 32-bit binaries with MSVC is achieved through the following
    preparation, configure, and build commands:

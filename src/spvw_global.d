@@ -51,11 +51,11 @@ local struct {
   /* now comes the Lisp STACK */
   /* now room for the heaps containing Lisp objects. */
   Heap heaps[heapcount];
-#if defined(MULTITHREAD)
+ #if defined(MULTITHREAD)
   /*VTZ:  we can live with just single lock for allocation and GC.
     The alloc_lock will guard the GC as well.*/
   spinlock_t alloc_lock;
-#endif
+ #endif
  #ifdef SPVW_PURE
   sintB heaptype[heapcount];
   /* for every typecode:
@@ -105,13 +105,13 @@ local struct {
 #endif
   #define MINIMUM_SPACE 0x10000L /* 64 KByte as minimal memory for LISP-data */
 #ifdef TRIVIALMAP_MEMORY
-#if defined(MULTITHREAD)
-/* in MT we malloc() the lisp stacks - let's have more memory until we find
-   a better way to allocate the stacks */
+ #if defined(MULTITHREAD)
+ /* in MT we malloc() the lisp stacks - let's have more memory until we find
+    a better way to allocate the stacks */
   #define RESERVE_FOR_MALLOC 0x400000L /* leave 4 MByte address space free, for malloc */
-#else
+ #else
   #define RESERVE_FOR_MALLOC 0x100000L /* leave 1 MByte address space free, for malloc */
-#endif
+ #endif
 #endif
 
 /* Iteration through all heaps.

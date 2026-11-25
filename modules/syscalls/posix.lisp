@@ -283,7 +283,7 @@
   (minor 0 :type (integer 0) :read-only t)
   (build 0 :type (integer 0) :read-only t)
   (revision 0 :type (integer 0) :read-only t)
-  ;; http://msdn.microsoft.com/en-us/library/ms647464(v=vs.85).aspx
+  ;; https://learn.microsoft.com/en-us/windows/win32/menurc/string-str
   Comments
   Company-Name
   File-Description
@@ -320,7 +320,8 @@
 (unless (fboundp 'service)
 (defvar *services*)
 (defvar *services-file*
-  #+unix "/etc/services"
+  #+(and unix (not haiku)) "/etc/services"
+  #+haiku "/boot/system/settings/network/services"
   #+win32 (string-concat (getenv "WINDIR") "/system32/drivers/etc/services")
   #-(or unix win32)
   (error "~S: only ~S and ~S are supported" '*services-file* :unix :win32))
@@ -426,7 +427,7 @@
 (defconstant stderr (%stdio 2))
 ;;;--------------------------------------------------------------------------
 (defun ffs (n) (integer-length (logand n (- n))))
-;; http://opengroup.org/onlinepubs/9699919799/functions/ffs.html
+;; https://pubs.opengroup.org/onlinepubs/9799919799/functions/ffs.html
 ;; this lisp implementation is about 10% faster than using FFI:
 ;; (ffi:def-call-out ffs (:name "ffs") (:arguments (i ffi:int))
 ;;   (:return-type ffi:int) (:language :stdc) (:library :default))

@@ -25,14 +25,14 @@ if test -n "${CONFIG_SHELL}"; then
   # if CONFIG_SHELL is bash, but /bin/sh is not, restart with bash
   if test -n "`${CONFIG_SHELL} --version 2>/dev/null | grep bash 2>/dev/null`"
   then # CONFIG_SHELL is bash
-    test -n "${BASH_VERSION}" || exec ${CONFIG_SHELL} $0 $*
+    test -n "${BASH_VERSION}" || exec ${CONFIG_SHELL} "$0" "$@"
   fi
 else
   CONFIG_SHELL=/bin/sh
 fi
 
 # Download location of the newest libsigsegv release.
-libsigsegv_url='https://ftp.gnu.org/gnu/libsigsegv/libsigsegv-2.12.tar.gz'
+libsigsegv_url='https://ftp.gnu.org/gnu/libsigsegv/libsigsegv-2.16.tar.gz'
 
 fail () { echo "$*" >&2; exit 1; }
 
@@ -99,7 +99,7 @@ options: The following options are recognized:
   --enable-portability  favour portability over optimization: disable
                         optimizations that could lead to build failures
   --with-gmalloc        use the GNU malloc instead of of the libc one
-                        (needed on HP-UX and OpenBSD)
+                        (needed on OpenBSD)
   --with-debug          if you will need to debug the C sources
   --edit-config         edit config.lisp with ${EDITOR:-vi} before make
                         (useful with --cbc)
@@ -485,11 +485,6 @@ do
       --without-dynamic-modules | --with-dynamic-modules=no)
         makemake_args="--with-dynamic-modules=no ${makemake_args}" ;;
 
-      --with-mingw | --with-no-cygwin | --without-cygwin | --with-cygwin=no)
-        echo "$0: $arg is deprecated; use --build= or CC=... instead"
-        CC="${CC:-gcc} -mno-cygwin"; export CC;
-        makemake_args="$makemake_args --win32gcc" ;;
-
       --with-module=*) note_module `getarg $arg` ;;
 
       --with-module)
@@ -668,21 +663,6 @@ if test -n "$do_config"; then
     CC="$COMPILER"
     export CC
   fi
-  if test -n "$CC"; then
-    # cygwin comes with a true cross-compiler, i.e. one does
-    #   ./configure CC=i686-w64-mingw32-gcc ...
-    # instead of ./configure --with-mingw
-    case "$CC" in
-      *gcc*)
-        CC_machine=`($CC -dumpmachine) 2>/dev/null` || :
-        case "$CC_machine" in
-          *mingw32* )
-            echo "cross-compiling for mingw"
-            subdir_configure_args="${subdir_configure_args} --build=$CC_machine" ;;
-        esac
-        ;;
-    esac
-  fi
   cd "${ABS_DIRNAME}"
   echo "executing $REL_SRCDIR/src/configure $*"
   if test -n "$do_cbc"; then
@@ -696,11 +676,6 @@ fi
 
 . "${ABS_DIRNAME}/config.cache"
 
-case ${ac_cv_host} in           # mingw/msys
-  *mingw32*)
-    makemake_args="${makemake_args} --with-dynamic-modules=no --win32gcc" ;;
-esac
-
 test -n "${cl_cv_have_ffcall}" || cl_cv_have_ffcall=notchecked
 cat <<EOF
 Configure findings:
@@ -709,7 +684,7 @@ Configure findings:
   libsigsegv: ${gl_cv_lib_sigsegv}
 EOF
 
-# The user can set MAKE. In particular, on IRIX, VPATH builds require GNU make.
+# The user can set MAKE. In particular, the user may prefer GNU make.
 if test -z "${MAKE}"; then
   MAKE=make
 fi
@@ -743,7 +718,7 @@ if [ "${gl_cv_lib_sigsegv}" != "yes" ]; then
     echo "As you requested, we will proceed without libsigsegv..."
   else
     if [ "$ac_cv_build" = "$ac_cv_host" ]; then host_arg="";
-    else host_arg=" --host=$ac_cv_host --build=$ac_cv_build";
+    else host_arg=" --host=$ac_cv_host";
     fi
     cat <<EOF 1>&2
 $0: libsigsegv was not detected, thus some features, such as

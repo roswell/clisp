@@ -1,6 +1,6 @@
 /*
  * Pathnames for CLISP
- * Bruno Haible 1990-2013, 2016-2018, 2020
+ * Bruno Haible 1990-2026
  * Logical Pathnames: Marcus Daniels 16.9.1994
  * ANSI compliance, bugs: Sam Steingold 1998-2013, 2016-2017
  * German comments translated into English: Stefan Kain 2002-01-03
@@ -29,7 +29,7 @@
 
 /* We need the realpath() function in two variants:
    (1) The POSIX function, declared in <stdlib.h>.
-       <http://opengroup.org/onlinepubs/9699919799/functions/realpath.html>
+       <https://pubs.opengroup.org/onlinepubs/9799919799/functions/realpath.html>
    (2) Our own implementation that returns information about the missing
        directory component, in case of ENOENT return.
    We need (1) because on some systems, notably on Cygwin,
@@ -57,7 +57,7 @@
      the error, and places in resolved_path the absolute pathname
      of the path component which could not be resolved. */
 local char* my_realpath (const char* path, char* resolved_path) {
-  /* Method: use getwd and readlink. */
+  /* Method: use getcwd and readlink. */
   var char mypath[MAXPATHLEN];
   var int symlinkcount = 0; /* the number of symbolic links so far */
   var char* resolved_limit = &resolved_path[MAXPATHLEN-1];
@@ -69,7 +69,7 @@ local char* my_realpath (const char* path, char* resolved_path) {
     var char* resolved_ptr = resolved_path; /* always <= resolved_limit */
     /* poss. use Working-Directory: */
     if (!(path[0]=='/')) { /* not an absolute pathname? */
-      if (getwd(resolved_path) == NULL)
+      if (getcwd(resolved_path,MAXPATHLEN) == NULL)
         return NULL;
       resolved_ptr = resolved_path;
       while (*resolved_ptr) {
@@ -235,7 +235,12 @@ local char* my_realpath (const char* path, char* resolved_path) {
   return resolved_path; /* finished */
 }
 
-#if defined(UNIX) && defined(HAVE_REALPATH)
+/* The native realpath() on AIX and Solaris reports an error EACCES for
+   unreadable directories, unlike the realpath() on other platforms. Its
+   effect would be that (DIRECTORY wild-pathname :IF-DOES-NOT-EXIST :KEEP)
+   reports an error where it shouldn't. */
+#if defined(UNIX) && defined(HAVE_REALPATH) \
+    && !(defined(UNIX_AIX) || defined(UNIX_SUNOS5))
   /* We use realpath() from <stdlib.h>. */
   #define realpath_is_my_realpath false
 #else
@@ -395,7 +400,8 @@ local BOOL move_file (char* src, char* dst) {
     move_file_ex = (fMoveFileEx_t)GetProcAddress(k32,"MoveFileExA");
   if (k32 && move_file_ex)
     return move_file_ex(src,dst,MOVEFILE_REPLACE_EXISTING);
-  else return MoveFile(src,dst);
+  else
+    return MoveFile(src,dst);
 }
  #else
   #define move_file MoveFile
@@ -886,7 +892,7 @@ local _Noreturn void error_pathname_designator (object thing) {
  < stream: File-Stream */
 local object as_file_stream (object stream) {
   var object s = stream;
-  while (1) {
+  while (true) {
     if (TheStream(s)->strmtype == strmtype_file)
       return s;
     if (!(TheStream(s)->strmtype == strmtype_synonym))
@@ -914,7 +920,7 @@ local _Noreturn void error_file_stream_unnamed (object stream) {
 /* Ensure that IF the file stream has a name, THEN it also has truename
  > file-stream (open or closed) - no type check is done!
  < truename of the file associated with the stream
- for syscall module */
+ for syscalls module */
 modexp maygc object file_stream_truename (object stream) {
   test_file_stream_named(stream);
   if (nullp(TheStream(stream)->strm_file_truename)) {
@@ -1148,7 +1154,7 @@ local maygc object parse_logical_host_prefix (zustand* zp, object string) {
   var uintL startindex = zp->index;
   var chart ch;
   /* a sequence of alphanumeric characters and then ':' */
-  while (1) {
+  while (true) {
     if (zp->count==0)
       return NIL; /* string already ended -> no host */
     ch = schar(string,zp->index); /* next character */
@@ -1303,7 +1309,7 @@ local maygc uintL parse_logical_pathnamestring (zustand z) {
   } else {
     Car(STACK_0) = S(Kabsolute);
   }
-  while (1) {
+  while (true) {
     /* try to parse the next subdir */
     var object subdir = parse_logical_word(&z,true);
     if (nullp(subdir))
@@ -1600,7 +1606,7 @@ LISPFUN(parse_namestring,seclass_rd_sig,1,2,norest,key,3,
         goto hostspec_ok;
        #else
         /* is it a sequence of alphanumeric characters and then a ':' resp. '::' ? */
-        while (1) {
+        while (true) {
           if (z.count==0)
             goto no_hostspec; /* string already through -> no Host */
           ch = TheSnstring(STACK_1)->data[z.index]; /* next character */
@@ -1814,7 +1820,8 @@ LISPFUN(parse_namestring,seclass_rd_sig,1,2,norest,key,3,
             STACK_0 = new_cons;
             Z_SHIFT(z,2);
             if (Z_AT_SLASH(z,pslashp,STACK_2)) Z_SHIFT(z,1);
-          } else goto continue_parsing_despite_colon;
+          } else
+            goto continue_parsing_despite_colon;
         } else
         continue_parsing_despite_colon:
       #endif
@@ -1827,12 +1834,12 @@ LISPFUN(parse_namestring,seclass_rd_sig,1,2,norest,key,3,
           STACK_0 = new_cons;
         }
      #endif
-      while (1) {
+      while (true) {
         /* try to parse another subdirectory. */
        #ifdef PATHNAME_NOEXT
         {
           var uintL z_start_index = z.index; /* index at the start */
-          while (1) {
+          while (true) {
             var chart ch;
             if (z.count == 0)
               break;
@@ -2181,7 +2188,7 @@ LISPFUN(translate_logical_pathname,seclass_default,1,0,norest,key,1,
     pushSTACK(S(Ktest)); pushSTACK(L(equal)); funcall(L(make_hash_table),2);
     pushSTACK(value1);
     /* stack layout: pathname, ht. */
-    while (1) {
+    while (true) {
       if (!nullp(shifthash(STACK_0,STACK_1,T,true))) {
         /* STACK_1 = pathname; -- FILE-ERROR slot PATHNAME */
         STACK_0 = STACK_1;
@@ -2555,8 +2562,8 @@ local object test_optional_version (object def) {
 #ifdef UNIX
 
 /* the operating system manages a default-directory ("working directory")
- for this process. It can be changed with chdir and queried with getwd.
- See CHDIR(2) and GETWD(3). */
+ for this process. It can be changed with chdir and queried with getcwd.
+ See CHDIR(2) and GETCWD(3). */
 
 #endif
 
@@ -2935,8 +2942,10 @@ LISPFUN(merge_pathnames,seclass_read,1,2,norest,key,1, (kw(wild))) {
  If HAS_HOST and HAS_DEVICE are both true, the semantics are more
  complicated; see CLHS for details. */
 #define SET_NEWP(slot,value)                            \
-      if (log2) TheLogpathname(newp)->slot = value;     \
-      else ThePathname(newp)->slot = value;
+      if (log2)                                         \
+        TheLogpathname(newp)->slot = value;             \
+      else                                              \
+        ThePathname(newp)->slot = value;
 LISPFUN(enough_namestring,seclass_read,1,1,norest,nokey,0,NIL) {
   /* check pathname and defaults:
    turn pathname into a Pathname: */
@@ -2980,7 +2989,7 @@ LISPFUN(enough_namestring,seclass_read,1,1,norest,nokey,0,NIL) {
               var object Lp = p_directory;
               var object Ld = d_directory;
               /* Is Ld a starting piece of Lp ? */
-              while (1) {
+              while (true) {
                 if (atomp(Ld)) { /* Ld finished -> yes */
                   new_subdirs = Lp;
                   /* new-subdirs := (cons :RELATIVE new-subdirs) : */
@@ -3494,8 +3503,10 @@ LISPFUN(make_logical_pathname,seclass_read,0,0,norest,key,8,
          kw(directory),kw(name),kw(type),kw(version)) )
 { /* A logical pathname as :HOST-Argument for MAKE-PATHNAME
    enforces a logical pathname as result. */
-  if (boundp(STACK_5)) STACK_5 = string_upcase(STACK_5); /* host */
-  else STACK_5 = NIL;
+  if (boundp(STACK_5))
+    STACK_5 = string_upcase(STACK_5); /* host */
+  else
+    STACK_5 = NIL;
   { var object obj = allocate_logpathname();
     TheLogpathname(obj)->pathname_host = STACK_5;
     STACK_5 = obj; }
@@ -3778,7 +3789,7 @@ local bool wildcard_match (object pattern, object sample) {
 local bool wildcard_match_ab (uintL m_count, const chart* m_ptr,
                               uintL b_count, const chart* b_ptr) {
   var chart c;
-  while (1) {
+  while (true) {
     if (m_count==0)
       return (b_count==0); /* "" matches only "" */
     m_count--;
@@ -3797,7 +3808,7 @@ local bool wildcard_match_ab (uintL m_count, const chart* m_ptr,
    (because a sequence '*??*???***?' matches everything, that is as least as
    long as the sequence of question marks). The '?' can also be utilized
    immediately, because '*??*???***?' is equivalent to '??????*' . */
-  while (1) {
+  while (true) {
     if (m_count==0) return true; /* wildcard at the end matches the rest. */
     m_count--;
     c = *m_ptr++; /* next match-character */
@@ -3809,7 +3820,7 @@ local bool wildcard_match_ab (uintL m_count, const chart* m_ptr,
       break;
   }
   /* c = next non-wildcard-character. Search it. */
-  while (1) {
+  while (true) {
     if (b_count==0) return false; /* c not found */
     b_count--;
     if (equal_pathchar(*b_ptr++,c)) {
@@ -3877,7 +3888,7 @@ local bool directory_match_ab (object m_list, object b_list, bool logical);
 local bool directory_match_ab (object m_list, object b_list, bool logical) {
   /* Algorithm analogous to wildcard_match_ab. */
   var object item;
-  while (1) {
+  while (true) {
     if (atomp(m_list)) { return atomp(b_list); }
     item = Car(m_list); m_list = Cdr(m_list);
     if (eq(item,S(Kwild_inferiors))) break;
@@ -3885,12 +3896,12 @@ local bool directory_match_ab (object m_list, object b_list, bool logical) {
     if (!subdir_match(item,Car(b_list),logical)) return false;
     b_list = Cdr(b_list);
   }
-  while (1) {
+  while (true) {
     if (atomp(m_list)) return true;
     item = Car(m_list); m_list = Cdr(m_list);
     if (!eq(item,S(Kwild_inferiors))) break;
   }
-  while (1) {
+  while (true) {
     if (atomp(b_list)) return false;
     if (subdir_match(item,Car(b_list),logical)) {
       b_list = Cdr(b_list);
@@ -4021,7 +4032,7 @@ local maygc void wildcard_diff_ab (object pattern, object sample,
                                    const gcv_object_t* previous,
                                    gcv_object_t* solutions) {
   var chart cc;
-  while (1) {
+  while (true) {
     if (m_index == Sstring_length(pattern)) {
       if (b_index == Sstring_length(sample))
         push_solution();
@@ -4055,7 +4066,7 @@ local maygc void wildcard_diff_ab (object pattern, object sample,
     }
   }
   var uintL b_start_index = b_index;
-  while (1) {
+  while (true) {
     /* to reduce consing, intercept cases when wildcard_diff_ab()
        does nothing */
     if (m_index == Sstring_length(pattern)
@@ -4237,7 +4248,7 @@ local maygc void directory_diff_ab (object m_list, object b_list, bool logical,
     skipSTACK(3);
   } else {
     pushSTACK(b_list); /* b_start_list := b_list */
-    while (1) {
+    while (true) {
       /* to reduce consing, intercept cases when directory_diff_ab()
        does nothing: */
       if (atomp(m_list)
@@ -4466,7 +4477,7 @@ local maygc object translate_nametype_aux (gcv_object_t* subst, object pattern,
     var uintL len = Sstring_length(pattern);
     var uintL index = 0;
     var uintL stringcount = 0; /* number of strings on the stack */
-    while (1) {
+    while (true) {
       var uintL last_index = index;
       var chart cc;
       /* search next wildcard-character: */
@@ -4607,7 +4618,8 @@ local maygc object translate_pathname (gcv_object_t* subst, object pattern) {
   /* call (MAKE-PATHNAME ...) resp. (SYS::MAKE-LOGICAL-PATHNAME ...) : */
   if (logical)
     funcall(L(make_logical_pathname),2+2*HAS_DEVICE+8);
-  else funcall(L(make_pathname),2+2*HAS_DEVICE+8);
+  else
+    funcall(L(make_pathname),2+2*HAS_DEVICE+8);
   skipSTACK(2);
   return value1;
  subst_error: /* Error because of nullobj. */
@@ -5118,16 +5130,21 @@ static BOOL FullName (LPCSTR shortname, LPSTR fullname) {
           strcpy(fullname+ops,wfd.cFileName);
           ops+=strlen(wfd.cFileName);
           FindClose(h);
-        } else return false; /* file not found */
+        } else
+          return false; /* file not found */
         state = 3;
       } break;
       case fn_slash:
-        if (state == 1) state = 2;
-        else return false; /* two slashes in a row */
+        if (state == 1)
+          state = 2;
+        else
+          return false; /* two slashes in a row */
         break;
       case fn_eof:
-        if (state == 1 && current == rent) return false; /* D: */
-        else state = 0;
+        if (state == 1 && current == rent)
+          return false; /* D: */
+        else
+          state = 0;
         break;
       default:
         return false;/* program error */
@@ -5192,9 +5209,10 @@ struct file_status {
   object fs_namestring; /* usually returned by assure_dir_exists() */
   DWORD fs_fileattr;
 };
-local inline bool file_status_is_dir (struct file_status *fs)
-{ return fs->fs_fileattr == 0xFFFFFFFF
-    || !(fs->fs_fileattr & FILE_ATTRIBUTE_DIRECTORY); }
+local inline bool file_status_is_dir (struct file_status *fs) {
+  return fs->fs_fileattr == 0xFFFFFFFF
+         || !(fs->fs_fileattr & FILE_ATTRIBUTE_DIRECTORY);
+}
 local inline void file_status_init(struct file_status *fs,gcv_object_t *path) {
   fs->fs_pathname = path;
   fs->fs_namestring = nullobj;
@@ -5203,10 +5221,8 @@ local inline void file_status_init(struct file_status *fs,gcv_object_t *path) {
 local maygc void assure_dir_exists (struct file_status *fs,
                                     bool links_resolved, bool tolerantp) {
   var bool nnullp = namenullp(*(fs->fs_pathname));
-  if (nnullp && links_resolved) {
-    fs->fs_namestring = directory_namestring(*(fs->fs_pathname));
-    return;
-  }
+  if (nnullp && links_resolved)
+    goto dir_exists;
   with_sstring_0(whole_namestring(*(fs->fs_pathname)),O(pathname_encoding),
                  path, {
     var char resolved[MAX_PATH];
@@ -5244,12 +5260,12 @@ local maygc void assure_dir_exists (struct file_status *fs,
                turn it into a pathname and use it with old name: */
               pushSTACK(coerce_pathname(STACK_0));
               /* save old pathname name and type components */
-              pushSTACK(ThePathname(STACK_2)->pathname_name);
-              pushSTACK(ThePathname(STACK_3)->pathname_type);
-              *(fs->fs_pathname) = STACK_2;
-              ThePathname(*(fs->fs_pathname))->pathname_name = STACK_1;
-              ThePathname(*(fs->fs_pathname))->pathname_type = STACK_0;
-              skipSTACK(4);
+              var object old_name = ThePathname(*(fs->fs_pathname))->pathname_name;
+              var object old_type = ThePathname(*(fs->fs_pathname))->pathname_type;
+              *(fs->fs_pathname) = STACK_0;
+              ThePathname(*(fs->fs_pathname))->pathname_name = old_name;
+              ThePathname(*(fs->fs_pathname))->pathname_type = old_type;
+              skipSTACK(2);
               error = false;
             }
           }
@@ -5274,16 +5290,20 @@ local maygc void assure_dir_exists (struct file_status *fs,
       nnullp = namenullp(*(fs->fs_pathname));
     }
   });
+ dir_exists:
   /* merge in *DEFAULT-PATHNAME-DEFAULTS* & :VERSION :NEWEST:
      for cross-platform consistency, either all or no versions of
      assure_dir_exists() must call MERGE-PATHNAMES  */
-  funcall(L(merge_pathnames),1); pushSTACK(value1);
+  pushSTACK(*(fs->fs_pathname));
+  funcall(L(merge_pathnames),1);
+  *(fs->fs_pathname) = value1;
   { var object dns = directory_namestring(*(fs->fs_pathname));
-    fs->fs_namestring = nnullp ? dns : OSnamestring(dns); }
+    fs->fs_namestring = nnullp ? dns : OSnamestring(dns);
+  }
 }
 #endif
 
-#endif
+#endif /* PATHNAME_WIN32 */
 
 #ifdef PATHNAME_UNIX
 
@@ -5294,7 +5314,7 @@ local maygc object default_directory (void) {
   var char path_buffer[MAXPATHLEN]; /* cf. GETWD(3) */
   /* store Working Directory in path_buffer: */
   begin_blocking_system_call();
-  if ( getwd(&path_buffer[0]) ==NULL) {
+  if ( getcwd(&path_buffer[0],MAXPATHLEN) ==NULL) {
     end_blocking_system_call();
     pushSTACK(O(dot_string)); /* FILE-ERROR slot PATHNAME */
     pushSTACK(asciz_to_string(&path_buffer[0],O(pathname_encoding))); /* message */
@@ -5366,8 +5386,9 @@ struct file_status {
   bool fs_stat_validp;
   struct stat fs_stat;
 };
-local inline bool file_status_is_dir (struct file_status *fs)
-{ return S_ISDIR(fs->fs_stat.st_mode); }
+local inline bool file_status_is_dir (struct file_status *fs) {
+  return S_ISDIR(fs->fs_stat.st_mode);
+}
 local inline void file_status_init(struct file_status *fs,gcv_object_t *path) {
   fs->fs_pathname = path;
   fs->fs_namestring = nullobj;
@@ -5456,7 +5477,7 @@ local maygc void assure_dir_exists (struct file_status *fs,
   var uintC allowed_links = MAXSYMLINKS; /* number of allowed symbolic links */
   if (links_resolved)
     goto dir_exists;
-  while (1) { /* loop over the symbolic links to be resolved */
+  while (true) { /* loop over the symbolic links to be resolved */
     { /* determine Truepath of the directory: */
       var char path_buffer[MAXPATHLEN]; /* cf. REALPATH(3) */
       {
@@ -5729,7 +5750,8 @@ LISPFUNNS(probe_file,1)
   }
   if (file_exists(&fs)) /* check, if the file exists: */
     VALUES1(*(fs.fs_pathname)); /* file exists -> pathname as value */
-  else VALUES1(NIL); /* else NIL as value */
+  else
+    VALUES1(NIL); /* else NIL as value */
   skipSTACK(1);
 }
 
@@ -5770,8 +5792,10 @@ local void find_first_file (const char *namestring_asciz,
  < fsize: file size (if return is success and address is supplied)
  < returns: the file kind
  triggers GC if fwd or fsize are supplied */
-global /*maygc*/ file_kind_t classify_namestring
-(const char* namestring, char *resolved, gcv_object_t *fwd, gcv_object_t* fsize) {
+global /*maygc*/ file_kind_t classify_namestring (const char* namestring,
+                                                  char *resolved,
+                                                  gcv_object_t *fwd,
+                                                  gcv_object_t* fsize) {
   if (fwd || fsize) GCTRIGGER();
 #if defined(UNIX)
   var struct stat status;
@@ -5784,8 +5808,10 @@ global /*maygc*/ file_kind_t classify_namestring
     realpath(namestring,resolved); /* ==> success assured */
     if (fwd) *fwd = convert_time_to_universal(&(status.st_mtime));
     if (fsize) *fsize = off_to_I(status.st_size);
-    if (S_ISDIR(status.st_mode)) return FILE_KIND_DIR;
-    else return FILE_KIND_FILE;
+    if (S_ISDIR(status.st_mode))
+      return FILE_KIND_DIR;
+    else
+      return FILE_KIND_FILE;
   }
 #elif defined(WIN32_NATIVE)
   var bool ret;
@@ -5803,11 +5829,14 @@ global /*maygc*/ file_kind_t classify_namestring
         ((uint64)filedata.nFileSizeHigh<<32)|filedata.nFileSizeLow);
       if (filedata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
         return FILE_KIND_DIR;
-      else return FILE_KIND_FILE;
+      else
+        return FILE_KIND_FILE;
     } else {
-      /* you get ERROR_INVALID_NAME on GetFileAttributes("foo/")
-         when file "foo" exists */
-      if (!(WIN32_ERROR_NOT_FOUND || GetLastError() == ERROR_INVALID_NAME))
+      /* GetFileAttributes("foo/") when file "foo" exists produces
+         an ERROR_INVALID_NAME (earlier Windows) or ERROR_DIRECTORY
+         (since Windows 11). */
+      if (!(WIN32_ERROR_NOT_FOUND || GetLastError() == ERROR_INVALID_NAME
+            || GetLastError() == ERROR_DIRECTORY))
         return FILE_KIND_BAD;
       return FILE_KIND_NONE;    /* does not exist */
     }
@@ -5846,14 +5875,15 @@ LISPFUN(probe_pathname,seclass_rd_sig,1,0,norest,key,1,(kw(error)))
           && namestring_asciz_bytelen > 1    /* no need to classify "" */
           && cpslashp(namestring_asciz[namestring_asciz_bytelen-1]))
         namestring_asciz[--namestring_asciz_bytelen] = 0; /* strip last slash */
-      else break;
+      else
+        break;
     }
   });
   switch (classification) {
     case FILE_KIND_BAD:
       if (errorp)
         OS_file_error(STACK_0);
-      /*FALLTHROUGH*/
+      FALLTHROUGH;
     case FILE_KIND_NONE:        /* does not exist */
       VALUES1(NIL); skipSTACK(3); return;
     case FILE_KIND_DIR: {       /* directory */
@@ -6308,8 +6338,10 @@ local maygc inline Handle open_output_file (char* pathstring, bool wronly,
     if (stat(pathstring,&statbuf) ||
         S_ISREG(statbuf.st_mode) || S_ISBLK(statbuf.st_mode))
       flags |= O_RDWR;         /* not exists or regular => read-write */
-    else flags |= O_WRONLY;     /* special => write-only */
-  } else flags |= O_RDWR;
+    else
+      flags |= O_WRONLY;       /* special => write-only */
+  } else
+    flags |= O_RDWR;
   var int result = OPEN(pathstring,flags,my_open_mask);
   end_blocking_system_call();
   if (result<0) { OS_file_error(STACK_0); } /* report error */
@@ -6372,8 +6404,8 @@ local inline maygc void create_backup_file (char* pathstring,
   });
   skipSTACK(1);
 }
-local inline maygc void create_backup_file_obj
-(object namestring, bool delete_backup_file) {
+local inline maygc void create_backup_file_obj (object namestring,
+                                                bool delete_backup_file) {
   with_sstring_0(namestring,O(pathname_encoding),namestring_asciz,
                  { create_backup_file(namestring_asciz,delete_backup_file); });
 }
@@ -6390,7 +6422,8 @@ modexp direction_t check_direction (object dir) {
     return DIRECTION_IO;
   else if (eq(dir,S(Kprobe)))
     return DIRECTION_PROBE;
-  else error_illegal_arg(dir,O(type_direction),S(Kdirection));
+  else
+    error_illegal_arg(dir,O(type_direction),S(Kdirection));
 }
 
 local object direction_symbol (direction_t direction) {
@@ -6415,8 +6448,8 @@ modexp if_does_not_exist_t check_if_does_not_exist (object if_not_exist) {
     return IF_DOES_NOT_EXIST_NIL;
   else if (eq(if_not_exist,S(Kcreate)))
     return IF_DOES_NOT_EXIST_CREATE;
-  else error_illegal_arg(if_not_exist,O(type_if_does_not_exist),
-                         S(Kif_does_not_exist));
+  else
+    error_illegal_arg(if_not_exist,O(type_if_does_not_exist),S(Kif_does_not_exist));
 }
 
 /* Converts a :IF-DOES-NOT-EXIST enum item to a symbol.
@@ -6450,7 +6483,8 @@ modexp if_exists_t check_if_exists (object if_exists) {
     return IF_EXISTS_APPEND;
   else if (eq(if_exists,S(Koverwrite)))
     return IF_EXISTS_OVERWRITE;
-  else error_illegal_arg(if_exists,O(type_if_exists),S(Kif_exists));
+  else
+    error_illegal_arg(if_exists,O(type_if_exists),S(Kif_exists));
 }
 
 /* Converts a :IF-EXISTS enum item to a symbol.
@@ -6617,7 +6651,7 @@ local maygc object open_file (object filename, direction_t direction,
       }
       handle = allocate_handle(handl);
     } break;
-    case DIRECTION_OUTPUT: wronly_flag = true; /*FALLTHROUGH*/
+    case DIRECTION_OUTPUT: wronly_flag = true; FALLTHROUGH;
     case DIRECTION_IO:
       /* default for if_not_exists depends on if_exists: */
       if (if_not_exists==IF_DOES_NOT_EXIST_UNBOUND) {
@@ -7028,12 +7062,14 @@ local maygc bool split_nametype_match(gcv_object_t *pattern,
 /* should be per thread - moved to clisp_thread_t in MT */
 local bool running_handle_directory_encoding_error = false;
 #endif
-local void handle_directory_encoding_error /* cf. enter_frame_at_STACK */
-(void *sp, gcv_object_t* frame, object label, object condition) {
+local void handle_directory_encoding_error (void *sp, gcv_object_t* frame,
+                                            object label, object condition) {
+  /* cf. enter_frame_at_STACK */
   unused(sp); unused(label);
   /* avoid nested handle_directory_encoding_error calls */
-  if (running_handle_directory_encoding_error) return;
-  else running_handle_directory_encoding_error = true;
+  if (running_handle_directory_encoding_error)
+    return;
+  running_handle_directory_encoding_error = true;
   value1 = condition;
   unwind_upto(frame);
 }
@@ -7086,8 +7122,7 @@ local maygc object direntry_to_string (char* string, volatile int len) {
  < returns the size in bytes needed for struct dirent buffer
 
  This code does not trust values of NAME_MAX that are less than
- 255, since some systems (including at least HP-UX) incorrectly
- define it to be a smaller value.
+ 255, since some systems incorrectly define it to be a smaller value.
  If you use autoconf, include fpathconf and dirfd in your
  AC_CHECK_FUNCS list.  Otherwise use some other method to detect
  and use them where available. */
@@ -7154,7 +7189,7 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
         default: NOTREACHED;
       }
     }
-    while (1) {
+    while (true) {
      #if defined(MULTITHREAD) && defined(HAVE_READDIR_R)
       /* we should use readdir_r(). it is thread safe (but optional in POSIX)
          TODO: some config scripts for it ? Is there thread safe, portable
@@ -7199,7 +7234,7 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
         direntry = direntry_to_string(dp->d_name,direntry_len);
       }
       #ifdef MULTITHREAD
-       FREE_DYNAMIC_ARRAY(dp_buf);
+        FREE_DYNAMIC_ARRAY(dp_buf);
       #endif
       if (!nullp(direntry)) {
         pushSTACK(direntry);
@@ -7233,8 +7268,8 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
             }
           } else if (TASK_FILE_P(next_task)) { /* match name&type with direntry: */
             pushSTACK(namestring);
-            var bool name_type_match = split_nametype_match(
-              &STACK_(2+4+3+1),&STACK_(2+1),&STACK_(0+1));
+            var bool name_type_match =
+              split_nametype_match(&STACK_(2+4+3+1),&STACK_(2+1),&STACK_(0+1));
             namestring = popSTACK();
             if (name_type_match) {
               if (directory_search_direntry_ok(namestring,&status)) {
@@ -7334,9 +7369,10 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
           end_blocking_system_call();
           if (dsp->if_none == DIR_IF_NONE_IGNORE) {
             FREE_DYNAMIC_ARRAY(namestring_asciz); return;
-          } else OS_file_error(STACK_1);
+          } else
+            OS_file_error(STACK_1);
         }, break; );
-        while (1) {
+        while (true) {
           end_blocking_system_call();
           /* convert directory-entry into string: */
           var object direntry = direntry_to_string(READDIR_entry_name(),-1);
@@ -7364,8 +7400,7 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
 
             /* try to resolve .lnk files */
             if (!READDIR_entry_ISDIR() && !nullp(STACK_0)
-                && string_equal(STACK_0,O(lnk_string)))
-            {
+                && string_equal(STACK_0,O(lnk_string))) {
               var char resolved[MAX_PATH];
               var char * full_resolved = resolved;
               with_sstring_0(whole_namestring(STACK_(3)),O(pathname_encoding),linkfile_asciz, {
@@ -7409,7 +7444,7 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
 
             if (rresolved == shell_shortcut_notexists
                 && dsp->if_none == DIR_IF_NONE_ERROR)
-                  error_file_not_exists();
+              error_file_not_exists();
 
             if (rresolved != shell_shortcut_notexists
                 || (dsp->if_none != DIR_IF_NONE_DISCARD
@@ -7428,9 +7463,9 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
                     PUSH_ON_STACK(1,3+6);
                 }
               } else if (TASK_FILE_P(next_task)) { /* entry is a (halfway) normal file. */
-                if (wildcard_match(STACK_(2+4+6),STACK_0)) {
+                if (split_nametype_match(&STACK_(2+4+6),&STACK_5,&STACK_0)) {
                   /* stack layout: ..., pathname, dir_namestring, direntry,
-                          direntry-maybhacked-pathname, true-pathname,
+                          direntry-maybehacked-pathname, true-pathname,
                           direntry-name-to-check.
                      test Full-Flag and poss. get more information: */
                   if (dsp->full_p      /* :FULL wanted? */
@@ -7450,7 +7485,8 @@ local maygc void directory_search_scandir (bool recursively, task_t next_task,
                     pack_full_info(&timepoint,&entry_size);
                     PUSH_ON_STACK(0,4+4+6+2);
                     skipSTACK(2); /* drop newname & full info list */
-                  } else PUSH_ON_STACK(1,4+4+6);
+                  } else
+                    PUSH_ON_STACK(1,4+4+6);
                 }
               }
             }
@@ -7501,7 +7537,7 @@ local maygc object directory_search (object pathname, dir_search_param_t *dsp) {
   }
   var bool recursively = /* Flag, if the next operation has to be applied */
     false;               /* to all subdirectories. */
-  while (1) {
+  while (true) {
     /* stack layout: result-list, pathname, name&type, subdir-list,
                    pathname-list.
      result-list = list of finished pathnames/lists, reversed.
@@ -7546,9 +7582,10 @@ local maygc object directory_search (object pathname, dir_search_param_t *dsp) {
       pushSTACK(S(Ktest)); pushSTACK(S(equal));
       funcall(L(make_hash_table),2);
       pushSTACK(value1);
-    } else pushSTACK(NIL);
+    } else
+      pushSTACK(NIL);
     pushSTACK(STACK_(0+2));
-    while (1) {
+    while (true) {
       /* stack layout: ..., new-pathname-list, ht, pathname-list-rest. */
       var object pathname_list_rest = STACK_0;
       if (atomp(pathname_list_rest))
@@ -7698,8 +7735,8 @@ LISPFUN(directory,seclass_rd_sig,1,0,norest,key,3,
     dsp.if_none = DIR_IF_NONE_KEEP;
   else if (eq(STACK_2,S(Kignore)))
     dsp.if_none = DIR_IF_NONE_IGNORE;
-  else error_illegal_arg(STACK_2,O(type_directory_not_exist),
-                         S(Kif_does_not_exist));
+  else
+    error_illegal_arg(STACK_2,O(type_directory_not_exist),S(Kif_does_not_exist));
   dsp.circle_p = !missingp(STACK_1); /* :CIRCLE argument defaults to NIL */
   dsp.full_p = !missingp(STACK_0); /* :FULL argument defaults to NIL */
   skipSTACK(3);
@@ -8182,8 +8219,7 @@ LISPFUN(execute,seclass_default,1,0,rest,nokey,0,NIL)
          /bin/sh is a symlink to busybox, so RUN-PROGRAM which calls SHELL
          which calls EXECUTE fails because EXECUTE calls "busybox -c"
          instead of "/bin/sh -c".
-         <https://sourceforge.net/p/clisp/mailman/message/24434416/>
-         <http://article.gmane.org/gmane.lisp.clisp.devel/21219> */
+         <https://sourceforge.net/p/clisp/mailman/message/24434416/> */
       /* convert thet file to string, existence is checked by execv(2): */
       *file_ = physical_namestring(*file_);
       *file_ = string_to_asciz(*file_,O(misc_encoding));
@@ -8401,8 +8437,12 @@ local maygc int stringlist_to_ascizlist (object stringlist,
   pushSTACK(stringlist);
   while (consp(STACK_0/*stringlist tail*/)) {
     var object tmp = allocate_cons();
-    if (nullp(STACK_2/*result*/)) STACK_1 = STACK_2 = tmp;
-    else { Cdr(STACK_1/*result tail*/) = tmp; STACK_1 = tmp; }
+    if (nullp(STACK_2/*result*/))
+      STACK_1 = STACK_2 = tmp;
+    else {
+      Cdr(STACK_1/*result tail*/) = tmp;
+      STACK_1 = tmp;
+    }
     tmp = check_string(Car(STACK_0));
     tmp = string_to_asciz(tmp,*encoding_);
     length += Sbvector_length(tmp) + 1;
@@ -8420,8 +8460,7 @@ local maygc int stringlist_to_ascizlist (object stringlist,
 /* (SHELL-EXECUTE verb filename parameters defaultdir)
    ShellExecute wrapper
    See ShellExecute description at
-   http://msdn.microsoft.com/library/default.asp?url=/library/en-us/shellcc/
-     platform/Shell/reference/functions/shellexecute.asp
+   https://learn.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutea
    verb: usually nil (for default),
          "edit", "explore", "open", "print", "properties"
    filename: filename or url to open
@@ -8550,9 +8589,10 @@ local void mkpipe (Handle * hin, bool dupinp, Handle * hout, bool dupoutp) {
 
 #endif
 
-local maygc bool init_launch_streamarg
-(gcv_object_t *streamarg, bool child_inputp, Handle stdhandle,
- Handle * h, Handle * ph, Handle * hnull, bool * wait_p) {
+local maygc bool init_launch_streamarg (gcv_object_t *streamarg,
+                                        bool child_inputp, Handle stdhandle,
+                                        Handle * h, Handle * ph, Handle * hnull,
+                                        bool * wait_p) {
   var int handletype = 0;
   *h = INVALID_HANDLE;
   *ph = INVALID_HANDLE;
@@ -8581,9 +8621,10 @@ local maygc bool init_launch_streamarg
   return (*h != INVALID_HANDLE);
 }
 
-local maygc void make_launch_pipe
-(gcv_object_t *ret, direction_t direction, Handle hparent_pipe, int childpid,
- gcv_object_t *enc, gcv_object_t *eltype, gcv_object_t *buffered) {
+local maygc void make_launch_pipe (gcv_object_t *ret, direction_t direction,
+                                   Handle hparent_pipe, int childpid,
+                                   gcv_object_t *enc, gcv_object_t *eltype,
+                                   gcv_object_t *buffered) {
   if (hparent_pipe != INVALID_HANDLE) {
     pushSTACK(*enc);            /* encoding */
     pushSTACK(*eltype);         /* element-type */
@@ -8654,8 +8695,10 @@ LISPFUN(launch,seclass_default,1,0,norest,key,9,
         (kw(element_type),kw(external_format),kw(buffered),kw(arguments),
          kw(wait),kw(input),kw(output),kw(error),kw(priority))) {
   STACK_9 = check_string(STACK_9); /* command_arg */
-  if (!boundp(STACK_5)) STACK_5 = NIL; /* arguments_arg */
-  else STACK_5 = check_list(STACK_5);
+  if (!boundp(STACK_5))
+    STACK_5 = NIL; /* arguments_arg */
+  else
+    STACK_5 = check_list(STACK_5);
   var long priority = interpret_launch_priority(STACK_0);
   var bool wait_p = !nullp(STACK_4); /* default: do wait! */
   var Handle hnull = INVALID_HANDLE;
@@ -8884,32 +8927,32 @@ LISPFUN(launch,seclass_default,1,0,norest,key,9,
 
 /* (SAVEMEM pathname executable) stores the memory image at pathname. */
 LISPFUNN(savemem,2) {
-#ifdef MULTITHREAD
-  extern bool single_running_threadp();
-  /* ensure that we are the only running thread. currently threads
-     do not survive savemem()/loadmem() */
-  if (!single_running_threadp()) {
-    /* signal an error */
-    pushSTACK(NIL); /* CELL-ERROR Slot NAME */
-    pushSTACK(subr_self);
-    error(control_error,GETTEXT("~S: There are multiple running threads. Currently they do not survive image saving/loading."));
-  }
-  /* we are the only one running. let's check mutexes. we do not allow
-     to have locked mutexes saved in the memory image */
-  var object list = O(all_mutexes);
-  while (!endp(list)) {
-    if (!nullp(TheMutex(Car(list))->xmu_owner)) {
-      /* we have a locked mutex. this is an error. */
+  #ifdef MULTITHREAD
+    extern bool single_running_threadp();
+    /* ensure that we are the only running thread. currently threads
+       do not survive savemem()/loadmem() */
+    if (!single_running_threadp()) {
+      /* signal an error */
       pushSTACK(NIL); /* CELL-ERROR Slot NAME */
-      /* mutex owner (should be eq() to current thread) */
-      pushSTACK(TheMutex(Car(list))->xmu_owner);
-      pushSTACK(Car(list)); /* mutex */
       pushSTACK(subr_self);
-      error(control_error,GETTEXT("~S: Mutex ~S is locked by thread ~S. Currently locked mutexes are not allowed in memory files."));
+      error(control_error,GETTEXT("~S: There are multiple running threads. Currently they do not survive image saving/loading."));
     }
-    list = Cdr(list);
-  }
-#endif
+    /* we are the only one running. let's check mutexes. we do not allow
+       to have locked mutexes saved in the memory image */
+    var object list = O(all_mutexes);
+    while (!endp(list)) {
+      if (!nullp(TheMutex(Car(list))->xmu_owner)) {
+        /* we have a locked mutex. this is an error. */
+        pushSTACK(NIL); /* CELL-ERROR Slot NAME */
+        /* mutex owner (should be eq() to current thread) */
+        pushSTACK(TheMutex(Car(list))->xmu_owner);
+        pushSTACK(Car(list)); /* mutex */
+        pushSTACK(subr_self);
+        error(control_error,GETTEXT("~S: Mutex ~S is locked by thread ~S. Currently locked mutexes are not allowed in memory files."));
+      }
+      list = Cdr(list);
+    }
+  #endif
   var uintL executable = nullp(STACK_0) ? 0 : eq(Fixnum_0,STACK_0) ? 2 : 1;
   skipSTACK(1);          /* drop executable */
   /* execute (OPEN pathname :direction :output) :

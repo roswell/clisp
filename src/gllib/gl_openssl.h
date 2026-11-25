@@ -1,6 +1,6 @@
 /* Wrap openssl crypto hash routines in gnulib interface.  -*- coding: utf-8 -*-
 
-   Copyright (C) 2013-2021 Free Software Foundation, Inc.
+   Copyright (C) 2013-2026 Free Software Foundation, Inc.
 
    This file is free software: you can redistribute it and/or modify
    it under the terms of the GNU Lesser General Public License as
@@ -17,13 +17,15 @@
 
 /* Written by Pádraig Brady */
 
+/* This file uses _GL_INLINE_HEADER_BEGIN, _GL_INLINE.  */
+#if !_GL_CONFIG_H_INCLUDED
+ #error "Please include config.h first."
+#endif
+
 #ifndef GL_OPENSSL_NAME
 # error "Please define GL_OPENSSL_NAME to 1,5,256 etc."
 #endif
 
-#ifndef _GL_INLINE_HEADER_BEGIN
-# error "Please include config.h first."
-#endif
 _GL_INLINE_HEADER_BEGIN
 #ifndef GL_OPENSSL_INLINE
 # define GL_OPENSSL_INLINE _GL_INLINE
@@ -81,27 +83,31 @@ GL_CRYPTO_FN (_init_ctx) (struct _gl_ctx *ctx)
 /* These were never exposed by gnulib.  */
 #if ! (GL_OPENSSL_NAME == 224 || GL_OPENSSL_NAME == 384)
 GL_OPENSSL_INLINE void
-GL_CRYPTO_FN (_process_bytes) (const void *buf, size_t len, struct _gl_ctx *ctx)
+GL_CRYPTO_FN (_process_bytes) (void const *restrict buf, size_t len,
+                               struct _gl_ctx *restrict ctx)
 { OPENSSL_FN (_Update) ((_gl_CTX *) ctx, buf, len); }
 
 GL_OPENSSL_INLINE void
-GL_CRYPTO_FN (_process_block) (const void *buf, size_t len, struct _gl_ctx *ctx)
+GL_CRYPTO_FN (_process_block) (void const *restrict buf, size_t len,
+                               struct _gl_ctx *restrict ctx)
 { GL_CRYPTO_FN (_process_bytes) (buf, len, ctx); }
 #endif
 
 GL_OPENSSL_INLINE void *
-GL_CRYPTO_FN (_finish_ctx) (struct _gl_ctx *ctx, void *restrict res)
+GL_CRYPTO_FN (_finish_ctx) (struct _gl_ctx *restrict ctx, void *restrict res)
 { OPENSSL_FN (_Final) ((unsigned char *) res, (_gl_CTX *) ctx); return res; }
 
 GL_OPENSSL_INLINE void *
-GL_CRYPTO_FN (_buffer) (const char *buf, size_t len, void *restrict res)
+GL_CRYPTO_FN (_buffer) (char const *restrict buf, size_t len,
+                        void *restrict res)
 { return OPENSSL_FN () ((const unsigned char *) buf, len, (unsigned char *) res); }
 
 GL_OPENSSL_INLINE void *
-GL_CRYPTO_FN (_read_ctx) (const struct _gl_ctx *ctx, void *restrict res)
+GL_CRYPTO_FN (_read_ctx) (struct _gl_ctx const *restrict ctx,
+                          void *restrict res)
 {
   /* Assume any unprocessed bytes in ctx are not to be ignored.  */
-  _gl_CTX tmp_ctx = *(_gl_CTX *) ctx;
+  _gl_CTX tmp_ctx = *(_gl_CTX const *) ctx;
   OPENSSL_FN (_Final) ((unsigned char *) res, &tmp_ctx);
   return res;
 }

@@ -4,7 +4,7 @@
 #   command = create, add, run, install
 # For more usage information, see <doc/impnotes.html#mod-overview>.
 # Or <http://clisp.org/modules.html#mod-overview>.
-# Bruno Haible 1994-10-19, 1995-2005, 2018
+# Bruno Haible 1994-10-19, 1995-2005, 2018, 2024, 2026
 # Sam Steingold 2002-2010
 
 # This could as well be written in Lisp, for portability, but syscalls is
@@ -24,10 +24,9 @@ normalize(){                    # dir rel -> abs path for rel
 }
 
 lncp () {
-  # Make a link from $1 to $2. Try symbolic link, hard link, file copying.
+  # Make a link from $1 to $2. Try hard link, file copying.
   rm -f "$2"
-  ln -s "`normalize . $1`" "$2" 2>/dev/null || \
-    ln "$1" "$2" 2>/dev/null || \
+  ln "$1" "$2" 2>/dev/null || \
     cp -p "$1" "$2"
 }
 
@@ -37,7 +36,38 @@ lncp_some () {
   ret=''
   for f in $*; do
     b=`basename $f`
-    lncp "`normalize "${src_dir}" "$f"`" "${destdir}"/$b
+    g=`normalize "${src_dir}" "$f"`
+    lncp "$g" "${destdir}"/$b
+    ret=${ret}" "$b
+  done
+  echo ${ret}
+}
+
+lnscp () {
+  # Make a link from $1 to $2. Try symbolic link, hard link, file copying.
+  rm -f "$2"
+  ln -s "`normalize . $1`" "$2" 2>/dev/null || \
+    ln "$1" "$2" 2>/dev/null || \
+    cp -p "$1" "$2"
+}
+
+lnscp_some () {
+  src_dir=$1; shift
+  destdir=$1; shift
+  ret=''
+  for f in $*; do
+    b=`basename $f`
+    g=`normalize "${src_dir}" "$f"`
+    case '@build_os@,@host_os@' in
+      cygwin*,mingw*)
+        # Native Windows tools do not understand the Cygwin symlinks.
+        case "$b" in
+          *.h | *.@OBJEXT@ | *.a) lncp  "$g" "${destdir}/$b" ;;
+          *)                      lnscp "$g" "${destdir}/$b" ;;
+        esac
+        ;;
+      *) lnscp "$g" "${destdir}/$b" ;;
+    esac
     ret=${ret}" "$b
   done
   echo ${ret}
@@ -76,7 +106,7 @@ LISPRUN="lisp@LEXE@"
 # ensure that "$1" contains a CLISP linking set
 check_linkset () {
   test -r "$1"/lisp.a -a -x "$1"/${LISPRUN} -a -r "$1"/lispinit.mem \
-    -a -r "$1"/modules.h -a -r "$1"/modules.o -a -r "$1"/makevars ||
+    -a -r "$1"/modules.h -a -r "$1"/modules.@OBJEXT@ -a -r "$1"/makevars ||
   fail "directory $1 does not contain a CLISP linking set"
 }
 
@@ -100,12 +130,12 @@ verbose () {
 }
 
 make_lisprun () {
-  # Generate new modules.o, compiled from modules.c, includes modules.h
+  # Generate new modules.@OBJEXT@, compiled from modules.c, includes modules.h
   lncp "$absolute_linkkitdir"/modules.c modules.c
   verbose ${CC} ${CPPFLAGS} ${CFLAGS} -I"$absolute_linkkitdir" -c modules.c
   rm -f modules.c
   # Generate new ${LISPRUN}
-  verbose ${CC} ${CFLAGS} ${CLFLAGS} modules.o ${LIBS} -o ${LISPRUN}
+  verbose ${CC} ${CFLAGS} ${LDFLAGS} modules.@OBJEXT@ ${LIBS} -o ${LISPRUN}
 }
 
 # func_tmpdir
@@ -288,13 +318,13 @@ case "$1" in
       esac
       ln -s "$relative_file" "$moduledir"/"$filename" || ln "$file" "$moduledir"/"$filename" || cp -p "$file" "$moduledir"/"$filename"
       files_c="$files_c"' '"$filename"
-      files_o="$files_o"' '`echo "$filename" | sed -e 's,\.c$,,'`.o
+      files_o="$files_o"' '`echo "$filename" | sed -e 's,\.c$,,'`.@OBJEXT@
     done
     if false; then
       # No Makefile
       (echo "file_list=''"
        for fc in $files_c; do
-         fo=`echo "$fc" | sed -e 's,\.c$,,'`.o
+         fo=`echo "$fc" | sed -e 's,\.c$,,'`.@OBJEXT@
          echo 'if test -r '"$fc"'; then'
          echo "  if test '"'!'"' -f $fo || test $fo -ot $fc; then"
          echo '    ${CC} ${CPPFLAGS} ${CFLAGS} -I"$absolute_linkkitdir" -c '"$fc"
@@ -324,7 +354,7 @@ case "$1" in
        echo "distribdir ="
        echo
        for fc in $files_c; do
-         fo=`echo "$fc" | sed -e 's,\.c$,,'`.o
+         fo=`echo "$fc" | sed -e 's,\.c$,,'`.@OBJEXT@
          echo "$fo : \$(srcdir)/$fc"
          echotab '$(CC) $(CPPFLAGS) $(CFLAGS) -I$(CLISP_LINKKIT) -c $<'
          echo
@@ -338,7 +368,7 @@ case "$1" in
       (echo "file_list=''"
        echo "mod_list=''"
        for fc in $files_c; do
-         fo=`echo "$fc" | sed -e 's,\.c$,,'`.o
+         fo=`echo "$fc" | sed -e 's,\.c$,,'`.@OBJEXT@
          mod=`echo "$fc" | sed -e 's,\.c$,,' | sed -e 's,[^A-Za-z0-9_],_,g'`
          # The last sed command must agree with foreign1.lisp:to-module-name.
          echo 'if test -r '"$fc"'; then'
@@ -381,14 +411,20 @@ case "$1" in
       fail "directories $sourcedir and $destinationdir may not be the same"
     check_linkset "$sourcedir"
     for moduledir in $moduledirs; do check_module "$moduledir"; done
-    # Read the variables CC, CPPFLAGS, CFLAGS, CLFLAGS, LIBS, X_LIBS, RANLIB, FILES
+    # Read the variables CC, CPPFLAGS, CFLAGS, LDFLAGS, LIBS, X_LIBS, RANLIB, FILES
     . "$sourcedir"/makevars
     if [ -z "$moduledirs" ] ; then
       # Just make links from $destinationdir to $sourcedir
-      lncp_some "$sourcedir" "$destinationdir" ${LISPRUN} lispinit.mem modules.h modules.o makevars ${FILES};
+      case '@build_os@,@host_os@' in
+        cygwin*,mingw*)
+           # Native Windows clisp does not understand the Cygwin symlinks.
+           lncp_some  "$sourcedir" "$destinationdir" ${LISPRUN} lispinit.mem >/dev/null ;;
+        *) lnscp_some "$sourcedir" "$destinationdir" ${LISPRUN} lispinit.mem >/dev/null ;;
+      esac
+      lnscp_some "$sourcedir" "$destinationdir" modules.h modules.@OBJEXT@ makevars ${FILES} >/dev/null
     else
       cp "$sourcedir"/modules.h "$destinationdir"/modules.h
-      FILES=`lncp_some "$sourcedir" "$destinationdir" ${FILES}`
+      FILES=`lnscp_some "$sourcedir" "$destinationdir" ${FILES}`
       # Prepare the module directories and read their variables
       PRELOAD=''
       LOAD=''
@@ -410,7 +446,7 @@ case "$1" in
             echo 'MODULE('"$mod"')' >> "$destinationdir"/modules.h
           done
         fi
-        FILES=${FILES}' '`lncp_some "$moduledir" "$destinationdir" ${NEW_FILES}`
+        FILES=${FILES}' '`lnscp_some "$moduledir" "$destinationdir" ${NEW_FILES}`
         LIBS=${NEW_LIBS}' '${LIBS}
         for f in $TO_PRELOAD; do
           PRELOAD=${PRELOAD}' -i '"$moduledir/$f"
@@ -465,13 +501,13 @@ case "$1" in
       absolute_currentdir=`/bin/pwd`
       check_linkset  "$sourcedir"
       for moduledir in $moduledirs; do check_module "$moduledir"; done
-      # Read the variables CC, CPPFLAGS, CFLAGS, CLFLAGS, LIBS, X_LIBS, RANLIB, FILES
+      # Read the variables CC, CPPFLAGS, CFLAGS, LDFLAGS, LIBS, X_LIBS, RANLIB, FILES
       . "$sourcedir"/makevars
       if [ -z "$moduledirs" ] ; then
         "$sourcedir"/${LISPRUN} -B "$installbasedir" -M "$sourcedir"/lispinit.mem
       else
         func_tmpdir
-        FILES=`lncp_some "$sourcedir" "$tmp" ${FILES}`
+        FILES=`lnscp_some "$sourcedir" "$tmp" ${FILES}`
         # Prepare the module directories and read their variables
         PRELOAD=''
         LIBS=''
@@ -492,7 +528,7 @@ case "$1" in
           for f in $TO_PRELOAD; do
             PRELOAD=${PRELOAD}' '"$moduledir/$f"
           done
-          FILES=${FILES}' '`lncp_some "$moduledir" "$tmp" ${NEW_FILES}`
+          FILES=${FILES}' '`lnscp_some "$moduledir" "$tmp" ${NEW_FILES}`
           if test -n "${NEW_LIBS}"; then
             LIBS=${NEW_LIBS}' '${LIBS}
             for mod in $NEW_MODULES; do
@@ -554,7 +590,7 @@ case "$1" in
       test -r "${moduledir}"/Makefile || \
         fail "No Makefile in ${moduledir}, cannot install"
     done
-    # Read the variables CC, CPPFLAGS, CFLAGS, CLFLAGS, LIBS, X_LIBS, RANLIB, FILES
+    # Read the variables CC, CPPFLAGS, CFLAGS, LDFLAGS, LIBS, X_LIBS, RANLIB, FILES
     . "$sourcedir"/makevars
     set_dynamic_module_location # set LIBDIR
     test -n "${DESTDIR}" || DESTDIR="${LIBDIR}"

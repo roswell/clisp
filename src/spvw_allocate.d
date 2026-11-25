@@ -143,7 +143,7 @@ local void relax_reserve (uintM need)
      Therefore this special case. */
   #define pointable_usable_test(a) \
     ((((uintP)(a) >> (addr_shift + garcol_bit_o)) & 1) == 0)
-#elif (oint_addr_mask == bitm(pointer_bitsize)-1)
+#elif (oint_addr_mask == wbitm(pointer_bitsize)-1)
   #define pointable_usable_test(a)  true
 #else
   #define pointable_usable_test(a)  \
@@ -213,9 +213,9 @@ local void* mymalloc (uintM need)
     modexp uintL alloccount = 1;
     #define inc_alloccount()  (void)(alloccount++)
   #else
-     /* the following is really slow. more appropriate implementation
-        should use heap (like) structure and modified GCTRIGGER()
-        macros. for now it is ok.*/
+    /* the following is really slow. more appropriate implementation
+       should use heap (like) structure and modified GCTRIGGER()
+       macros. for now it is ok.*/
     inline void inc_alloccount()  {
       /* find out the max alloccount among all threads and increase it.
          Also set all others threads alloccount to this one.*/
@@ -558,8 +558,10 @@ local Pages make_space_gc (uintM need, Heap* heap_ptr, AVL(AVLID,stack) * stack_
     interruptp({                                                    \
       pushSTACK(S(gc)); tast_break();                               \
      {var Pages page = AVL(AVLID,least)(need,pages_ptr,stack_ptr);  \
-      if (page==EMPTY) goto not_enough_room;                        \
-      else return page;                                             \
+      if (page==EMPTY)                                              \
+        goto not_enough_room;                                       \
+      else                                                          \
+        return page;                                                \
     }})
   #if !defined(AVL_SEPARATE)
     /* try to get space from the operating system: */

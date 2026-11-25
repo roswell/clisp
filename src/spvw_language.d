@@ -59,7 +59,7 @@ global object current_language_o (void) {
 }
 
 local bool init_language_from (const char* langname) {
-  if (NULL == langname) return false;
+  if (langname == NULL) return false;
   if (asciz_equal(langname,"ENGLISH") || asciz_equal(langname,"english")) {
     language = language_english; return true;
   }
@@ -109,8 +109,8 @@ local bool init_language_from (const char* langname) {
 }
 
 /* Initializes the language. */
-global void init_language
-(const char* argv_language, const char* argv_localedir, bool lisp_error_p) {
+global void init_language (const char* argv_language, const char* argv_localedir,
+                           bool lisp_error_p) {
 #define ANSIC_ERROR(f,a)   if (lisp_error_p) ANSIC_error(); else {      \
   fprintf(stderr,GETTEXT("WARNING: %s/%s: %s.\n"),f,a,strerror(errno)); \
   goto init_language_failure;                                           \
@@ -152,8 +152,8 @@ global void init_language
     if (getenv("LC_ALL") && unsetenv("LC_ALL")) {
       ANSIC_ERROR("unsetenv","LC_ALL");
     }
-    if (NULL == setlocale(LC_MESSAGES,locale2)) {
-      if (NULL == setlocale(LC_MESSAGES,locale1)) {
+    if (setlocale(LC_MESSAGES,locale2) == NULL) {
+      if (setlocale(LC_MESSAGES,locale1) == NULL) {
         if (lisp_error_p) {
           pushSTACK(ascii_to_string(locale1));
           pushSTACK(ascii_to_string(locale2));
@@ -171,10 +171,10 @@ global void init_language
     }
     { /* Invalidate the gettext internal caches. */
       char *td = textdomain(NULL);
-      if (NULL == td) {
-        ANSIC_ERROR("textdomain",NULL);
+      if (td == NULL) {
+        ANSIC_ERROR("textdomain","NULL");
       }
-      if (NULL == textdomain(td)) {
+      if (textdomain(td) == NULL) {
         ANSIC_ERROR("textdomain",td);
       }
     }
@@ -216,16 +216,16 @@ global void init_language
         }
         MY_NOTREACHED;
       case FILE_KIND_DIR:
-        if (NULL == bindtextdomain("clisp",truename)) {
+        if (bindtextdomain("clisp",truename) == NULL) {
           ANSIC_ERROR("bindtextdomain/clisp",truename);
         }
-        if (NULL == bindtextdomain("clisplow",truename)) {
+        if (bindtextdomain("clisplow",truename) == NULL) {
           ANSIC_ERROR("bindtextdomain/clisplow",truename);
         }
     }
   }
  #ifdef ENABLE_UNICODE
-  if (NULL == bind_textdomain_codeset("clisp","UTF-8")) {
+  if (bind_textdomain_codeset("clisp","UTF-8") == NULL) {
     ANSIC_ERROR("bind_textdomain_codeset","UTF-8");
   }
  #endif

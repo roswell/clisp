@@ -2,7 +2,7 @@
 ;; Fred Cohen, 2003-2004
 ;; Don Cohen, 2003-2004
 ;; Sam Steingold 2004-2008
-;; http://opengroup.org/onlinepubs/9699919799/basedefs/sys_socket.h.html
+;; https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/sys_socket.h.html
 
 (defpackage #:rawsock
   (:documentation "Raw Socket access")

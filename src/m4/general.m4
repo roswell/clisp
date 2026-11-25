@@ -1,5 +1,5 @@
 dnl -*- Autoconf -*-
-dnl Copyright (C) 1993-2011, 2017, 2021 Free Software Foundation, Inc.
+dnl Copyright (C) 1993-2026 Free Software Foundation, Inc.
 dnl This file is free software, distributed under the terms of the GNU
 dnl General Public License.  As a special exception to the GNU General
 dnl Public License, this file may be distributed as part of a program
@@ -18,12 +18,11 @@ dnl AC_xxx_IFELSE(PROGRAM, ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND])
 dnl CL_xxx_CHECK(ECHO-TEXT, CACHE-ID, PROGRAM,
 dnl              ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND])
 
-dnl the next macro avoids aclocal warnings about wrong macro order
+dnl The next macro avoids aclocal warnings about wrong macro order
 dnl when making aclocal.m4, see Makefile.devel.
-dnl note that this macro cannot call AC_CONFIG_AUX_DIR directly because
+dnl Note that this macro cannot call AC_CONFIG_AUX_DIR directly because
 dnl the required macros are evaluated BEFORE the macro itself
 dnl and some of them require AC_CONFIG_AUX_DIR.
-dnl <http://article.gmane.org/gmane.comp.lib.gnulib.bugs/16312>
 dnl <https://lists.gnu.org/archive/html/bug-gnulib/2009-01/msg00134.html>
 AC_DEFUN([CL_MODULE_COMMON_CHECKS],[
   AC_REQUIRE([CL_CLISP], [CL_CLISP($1)])
@@ -33,6 +32,22 @@ AC_DEFUN([CL_MODULE_COMMON_CHECKS],[
   AC_REQUIRE([AC_PROG_CPP])
   AC_REQUIRE([CL_PROG_LN_S])
   AC_REQUIRE([AC_USE_SYSTEM_EXTENSIONS])
+  dnl Support for build-to-host mapping of file names.
+  dnl Defines BTHS and BTHE, for "build-to-host start" and "build-to-host end".
+  AC_REQUIRE([AC_CANONICAL_BUILD])
+  AC_REQUIRE([AC_CANONICAL_HOST])
+  BTHS=; BTHE=
+  case "$build_os" in
+    cygwin*)
+      case "$host_os" in
+        mingw* | windows*)
+          BTHS='"`cygpath -w '; BTHE='`"'
+          ;;
+      esac
+      ;;
+  esac
+  AC_SUBST([BTHS])
+  AC_SUBST([BTHE])
 ])
 
 AC_DEFUN([CL_CHECK],[

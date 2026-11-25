@@ -15,7 +15,7 @@ MAKE = make
 
 SHELL = /bin/sh
 
-GENERATED = fastcgi.o fastcgi.fas fastcgi_wrappers.o
+GENERATED = fastcgi.@OBJEXT@ fastcgi.fas fastcgi_wrappers.@OBJEXT@
 DISTRIBFILES = link.sh Makefile $(GENERATED) \
 	$(srcdir)/fastcgi.lisp $(srcdir)/README
 distribdir =
@@ -24,12 +24,12 @@ distribdir =
 clisp-module : $(GENERATED)
 
 fastcgi.c fastcgi.fas: $(srcdir)/fastcgi.lisp
-	$(CLISP) -c $(srcdir)/fastcgi.lisp -o ./
+	$(CLISP) -c @BTHS@$(srcdir)/fastcgi.lisp@BTHE@ -o ./
 
-fastcgi.o: fastcgi.c
+fastcgi.@OBJEXT@: fastcgi.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -I$(CLISP_LINKKIT) -I.. -c fastcgi.c
 
-fastcgi_wrappers.o: $(srcdir)/fastcgi_wrappers.c
+fastcgi_wrappers.@OBJEXT@: $(srcdir)/fastcgi_wrappers.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -I$(CLISP_LINKKIT) -I.. -c $(srcdir)/fastcgi_wrappers.c
 
 # Make a module distribution into $(distribdir)
@@ -37,7 +37,7 @@ clisp-module-distrib : clisp-module force
 	$(LN) $(DISTRIBFILES) $(distribdir)
 
 clean : force
-	rm -f core *.o *.a *.fas *.lib
+	rm -f core *.@OBJEXT@ *.a *.fas *.lib
 
 distclean : clean
 

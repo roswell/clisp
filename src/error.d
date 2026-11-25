@@ -161,7 +161,7 @@ local void write_errorasciz (const char* asciz) {
 local gcv_object_t* write_errorstring (const char* errorstring)
 {
   var gcv_object_t* argptr = args_end_pointer STACKop 7; /* pointer above stream and frame */
-  while (1) {
+  while (true) {
     var char ch = *errorstring; /* next character */
     if (ch==0) /* string finished? */
       break;
@@ -184,7 +184,7 @@ local gcv_object_t* write_errorstring (const char* errorstring)
     }
     /* output all characters until the next special character */
     var const char* ptr = errorstring;
-    while (1) {
+    while (true) {
       ptr++;
       ch = *ptr;
       if (ch==0 || ch=='~')
@@ -214,7 +214,7 @@ local _Noreturn void signal_and_debug (object condition) {
  (when start_driver_p is true)
  can trigger GC */
 local maygc void end_error (gcv_object_t* stackptr, bool start_driver_p) {
-#ifdef MULTITHREAD
+ #ifdef MULTITHREAD
   /* NB: just for debugging - but for now in the release as well.
      this code is for checking whether there is no part of the runtime
      that will signal an error while it is considered to be in safe for GC
@@ -233,7 +233,7 @@ local maygc void end_error (gcv_object_t* stackptr, bool start_driver_p) {
     fprint(stderr,"*** thread is going into lisp land while GC in progress.\n");
     abort();
   }
-#endif
+ #endif
   elastic_newline(&STACK_0);
   if (nullp(STACK_1)) {
     /* *ERROR-HANDER* = NIL, SYS::*USE-CLCS* = NIL */
@@ -535,7 +535,8 @@ modexp _Noreturn void OS_filestream_error (object stream) {
     if (TheStream(stream)->strmtype == strmtype_file
         && !nullp(TheStream(stream)->strm_file_truename))
       OS_error_arg(S(os_file_error),TheStream(stream)->strm_file_truename);
-    else OS_error_arg(S(os_stream_error),stream);
+    else
+      OS_error_arg(S(os_stream_error),stream);
   } else {
     OS_error();
   }
@@ -827,7 +828,7 @@ LISPFUNN(invoke_debugger,1)
  changes STACK, can trigger GC */
 global maygc void tast_break (void)
 {
-#if !defined(MULTITHREAD)
+ #if !defined(MULTITHREAD)
   cancel_interrupts();
   STOP_WRITING_TO_SUBPROCESS;
   if (!nullpSv(error_handler) || nullpSv(use_clcs)) {
@@ -848,13 +849,13 @@ global maygc void tast_break (void)
     funcall(L(cerror_of_type),4); /* (SYS::CERROR-OF-TYPE "..." 'SYSTEM::[SIMPLE-]INTERRUPT-CONDITION "..." caller) */
     skipSTACK(1);
   }
-#else
+ #else
   /* in MT - just clear the STACK */
   /* it will be very rare to get called here - since the interruptp()
      does not expand to anything in MT and most use of tast_break() was
      from it.*/
   skipSTACK(1);
-#endif
+ #endif
 }
 
 LISPFUN(clcs_signal,seclass_default,1,0,rest,nokey,0,NIL)
@@ -928,7 +929,7 @@ modexp maygc object check_classname (object obj, object type) {
  < result: a valid foreign pointer, either the same as obj or a replacement
  can trigger GC */
 modexp maygc object check_fpointer_replacement (object obj, bool restart_p) {
-  for (;;) {
+  while (true) {
     if (!fpointerp(obj)) {
       pushSTACK(NIL);                /* no PLACE */
       pushSTACK(obj);                /* TYPE-ERROR slot DATUM */
@@ -1043,9 +1044,8 @@ global maygc object check_symbol_replacement (object obj) {
  > caller: a symbol
  < result: a non-constant symbol, a replacement
  can trigger GC */
-global maygc object check_symbol_non_constant_replacement
-(object obj, object caller) {
-  for (;;) {
+global maygc object check_symbol_non_constant_replacement (object obj, object caller) {
+  while (true) {
     obj = check_symbol(obj);
     if (!constant_var_p(TheSymbol(obj))) break;
     pushSTACK(NIL); /* no PLACE */
@@ -1094,7 +1094,8 @@ global maygc object check_symbol_not_symbol_macro (object symbol) {
       STACK_2 = CLSTEXT("~S: attempting to turn ~S into a SPECIAL variable, but it is already a global SYMBOL-MACRO.");
     else if (eq(subr_self,L(proclaim_constant)))
       STACK_2 = CLSTEXT("~S: attempting to turn ~S into a constant, but it is already a global SYMBOL-MACRO.");
-    else STACK_2 = CLSTEXT("~S: interning ~S into the KEYWORD package would turn it into a constant, but it is already a global SYMBOL-MACRO.");
+    else
+      STACK_2 = CLSTEXT("~S: interning ~S into the KEYWORD package would turn it into a constant, but it is already a global SYMBOL-MACRO.");
     funcall(L(cerror_of_type),5);
     /* continue restart ==> remove SYMBOL-MACRO definition */
     pushSTACK(STACK_0);                  /* save symbol */
@@ -1488,13 +1489,16 @@ global maygc object check_function_replacement (object obj) {
       obj = Symbol_function(value1);
     else if (funnamep(value1)) {
       var object name = get(Car(Cdr(value1)),S(setf_function));
-      if (symbolp(name)) obj = Symbol_function(name);
-      else obj = value1;
+      if (symbolp(name))
+        obj = Symbol_function(name);
+      else
+        obj = value1;
     } else if (consp(value1) && eq(Car(value1),S(lambda))) {
       pushSTACK(value1); pushSTACK(S(function));
       funcall(L(coerce),2);
       obj = value1;
-    } else obj = value1;
+    } else
+      obj = value1;
   } while (!functionp(obj));
   return obj;
 }
@@ -1559,8 +1563,7 @@ global maygc object check_fdefinition (object funname, object caller)
  > obj: not a function name
  < result: a function name, either the same as obj or a replacement
  can trigger GC */
-global maygc object check_funname_replacement
-(condition_t errtype, object caller, object obj) {
+global maygc object check_funname_replacement (condition_t errtype, object caller, object obj) {
   pushSTACK(caller); /* save */
   do {
     caller = STACK_0;
@@ -1646,7 +1649,8 @@ global maygc void check_variable_value_replacement (gcv_object_t *symbol_,
     pushSTACK(*symbol_); pushSTACK(caller_name());
     if (restart_p)
       check_value(unbound_variable,GETTEXT("~S: variable ~S has no value"));
-    else error(unbound_variable,GETTEXT("~S: variable ~S has no value"));
+    else
+      error(unbound_variable,GETTEXT("~S: variable ~S has no value"));
   } while (!boundp(value1));
 }
 
@@ -1676,7 +1680,7 @@ modexp _Noreturn void error_c_integer (object obj, int tcode, bool signedp) {
  can trigger GC */
 modexp maygc object check_c_integer_replacement (object obj, int tcode,
                                                  bool signedp) {
-  while (1) {
+  while (true) {
     pushSTACK(NIL); /* no PLACE */
     check_value(type_error,prepare_c_integer_signal(obj,tcode,signedp));
     obj = value1;

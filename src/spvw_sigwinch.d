@@ -30,7 +30,7 @@ local void update_linelength (void);
 local void update_linelength (void) {
   /* SYS::*PRIN-LINELENGTH* := width of the terminal-window - 1
    [cf. 'term.c' in 'calc' by Hans-J. Boeh, Vernon Lee, Alan J. Demers] */
-  if (isatty(stdout_handle)) {  /* is standard-output a terminal? */
+  if (handle_isatty(stdout_handle)) {  /* is standard-output a terminal? */
     var int lines = 0;
     var int columns = 0;
    #ifdef TIOCGWINSZ

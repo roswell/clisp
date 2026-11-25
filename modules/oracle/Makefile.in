@@ -39,7 +39,7 @@ MAKE = make
 
 SHELL = /bin/sh
 
-GENERATED = orafns.o oracle.o oracle.fas oiface.o
+GENERATED = orafns.@OBJEXT@ oracle.@OBJEXT@ oracle.fas oiface.@OBJEXT@
 DISTRIBFILES = link.sh Makefile $(GENERATED) \
 	$(srcdir)/oracle.lisp $(srcdir)/README
 distribdir =
@@ -48,15 +48,15 @@ distribdir =
 clisp-module : $(GENERATED)
 
 oracle.c oracle.fas: $(srcdir)/oracle.lisp
-	$(CLISP) -c $(srcdir)/oracle.lisp -o ./
+	$(CLISP) -c @BTHS@$(srcdir)/oracle.lisp@BTHE@ -o ./
 
-oracle.o: oracle.c
+oracle.@OBJEXT@: oracle.c
 	$(CC) $(ALL_CFLAGS) -c oracle.c
 
-oiface.o: $(srcdir)/oiface.c $(srcdir)/oiface.h
+oiface.@OBJEXT@: $(srcdir)/oiface.c $(srcdir)/oiface.h
 	$(CC) $(ALL_CFLAGS) -c $(srcdir)/oiface.c
 
-orafns.o: $(srcdir)/orafns.c $(srcdir)/oiface.h
+orafns.@OBJEXT@: $(srcdir)/orafns.c $(srcdir)/oiface.h
 	$(CC) $(ALL_CFLAGS) -c $(srcdir)/orafns.c
 
 # Make a module distribution into $(distribdir)
@@ -64,7 +64,7 @@ clisp-module-distrib : clisp-module force
 	$(LN) $(DISTRIBFILES) $(distribdir)
 
 clean : force
-	rm -f core *.o *.a *.fas *.lib
+	rm -f core *.@OBJEXT@ *.a *.fas *.lib
 
 distclean : clean
 

@@ -620,7 +620,7 @@
     LISPOBJ_S(printstring_strmtype_twoway_socket,"SOCKET")
     #endif
   LISPOBJ_S(printstring_stream,"-STREAM")
-#ifdef MULTITHREAD
+  #ifdef MULTITHREAD
   LISPOBJ_S(printstring_thread,"THREAD")
   LISPOBJ_S(printstring_mutex,"MUTEX")
   LISPOBJ_S(printstring_exemption,"EXEMPTION")
@@ -639,7 +639,7 @@
    (THROW thread_exit_tag) */
   LISPOBJ(thread_exit_tag,"(GENSYM)")
   LISPOBJ(type_name_arg,"(OR STRING SYMBOL INTEGER)")
-#endif
+  #endif
 /* for LISPARIT.D:
    various constant numbers: */
   #ifndef IMMEDIATE_FFLOAT
@@ -708,7 +708,8 @@
   LISPOBJ(foreign_callin_table,"#.(make-hash-table :test #'eq)")
   LISPOBJ(foreign_callin_vector,"#.(let ((array (make-array 1 :adjustable t :fill-pointer 1))) (sys::store array 0 0) array)")
  #endif
+
 #if !defined(MULTITHREAD)
-#define LISPOBJ_TL(n,initstring)  LISPOBJ(n,initstring)
-#include "constobj_tl.c"
+  #define LISPOBJ_TL(n,initstring)  LISPOBJ(n,initstring)
+  #include "constobj_tl.c"
 #endif

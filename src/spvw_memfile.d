@@ -143,6 +143,9 @@ local const uint32 memflags =
  #ifdef MFIH_LEN
   bit(22) |
  #endif
+ #if 1 /* _dumptime is 64-bit */
+  bit(23) |
+ #endif
   0;
 
 /* Maximum length of (machine-instance) return value: */
@@ -185,7 +188,7 @@ typedef struct {
  #ifndef SPVW_MIXED_BLOCKS_OPPOSITE
   uintC _heapcount;
  #endif
-  uintL _dumptime;
+  uint64 _dumptime;
   char _dumphost[DUMPHOST_LEN+1];
 } memdump_header_t;
 /* then the module names,
@@ -472,7 +475,7 @@ local size_t find_marker (Handle handle, const char* marker, size_t marker_len)
   char buf[BUFSIZ];
   size_t marker_pos = 0;
   size_t pos = 0;
-  while (1) {
+  while (true) {
     size_t result = full_read(handle,(void*)buf,BUFSIZ);
     size_t i;
     if (result <= 0)
@@ -603,7 +606,7 @@ static void savemem_with_runtime (Handle handle, bool delegating) {
   } else { /* mem_start == -1 ==> no memory image in the executable,
               just copy everything */
     mem_start = 0;
-    while (1) {
+    while (true) {
       var ssize_t res = full_read(runtime,(void*)buf,BUFSIZ);
       if (res == 0) break;
       end_system_call();
@@ -659,12 +662,12 @@ global maygc off_t savemem (object stream, uintL executable)
   /* GET-UNIVERSAL-TIME and MACHINE-INSTANCE cons,
      so they should be called before gar_col() */
   funcall(L(get_universal_time),0);
-  var uintL universal_time = I_to_UL(value1);
+  var uint64 universal_time = I_to_UQ(value1);
   funcall(L(machine_instance),0);
   var char hostname[DUMPHOST_LEN+1];
   memset(hostname,'\0',DUMPHOST_LEN+1);
   if (!nullp(value1)) {
-    with_string_0(value1,Symbol_value(S(utf_8)),host,{
+    with_string_0(value1,Symbol_value(S(utf_8)),host, {
       strncpy(hostname,host,DUMPHOST_LEN);
     });
   }
@@ -678,8 +681,8 @@ global maygc off_t savemem (object stream, uintL executable)
   memcpy(&header._dumphost[0],&hostname[0],DUMPHOST_LEN+1);
   WRITE(&header,sizeof(header));
   #if !defined(OLD_GC) && defined(MULTITHREAD)
-   /* save per thread special variables symvalues.
-      currently just a single thread. instead of:
+    /* save per thread special variables symvalues.
+       currently just a single thread. instead of:
     for_all_threads({
       WRITE(thread->_ptr_symvalues,num_symvalues*sizeof(gcv_object_t));
     });
@@ -939,8 +942,10 @@ global maygc off_t savemem (object stream, uintL executable)
   }
   #endif
  #endif
-  if (executable>0) WRITE(&mem_start,sizeof(size_t)); /* see find_memdump() */
-  else { size_t tmp = (size_t)-1; WRITE(&tmp,sizeof(size_t)); }
+  if (executable>0)
+    WRITE(&mem_start,sizeof(size_t)); /* see find_memdump() */
+  else
+    { size_t tmp = (size_t)-1; WRITE(&tmp,sizeof(size_t)); }
   /* close stream (stream-buffer is unchanged, but thus also the
      handle at the operating system is closed): */
   var off_t res;
@@ -1198,8 +1203,11 @@ local bool memfile_handle_do_operation (Handle handle, const char* filename, mem
         }                                                               \
       } while(0)
    begin_read:
-    if (mem_searched) {set_file_offset(mem_start);}
-    else {set_file_offset(0);}
+    if (mem_searched) {
+      set_file_offset(mem_start);
+    } else {
+      set_file_offset(0);
+    }
     /* read basic information: */
     READ(&header,sizeof(header));
     if (header._magic != memdump_magic) {
@@ -2012,7 +2020,7 @@ local bool memfile_handle_do_operation (Handle handle, const char* filename, mem
               (uintL)posfixnum_to_V(header._dumptime.seconds));
     #endif
     char memdumptime[10+1];
-    sprintf(memdumptime,"%lu",(unsigned long)header._dumptime);
+    sprintf(memdumptime,"%llu",(unsigned long long)header._dumptime);
     O(memory_image_timestamp) = ascii_to_string(memdumptime);
     O(memory_image_host) = asciz_to_string(header._dumphost,
                                            Symbol_value(S(utf_8)));
@@ -2079,7 +2087,7 @@ local bool memfile_do_operation (const char* filename, memfile_operation op, voi
   begin_system_call();
   handle = open_filename(filename);
   if (INVALID_HANDLE_P(handle)) { /* try filename.mem */
-    var DYNAMIC_ARRAY(filename_mem,char,strlen(filename)+4);
+    var DYNAMIC_ARRAY(filename_mem,char,strlen(filename)+4+1);
     strcpy(filename_mem,filename);
     strcat(filename_mem,".mem");
     handle = open_filename(filename_mem);

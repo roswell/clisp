@@ -1,6 +1,6 @@
 dnl AUTOCONF configuration for syscalls
 dnl Copyright (C) 2003-2011, 2014 Sam Steingold <sds@gnu.org>
-dnl Copyright (C) 2020-2021 Bruno Haible <bruno@clisp.org>
+dnl Copyright (C) 2020-2026 Bruno Haible <bruno@clisp.org>
 dnl This is Free Software, distributed under the GNU GPL v2+
 
 AC_PREREQ([2.64])
@@ -48,7 +48,7 @@ BOLD_MSG([System Calls (Functions)])
 AC_SEARCH_LIBS(erf, m)
 AC_CHECK_FUNCS(confstr fcntl gethostent sysconf getrlimit setrlimit dnl
 getlogin getpwent getpwnam getpwuid endpwent setpwent dnl
-getservbyport getservbyname getservent setservent endservent dnl
+getservent setservent endservent dnl
 openlog setlogmask syslog closelog chroot dnl
 getppid getpgid getsid setpgid setsid kill pathconf fpathconf realpath dnl
 getpgrp setpgrp getgrgid getgrnam getgrent endgrent setgrent dnl
@@ -59,7 +59,7 @@ fchmod fchown fstat link stat symlink utime mknod chmod umask fsync sync dnl
 ftruncate truncate getusershell endusershell dnl
 erf erfc lgamma tgamma fstatvfs statvfs getpriority setpriority dnl
 GlobalMemoryStatusEx dnl
-gethostid sethostid getdomainname setdomainname nftw getdate)
+gethostid sethostid nftw)
 if test $ac_cv_func_setrlimit = yes; then
   AC_CHECK_SIZEOF([rlim_t],,[
     #include <stdio.h>
@@ -68,7 +68,7 @@ if test $ac_cv_func_setrlimit = yes; then
 fi
 AC_FUNC_CHOWN
 AC_CHECK_DECLS([signgam],,,[#include <math.h>])
-AC_CHECK_DECLS([getdate_err],,,[#include <time.h>])
+AC_CHECK_DECLS([setdomainname],,,[#include <unistd.h>])
 if test "$ac_cv_header_sys_statvfs_h" = "yes"; then
  AC_MSG_CHECKING([whether f_fsid is scalar])
  AC_COMPILE_IFELSE(
@@ -103,6 +103,7 @@ AC_DEFINE(HAVE_SETPGRP_POSIX,1,
 fi
 fi
 gl_GETLOADAVG
+gl_MUSL_LIBC
 
 BOLD_MSG([System Calls (output)])
 AC_CONFIG_FILES([Makefile link.sh])

@@ -1,6 +1,6 @@
 /* Memory mapping support. */
 
-#if defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO) || defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM)
+#if defined(HAVE_MMAP_ANON) || defined(HAVE_WIN32_VM)
 
 /* -------------------------- Specification ---------------------------- */
 
@@ -41,12 +41,12 @@ local void* mmap_filemap (void* map_addr, uintM map_len, int fd, off_t offset);
 #endif
 
 /* Unmaps a memory range. */
-#if defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM)
+#if defined(HAVE_WIN32_VM)
 global int munmap (void* addr, size_t len);
 #endif
 
 /* Changes the access protection for a memory range. */
-#if defined(HAVE_MACH_VM) || defined(HAVE_WIN32_VM)
+#if defined(HAVE_WIN32_VM)
 global int mprotect (void* addr, size_t len, int prot);
 #endif
 
@@ -130,8 +130,8 @@ local bool is_small_range_unmapped (uintP map_addr, uintP map_endaddr)
 local void warn_before_mmap (uintP map_addr, uintP map_endaddr)
 {
   if (mincore_works && !is_small_range_unmapped(map_addr,map_endaddr)) {
-    fprintf(stderr,GETTEXTL("Warning: overwriting existing memory mappings in the address range 0x%lx...0x%lx. clisp will likely crash soon!!\n"),
-            (unsigned long)map_addr,(unsigned long)(map_endaddr-1));
+    fprintf(stderr,GETTEXTL("Warning: overwriting existing memory mappings in the address range 0x%llx...0x%llx. clisp will likely crash soon!!\n"),
+            (unsigned long long)map_addr,(unsigned long long)(map_endaddr-1));
   }
 }
 
@@ -186,100 +186,14 @@ local bool is_large_range_unmapped (uintP map_addr, uintP map_endaddr)
 local void warn_before_reserving_range (uintP map_addr, uintP map_endaddr)
 {
   if (!is_large_range_unmapped(map_addr,map_endaddr)) {
-    fprintf(stderr,GETTEXTL("Warning: reserving address range 0x%lx...0x%lx that contains memory mappings. clisp might crash later!\n"),
-            (unsigned long)map_addr,(unsigned long)(map_endaddr-1));
+    fprintf(stderr,GETTEXTL("Warning: reserving address range 0x%llx...0x%llx that contains memory mappings. clisp might crash later!\n"),
+            (unsigned long long)map_addr,(unsigned long long)(map_endaddr-1));
     dump_process_memory_map(stderr);
   }
 }
 
 #else
 #define warn_before_reserving_range(map_addr,map_endaddr)
-#endif
-
-/* -------------------- Implementation for Mac OS X -------------------- */
-
-#if defined(HAVE_MACH_VM)
-
-local void mmap_init_pagesize (void)
-{
-  system_pagesize = vm_page_size;
-  mmap_pagesize = system_pagesize;
-}
-
-#define mmap_init()  0
-
-local int mmap_prepare (uintP* map_addr, uintP* map_endaddr, bool shrinkp)
-{
-  /* Warn before reserving an address range that contains existing memory
-     mappings. We don't actually shrink the range [*map_addr,*map_endaddr)
-     here. */
-  warn_before_reserving_range(*map_addr,*map_endaddr);
-  return 0;
-}
-
-local int mmap_zeromap (void* map_addr, uintM map_len)
-{
-  var int errcode;
-  switch (vm_allocate(task_self(), (vm_address_t*) &map_addr, map_len, false)) {
-    case KERN_SUCCESS:
-      return 0;
-    case KERN_NO_SPACE:
-      errcode = ENOMEM;
-      break;
-    case KERN_INVALID_ADDRESS:
-    default:
-      errcode = EINVAL;
-      break;
-  }
-  fprintf(stderr,GETTEXTL("Cannot map memory to address 0x%lx ."),map_addr);
-  errno_out(errcode);
-  return -1;                  /* error */
-}
-
-local void* mmap_filemap (void* map_addr, uintM map_len, int fd, off_t offset)
-{
-  switch (vm_allocate(task_self(), (vm_address_t*) &map_addr, map_len, false)) {
-    case KERN_SUCCESS:
-      break;
-    default:
-      errno = EINVAL; return (void*)(-1);
-  }
-  switch (map_fd(fd, offset, (vm_address_t*) &map_addr, 0, map_len)) {
-    case KERN_SUCCESS:
-      return map_addr;
-    case KERN_INVALID_ADDRESS:
-    case KERN_INVALID_ARGUMENT:
-    default:
-      errno = EINVAL; return (void*)(-1);
-  }
-}
-
-/* We need to implement munmap() ourselves. */
-global int munmap (void* addr, size_t len)
-{
-  switch (vm_deallocate(task_self(),addr,len)) {
-    case KERN_SUCCESS:
-      return 0;
-    case KERN_INVALID_ADDRESS:
-    default:
-      errno = EINVAL; return -1;
-  }
-}
-
-/* We need to implement mprotect() ourselves. */
-global int mprotect (void* addr, size_t len, int prot)
-{
-  switch (vm_protect(task_self(),addr,len,0,prot)) {
-    case KERN_SUCCESS:
-      return 0;
-    case KERN_PROTECTION_FAILURE:
-      errno = EACCES; return -1;
-    case KERN_INVALID_ADDRESS:
-    default:
-      errno = EINVAL; return -1;
-  }
-}
-
 #endif
 
 /* -------------------- Implementation for Windows --------------------- */
@@ -327,8 +241,8 @@ local int mmap_prepare (aint* map_addr, aint* map_endaddr, bool shrinkp)
       addr += info.RegionSize;
     }
     if (largest_len < 0x10000) {
-      fprintf(stderr,GETTEXTL("Cannot reserve address range at 0x%lx ."),
-              *map_addr);
+      fprintf(stderr,GETTEXTL("Cannot reserve address range at 0x%llx ."),
+              (unsigned long long)(*map_addr));
       /* DumpProcessMemoryMap(stderr); */
       return -1;
     }
@@ -337,15 +251,15 @@ local int mmap_prepare (aint* map_addr, aint* map_endaddr, bool shrinkp)
   }
   if (!VirtualAlloc((void*)start_addr,end_addr-start_addr,MEM_RESERVE,PAGE_NOACCESS/*dummy*/)) {
     var DWORD errcode = GetLastError();
-    fprintf(stderr,GETTEXTL("Cannot reserve address range 0x%lx-0x%lx ."),
-            start_addr,end_addr-1);
+    fprintf(stderr,GETTEXTL("Cannot reserve address range 0x%llx-0x%llx ."),
+            (unsigned long long)start_addr,(unsigned long long)(end_addr-1));
     errno_out(errcode);
     /* DumpProcessMemoryMap(stderr); */
     return -1;
   }
  #ifdef DEBUG_SPVW
-  fprintf(stderr,"Reserved address range 0x%lx-0x%lx .\n",
-          start_addr,end_addr-1);
+  fprintf(stderr,"Reserved address range 0x%llx-0x%llx .\n",
+          (unsigned long long)start_addr,(unsigned long long)(end_addr-1));
  #endif
   return 0;
 }
@@ -354,8 +268,8 @@ local int mmap_zeromap (void* map_addr, uintM map_len)
 {
   if (!VirtualAlloc(map_addr,map_len,MEM_COMMIT,PAGE_READWRITE)) {
     var DWORD errcode = GetLastError();
-    fprintf(stderr,GETTEXTL("Cannot map memory to address 0x%lx ."),
-            map_addr);
+    fprintf(stderr,GETTEXTL("Cannot map memory to address 0x%llx ."),
+            (unsigned long long)(uintP)map_addr);
     errno_out(errcode);
     return -1;                  /* error */
   }
@@ -389,14 +303,14 @@ local void* mmap_filemap (void* map_addr, uintM map_len, Handle fd,
                                          (DWORD)offset,map_len,map_addr);
   if (resultaddr == NULL) {
     var DWORD errcode = GetLastError();
-    fprintf(stderr,GETTEXTL("MapViewOfFileEx(addr=0x%x,off=0x%x) failed."),
-            map_addr,offset);
+    fprintf(stderr,GETTEXTL("MapViewOfFileEx(addr=0x%llx,off=0x%llx) failed."),
+            (unsigned long long)(uintP)map_addr,(unsigned long long)offset);
     errno_out(errcode);
     return (void*)(-1);
   }
   if (resultaddr != map_addr) {
-    fprintf(stderr,GETTEXTL("MapViewOfFileEx() returned 0x%x instead of 0x%x."),
-            resultaddr,map_addr);
+    fprintf(stderr,GETTEXTL("MapViewOfFileEx() returned 0x%llx instead of 0x%llx."),
+            (unsigned long long)(uintP)resultaddr,(unsigned long long)(uintP)map_addr);
     fprint(stderr,"\n");
     UnmapViewOfFile(resultaddr);
     return (void*)(-1);
@@ -436,28 +350,7 @@ global int mprotect (void* addr, size_t len, int prot)
 
 /* -------------- Implementation for Unix except Mac OS X -------------- */
 
-#if defined(HAVE_MMAP_ANON) || defined(HAVE_MMAP_DEVZERO)
-
-/* We don't need both mmap() methods. One is sufficient. */
-#ifdef HAVE_MMAP_ANON
-  #undef HAVE_MMAP_DEVZERO
-#endif
-
-#ifdef HAVE_MMAP_DEVZERO
-local int mmap_zero_fd;       /* open handle for /dev/zero */
-  /* How to access /dev/zero: Sometimes /dev/zero has permissions 0644.
-   Therefore we can OPEN() it only with O_RDONLY instead of O_RDWR.
-   Therefore, in the mmap() call, we use MAP_PRIVATE instead of MAP_SHARED. */
-  #ifdef MAP_FILE
-    #define map_flags  MAP_FILE | MAP_PRIVATE
-  #else
-    #define map_flags  MAP_PRIVATE
-  #endif
-#endif
-#ifdef HAVE_MMAP_ANON
-  #define mmap_zero_fd  -1      /* any invalid handles works! */
-  #define map_flags  MAP_ANON | MAP_PRIVATE
-#endif
+#if defined(HAVE_MMAP_ANON)
 
 local void mmap_init_pagesize (void)
 {
@@ -480,18 +373,6 @@ local void mmap_init_pagesize (void)
 
 local int mmap_init (void)
 {
- #ifdef HAVE_MMAP_DEVZERO
-  {
-    var int fd = OPEN("/dev/zero",O_RDONLY,my_open_mask);
-    if (fd<0) {
-      var int errcode = errno;
-      fprintf(stderr,GETTEXTL("Cannot open <%s>."),"/dev/zero");
-      errno_out(errcode);
-      return -1; /* error */
-    }
-    mmap_zero_fd = fd;
-  }
- #endif
   mincore_init();
   return 0;
 }
@@ -517,12 +398,12 @@ local int mmap_zeromap (void* map_addr, uintM map_len)
   if ( (void*) mmap((void*)map_addr, /* desired address */
                     map_len, /* length */
                     PROT_READ_WRITE, /* access rights */
-                    map_flags | MAP_FIXED, /* exactly at this address! */
-                    mmap_zero_fd, 0) /* put empty pages */
+                    MAP_ANON | MAP_PRIVATE | MAP_FIXED, /* exactly at this address! */
+                    -1, 0) /* put empty pages */
        == (void*)(-1)) {
     var int errcode = errno;
-    fprintf(stderr,GETTEXTL("Cannot map memory to address 0x%lx ."),
-            (uintP)map_addr);
+    fprintf(stderr,GETTEXTL("Cannot map memory to address 0x%llx ."),
+            (unsigned long long)(uintP)map_addr);
     errno_out(errcode);
     /* This error tends to repeat, leading to an endless loop.
        It's better to abort than to loop endlessly. */

@@ -1,14 +1,14 @@
 # -*- Makefile -*- for internationalized message files for CLISP.
 #
-# Copyright (C) 1995, 1996, 1997 Free Software Foundation, Inc.
+# Copyright (C) 1995-2026 Free Software Foundation, Inc.
 # Copyright (C) 1996 Marcus Daniels.
 # Copyright (C) 1997 Bruno Haible.
 # Copyright (C) 2007-2008 Sam Steingold
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2, or (at your option)
-# any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published
+# by the Free Software Foundation; either version 2 of the License,
+# or (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,9 +16,19 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-# USA.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# This Makefile makes use of the variable assignment operator != standardized
+# by POSIX:2024
+# <https://pubs.opengroup.org/onlinepubs/9799919799/utilities/make.html>.
+# It thus requires a 'make' implementation that supports this operator !=.
+# As of 2024, these are: GNU make >= 4.0, FreeBSD make, NetBSD make,
+# OpenBSD make. This means that building on specific platforms requires
+# use of GNU make:
+#   - On macOS, use /opt/homebrew/bin/gmake.
+#   - On Solaris 11 OpenIndiana, use /usr/bin/gmake = /usr/gnu/bin/make.
+#   - On Solaris 11.4, install GNU make yourself.
+#   - On AIX, use /opt/freeware/bin/make.
 
 #### Start of system configuration section. ####
 
@@ -56,8 +66,30 @@ SHELL = /bin/sh
 .SUFFIXES:
 .SUFFIXES: .po .gmo
 
-# List of catalogs to build and install (extension .gmo)
-CATALOGS = @CATALOGS@
+# The set of available translations.
+ALL_LINGUAS != sed -e '/^\#/d' < $(srcdir)/LINGUAS
+
+# The set of desired translations, as specified by the installer or distributor.
+DESIRED_LINGUAS = @DESIRED_LINGUAS@
+# The set of translations to install. This is computed based on $(ALL_LINGUAS)
+# and $(DESIRED_LINGUAS). It is a subset of $(ALL_LINGUAS).
+# We use the presentlang catalog if desiredlang is
+#   a. equal to presentlang, or
+#   b. a variant of presentlang (because in this case, presentlang can be used
+#      as a fallback for messages which are not translated in the desiredlang
+#      catalog).
+INST_LINGUAS != for presentlang in $(ALL_LINGUAS); do \
+                  useit=false; \
+                  for desiredlang in $(DESIRED_LINGUAS); do \
+                    case "$$desiredlang" in \
+                      "$$presentlang" | "$$presentlang"_* | "$$presentlang".* | "$$presentlang"@*) \
+                        useit=true ;; \
+                    esac; \
+                  done; \
+                  if $$useit; then echo $$presentlang; fi; \
+                done
+# This is computed as $(foreach lang, $(INST_LINGUAS), $(lang).gmo)
+CATALOGS != for lang in $(INST_LINGUAS); do echo $$lang.gmo; done
 
 
 all: all-@USE_NLS@

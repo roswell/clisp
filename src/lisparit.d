@@ -1,6 +1,6 @@
 /*
  * Arithmetics for CLISP
- * Bruno Haible 1990-2005, 2016-2017
+ * Bruno Haible 1990-2005, 2016-2026
  * Sam Steingold 1998-2011
  * German comments translated into English: Stefan Kain 2002-12-23
  */
@@ -176,7 +176,9 @@ global maygc object read_float (uintWL base, signean sign, object string,
     var signean exp_sign = 0; /* exponent-sign */
     switch (as_cint(*ptr)) {
       case '-': exp_sign = ~exp_sign; /* sign := negative */
+        FALLTHROUGH;
       case '+': ptr++; exp_len--; /* skip exponent-sign */
+        FALLTHROUGH;
       default: ;
     }
     /* convert exponent into integer: */
@@ -356,7 +358,7 @@ local maygc object check_number_replacement (object obj) {
  < result: a real number, a replacement
  can trigger GC */
 global maygc object check_real_replacement (object obj) {
-  for (;;) {
+  while (true) {
     pushSTACK(NIL); /* no PLACE */
     pushSTACK(obj);     /* TYPE-ERROR slot DATUM */
     pushSTACK(S(real)); /* TYPE-ERROR slot EXPECTED-TYPE */
@@ -409,7 +411,7 @@ static inline maygc object check_rational (object obj) {
  < result: a rational number, a replacement
  can trigger GC */
 local maygc object check_rational_replacement (object obj) {
-  for (;;) {
+  while (true) {
     pushSTACK(NIL); /* no PLACE */
     pushSTACK(obj);     /* TYPE-ERROR slot DATUM */
     pushSTACK(S(rational)); /* TYPE-ERROR slot EXPECTED-TYPE */
@@ -859,7 +861,7 @@ LISPFUN(xgcd,seclass_foldable,0,0,rest,nokey,0,NIL)
       I_I_xgcd_I_I_I(arg_0,arg_1);
       Before(arg_i_ptr) = STACK_2;
     }
-    while (1) {
+    while (true) {
       NEXT(arg_i_ptr) = STACK_1;
       g = STACK_0; skipSTACK(3);
       if (arg_i_ptr == args_end_pointer)
@@ -1313,7 +1315,8 @@ LISPFUNNF(float_scale_exponent,1)
   if (R_minusp(STACK_0)) {
     s = -1;
     STACK_0 = F_minus_F(STACK_0);
-  } else s = 1;
+  } else
+    s = 1;
   /* STACK_0 > 0 */
   /* increase computational precision to avoid overflow
      short -> double since single has the same exponent size as short */
@@ -1545,7 +1548,6 @@ LISPFUNNF(logorc2,2)
 
 LISPFUNNF(boole,3)
 { /* (BOOLE op integer integer), CLTL p. 222 */
-  var object op = STACK_2; /* operator, not a typetest */
   STACK_0 = check_integer(STACK_0); STACK_1 = check_integer(STACK_1);
   VALUES1(OP_I_I_boole_I(STACK_2,STACK_1,STACK_0)); skipSTACK(3);
 }
@@ -1731,6 +1733,7 @@ local maygc object make_random_state (object r)
     begin_system_call();
     var unsigned int pid = (unsigned int)(getpid());
     seed_hi = (
+      (unsigned int)
      #if defined(HAVE_RAND_R)
       rand_r(&pid)
      #else

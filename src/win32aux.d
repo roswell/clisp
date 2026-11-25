@@ -1,6 +1,6 @@
 /*
  * Auxiliary functions for CLISP on Win32
- * Bruno Haible 1997-2005, 2009, 2017
+ * Bruno Haible 1997-2005, 2009, 2017, 2026
  * Sam Steingold 1999-2009, 2011
  */
 
@@ -150,7 +150,8 @@ local BOOL DoInterruptible(LPTHREAD_START_ROUTINE fn, LPVOID arg, BOOL socketp)
       }
       return false;               /* aborted by Ctrl-C */
     }
-  } else OS_error();
+  } else
+    OS_error();
 }
 
 /* Sleep a certain time.
@@ -191,7 +192,7 @@ local HANDLE sigint_thread = INVALID_HANDLE_VALUE;
 
 /* Destination for hyperjump. Normally &interrupt_handler, but set to &quit
    when a Ctrl-Break was seen. */
-local DWORD hyperjump_dest = (DWORD)&interrupt_handler;
+local uintP hyperjump_dest = (uintP)&interrupt_handler;
 
 local BOOL normal_interrupt_handler (DWORD CtrlType)
 {
@@ -220,8 +221,8 @@ local DWORD WINAPI do_sigintwait (LPVOID arg)
   var HANDLE waitfor[2];
   waitfor[0] = sigint_event;
   waitfor[1] = sigbreak_event;
-  for (;;) switch
-    (WaitForMultipleObjects(2,&waitfor[0],false,wait_duration[waitstate])) {
+  while (true) {
+    switch (WaitForMultipleObjects(2,&waitfor[0],false,wait_duration[waitstate])) {
       case WAIT_OBJECT_0+0:
         /* Got a sigint_event! */
         if (!interrupt_pending) { /* already being handled? */
@@ -235,7 +236,7 @@ local DWORD WINAPI do_sigintwait (LPVOID arg)
         goto try_hyperjump;
       case WAIT_OBJECT_0+1:
         /* Got a sigbreak_event! */
-        final_exitcode = 130; hyperjump_dest = (DWORD)&quit;
+        final_exitcode = 130; hyperjump_dest = (uintP)&quit;
         goto try_hyperjump;
       case WAIT_TIMEOUT:
         if (!interrupt_pending) { /* already being handled? */
@@ -252,7 +253,13 @@ local DWORD WINAPI do_sigintwait (LPVOID arg)
           var CONTEXT context;
           context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER;
           GetThreadContext(main_thread,&context);
+          #if defined(ARM64)
+          context.Pc = hyperjump_dest;
+          #elif defined(AMD64)
+          context.Rip = hyperjump_dest;
+          #else
           context.Eip = hyperjump_dest;
+          #endif
           SetThreadContext(main_thread,&context);
           /* Now it's ok to release the main thread. */
           waitstate = 0;
@@ -261,6 +268,7 @@ local DWORD WINAPI do_sigintwait (LPVOID arg)
         break;
       default: NOTREACHED;
     }
+  }
 }
 
 global void install_sigint_handler (void)
@@ -319,13 +327,13 @@ global void init_win32 (void)
   stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
   stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
   stderr_handle = GetStdHandle(STD_ERROR_HANDLE);
-#ifndef MULTITHREAD
+ #ifndef MULTITHREAD
   /* What to do if one of these is == INVALID_HANDLE_VALUE ?? */
   /* Auxiliary events. */
   aux_event = CreateEvent(NULL, true, false, NULL);
   sigint_event = CreateEvent(NULL, true, false, NULL);
   sigbreak_event = CreateEvent(NULL, true, false, NULL);
-#endif
+ #endif
  #ifndef ENABLE_UNICODE
   { /* Translation table for console input. */
     var int i;
@@ -342,17 +350,16 @@ global void init_win32 (void)
     CharToOem(&ANSI2OEM_table[1],&ANSI2OEM_table[1]);
   }
  #endif
-  { /* Winsock. */
-    var WSADATA data;
-    if (WSAStartup(MAKEWORD(1,1),&data)) {
-      winsock_initialized = 0;
-      earlylate_asciz_error("\n*** - Failed to initialize winsock library\n",0);
-    } else winsock_initialized = true;
-  }
+  /* Winsock. */
+  if (gl_sockets_startup(MAKEWORD(1,1))) {
+    winsock_initialized = 0;
+    earlylate_asciz_error("\n*** - Failed to initialize winsock library\n",0);
+  } else
+    winsock_initialized = true;
 }
 
 global void done_win32 (void) {
-  if (winsock_initialized && WSACleanup()) {
+  if (winsock_initialized && gl_sockets_cleanup()) {
     earlylate_asciz_error("\n*** - Failed to shutdown winsock library\n",0);
   }
   winsock_initialized = 0;
@@ -477,7 +484,8 @@ global int fd_read_wont_hang_p (HANDLE fd)
               return -1;
         }
         return 0;
-      } else CHECK_ERROR_IGNORE_INVALID;
+      } else
+        CHECK_ERROR_IGNORE_INVALID;
       var DWORD errors;
       var COMSTAT stat;
       if (ClearCommError(fd,&errors,&stat)) { /* it's a serial comm dev */
@@ -485,7 +493,8 @@ global int fd_read_wont_hang_p (HANDLE fd)
         if (stat.fEof) return 2;
         if (stat.cbInQue) return 3;
         return 0;
-      } else CHECK_ERROR_IGNORE_INVALID;
+      } else
+        CHECK_ERROR_IGNORE_INVALID;
       /* neither a console nor a serial comm dev. */
       switch (WaitForSingleObject(fd,0)) {
         case WAIT_OBJECT_0:     /* a byte is available, or EOF */
@@ -641,8 +650,7 @@ local DWORD WINAPI do_fd_read (LPVOID arg) {
     params->errcode = GetLastError();
   return 0;
 }
-modexp ssize_t fd_read
-(HANDLE fd, void* buf, size_t nbyte, perseverance_t persev) {
+modexp ssize_t fd_read (HANDLE fd, void* buf, size_t nbyte, perseverance_t persev) {
   var struct fd_read_params params;
   params.fd      = fd;
   params.buf     = buf;
@@ -676,18 +684,17 @@ local inline int fd_write_will_hang_p (HANDLE fd)
    When the return value is 0, it sets GetLastError() to indicate
    whether EOWF has been seen (ERROR_HANDLE_EOF) or
    whether it is not yet known (ERROR_IO_PENDING). */
-modexp ssize_t fd_write
-(HANDLE fd, const void* b, size_t nbyte, perseverance_t persev) {
+modexp ssize_t fd_write (HANDLE fd, const void* b, size_t nbyte, perseverance_t persev) {
   if (nbyte == 0) {
     SetLastError(ERROR_IO_PENDING);
     return 0;
   }
   /* in MT builds the heap protection is managed by pin_varobject() */
-#if defined(GENERATIONAL_GC) && defined(SPVW_MIXED) && !defined(MULTITHREAD)
+ #if defined(GENERATIONAL_GC) && defined(SPVW_MIXED) && !defined(MULTITHREAD)
   handle_fault_range(PROT_READ,(aint)b,(aint)b+nbyte);
-#endif
+ #endif
   var const char* buf = (const char*) b;
-#ifndef ENABLE_UNICODE
+ #ifndef ENABLE_UNICODE
   /* Possibly translate characters. */
   if (nbyte > 0) {
     var int i;
@@ -710,7 +717,7 @@ modexp ssize_t fd_write
       }
     }
   }
-#endif
+ #endif
   var int done = 0;
   do {
     /* Possibly check for Ctrl-C here ?? */
@@ -815,9 +822,9 @@ local int lowlevel_sock_read (SOCKET fd, void* b, size_t nbyte, perseverance_t p
     return 0;
   }
   /* in MT builds the heap protection is managed by pin_varobject() */
-#if defined(GENERATIONAL_GC) && defined(SPVW_MIXED) && !defined(MULTITHREAD)
+ #if defined(GENERATIONAL_GC) && defined(SPVW_MIXED) && !defined(MULTITHREAD)
   handle_fault_range(PROT_READ_WRITE,(aint)b,(aint)b+nbyte);
-#endif
+ #endif
   var char* buf = (char*) b;
   var int done = 0;
   do {
@@ -927,9 +934,9 @@ local int lowlevel_sock_write (SOCKET fd, const void* b, size_t nbyte, persevera
     return 0;
   }
   /* in MT builds the heap protection is managed by pin_varobject() */
-#if defined(GENERATIONAL_GC) && defined(SPVW_MIXED) && !defined(MULTITHREAD)
+ #if defined(GENERATIONAL_GC) && defined(SPVW_MIXED) && !defined(MULTITHREAD)
   handle_fault_range(PROT_READ,(aint)b,(aint)b+nbyte);
-#endif
+ #endif
   var const char* buf = (const char*) b;
   var int done = 0;
   do {
@@ -1059,7 +1066,9 @@ global off_t lseek (HANDLE fd, off_t offset, DWORD mode)
 }
 
 /* Testing for possibly interactive handle. */
-global int isatty (HANDLE handle)
+/* Note: This is more general than gnulib's isatty implementation for
+   native Windows. */
+global int handle_isatty (HANDLE handle)
 {
   var DWORD ftype = GetFileType(handle);
   return (ftype == FILE_TYPE_CHAR || ftype == FILE_TYPE_PIPE);
@@ -1087,27 +1096,12 @@ global BOOL MyCreateProcess (LPTSTR CommandLine, HANDLE StdInput,
                        NULL, NULL, &sinfo, ProcessInformation);
 }
 
-/* I want to see a backtrace! */
-int abort_dummy;
-global _Noreturn void abort (void)
-{
-#ifdef MICROSOFT
-  /* This hack is necessary because if you write  1/0  the MSVC compiler
-     signals an error at compilation time!! */
-  var volatile int zero = 0;
-  abort_dummy = 1/zero;
-#else
-  abort_dummy = 1/0;
-#endif
-  exit(-1);                     /* to turn off warning */
-}
-
 
 /* Print out the memory map of the process. */
 global void DumpProcessMemoryMap (FILE* out)
 {
   var MEMORY_BASIC_INFORMATION info;
-  var aint address = 0;
+  var uintP address = 0;
   fprint(out,"Memory dump:\n");
   while (VirtualQuery((void*)address,&info,sizeof(info)) == sizeof(info)) {
     /* Always info.BaseAddress = address. */
@@ -1117,10 +1111,11 @@ global void DumpProcessMemoryMap (FILE* out)
       case MEM_COMMIT:  fprint(out,"*"); break;
       default: fprint(out,"?"); break;
     }
-    fprintf(out," 0x%x - 0x%x",(aint)info.BaseAddress,
-            (aint)info.BaseAddress+info.RegionSize-1);
+    fprintf(out," 0x%llx - 0x%llx",
+            (unsigned long long)(uintP)info.BaseAddress,
+            (unsigned long long)(uintP)info.BaseAddress+info.RegionSize-1);
     if (info.State != MEM_FREE) {
-      fprintf(out," (0x%x) ",(aint)info.AllocationBase);
+      fprintf(out," (0x%llx) ",(unsigned long long)(uintP)info.AllocationBase);
       /* info.AllocationProtect is apparently irrelevant. */
       switch (info.Protect & ~(PAGE_GUARD|PAGE_NOCACHE)) {
         case PAGE_READONLY:          fprint(out," R  "); break;
@@ -1146,7 +1141,7 @@ global void DumpProcessMemoryMap (FILE* out)
       }
     }
     fprint(out,"\n");
-    address = (aint)info.BaseAddress + info.RegionSize;
+    address = (uintP)info.BaseAddress + info.RegionSize;
   }
   fprint(out,"End of memory dump.\n");
 }

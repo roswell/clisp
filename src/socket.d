@@ -1,6 +1,6 @@
 /*
  * Setting up a connection to an X server, and other socket functions
- * Bruno Haible 19.6.1994, 27.6.1997, 9.3.1999 ... 2003, 2017, 2020
+ * Bruno Haible 19.6.1994, 27.6.1997, 9.3.1999 ... 2003, 2017, 2020, 2026
  * Marcus Daniels 28.9.1995, 9.9.1997
  * Sam Steingold 1998-2012, 2016-2017
  * German comments translated into English: Stefan Kain 2002-09-11
@@ -55,8 +55,7 @@
    Thus, no direct use of the winsock functions (closesocket, ioctlsocket,
    WSAGetLastError, etc.), except: gethostbyaddr, gethostbyname.
    gethostbyname's 1st argument is 'const char *', not 'const void *', on some
-   platforms: Mac OS X 10.3, FreeBSD 6.0, NetBSD 5.0, Minix, Cygwin, Windows,
-   BeOS.
+   platforms: Mac OS X 10.3, FreeBSD 6.0, NetBSD 5.0, Minix, Cygwin, Windows.
  */
 
 /* ============ hostnames and IP addresses only (no sockets) ============
@@ -363,7 +362,8 @@ modexp struct hostent* resolve_host (object arg) {
     end_system_call();
   }
  #endif
-  else error_string_integer(arg);
+  else
+    error_string_integer(arg);
   return he;
 }
 
@@ -683,7 +683,7 @@ global host_data_t * socket_getlocalname (SOCKET socket_handle,
   if (resolve_p) { /* Fill in hd->truename. */
     var char host[MAXHOSTNAMELEN+1];
     get_hostname(host);
-    ASSERT(strlen(host) <= MAXHOSTNAMELEN);
+    ASSERT(strlen(host) <= MAXPEERNAMELEN);
     strcpy(hd->truename,host);
   } else {
     hd->truename[0] = '\0';
@@ -736,8 +736,7 @@ global host_data_t * socket_getpeername (SOCKET socket_handle,
       break;
   }
   /* Fill in hd->truename. */
-  if (hp) {
-    ASSERT(strlen(hp->h_name) <= MAXHOSTNAMELEN);
+  if (hp && strlen(hp->h_name) <= MAXPEERNAMELEN) {
     strcpy(hd->truename,hp->h_name);
   } else {
     hd->truename[0] = '\0';

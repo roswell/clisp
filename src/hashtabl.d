@@ -1,6 +1,6 @@
 /*
  * Hash-Tables in CLISP
- * Bruno Haible 1990-2005, 2016-2018
+ * Bruno Haible 1990-2005, 2016-2019, 2025-2026
  * Sam Steingold 1998-2011
  * German comments translated into English: Stefan Kain 2002-01-29
  */
@@ -617,9 +617,8 @@ local inline uint32 hashcode_tree (object obj, int level,
 /* similar to hashcode_tree
  NB: use the SAME top-level need initial value (e.g., HASHCODE_NEED_LEAVES)
    for the corresponding hashcode_tree and gcinvariant_hashcode_tree_p calls */
-local inline bool gcinvariant_hashcode_tree_p_rec
-(object obj, int* need, int level,
- bool (gcinvariant_hashcode_leaf_p) (object)) {
+local inline bool gcinvariant_hashcode_tree_p_rec (object obj, int* need, int level,
+                                                   bool (gcinvariant_hashcode_leaf_p) (object)) {
   if (atomp(obj)) {
     (*need)--;
     return gcinvariant_hashcode_leaf_p(obj);
@@ -633,8 +632,8 @@ local inline bool gcinvariant_hashcode_tree_p_rec
                                           gcinvariant_hashcode_leaf_p));
   }
 }
-local inline bool gcinvariant_hashcode_tree_p
-(object obj, bool (gcinvariant_hashcode_leaf_p) (object)) {
+local inline bool gcinvariant_hashcode_tree_p (object obj,
+                                               bool (gcinvariant_hashcode_leaf_p) (object)) {
   int need = HASHCODE_NEED_LEAVES;
   return gcinvariant_hashcode_tree_p_rec(obj,&need,0,
                                          gcinvariant_hashcode_leaf_p);
@@ -941,7 +940,7 @@ local uint32 hashcode4_vector (object dv, uintL index,
     case Array_type_snilvector: /* (VECTOR NIL) */
       if (count > 0)
         return 0x2116ECD0 + bish_code;
-      /*FALLTHROUGH*/
+      FALLTHROUGH;
     case Array_type_sstring:    /* simple-string */
       return hashcode4_vector_Char(dv,index,count,bish_code);
     default: NOTREACHED;
@@ -996,7 +995,8 @@ local uint32 hashcode4_atom (object obj, int level) {
         var object dv = array_displace_check(obj,len,&index);
         /* dv is the data-vector, index is the index into the data-vector. */
         return hashcode4_vector(dv,index,len,bish_code,level+1);
-      } else return bish_code;
+      } else
+        return bish_code;
     }
     case_mdarray: {             /* array with rank /=1 */
       /* rank and dimensions, then look at it component-wise: */
@@ -1018,7 +1018,8 @@ local uint32 hashcode4_atom (object obj, int level) {
         var uintL index = 0;
         var object dv = iarray_displace_check(obj,len,&index);
         return hashcode4_vector(dv,index,len,bish_code,level+1);
-      } else return bish_code;
+      } else
+        return bish_code;
     }
    #ifdef TYPECODES
     _case_structure
@@ -1578,13 +1579,14 @@ global object hash_table_weak_type (object ht) {
   var object kvt = TheHashtable(ht)->ht_kvtable;
   if (simple_vector_p(kvt))
     return NIL;
-  else switch (Record_type(kvt)) {
+  else
+    switch (Record_type(kvt)) {
       case Rectype_WeakHashedAlist_Key:    { return S(Kkey); }
       case Rectype_WeakHashedAlist_Value:  { return S(Kvalue); }
       case Rectype_WeakHashedAlist_Either: { return S(Kkey_and_value); }
       case Rectype_WeakHashedAlist_Both:   { return S(Kkey_or_value); }
       default: NOTREACHED;
-  }
+    }
 }
 
 /* UP: Allocates the key-value-table for a new hash-table.
@@ -2504,7 +2506,7 @@ LISPFUNN(hash_table_iterate,1) {
   var object state = popSTACK(); /* internal state */
   if (consp(state)) {            /* hopefully a cons */
     var object table = Car(state); /* key-value-vector */
-    while (1) {
+    while (true) {
       var uintL index = posfixnum_to_V(Cdr(state));
       if (index==0)             /* index=0 -> no more elements */
         break;
@@ -2535,7 +2537,7 @@ LISPFUNN(set_hash_table_weak_p,2)
   if (!eq(val,hash_table_weak_type(ht))) {
     var uintL maxcount = posfixnum_to_V(TheHashtable(ht)->ht_maxcount);
     var object new_kvt;
-    for (;;) {
+    while (true) {
       new_kvt = allocate_kvt(val,maxcount);
       /* Check whether the hash-table has not been resized during
          allocate_kvt(). */
@@ -2617,7 +2619,7 @@ local uint32 hashcode_tuple (uintC n, const gcv_object_t* args_pointer,
     var uintC n1 = tuple_half_1[n];
     var uintC n2 = tuple_half_2[n]; /* n1 + n2 = n */
     var uint32 code1 = hashcode_tuple(n1,args_pointer,depth+1);
-    var uint32 code2 = hashcode_tuple(n2,args_pointer STACKop -(uintP)n1,
+    var uint32 code2 = hashcode_tuple(n2,args_pointer STACKop -(sintP)n1,
                                       depth+1);
     switch (depth) {
       case 0: code1 = rotate_left(16,code1); break;
@@ -2653,7 +2655,7 @@ local bool equal_tuple (object obj, uintC n, const gcv_object_t* args_pointer) {
       var uintC n1 = tuple_half_1[n];
       var uintC n2 = tuple_half_2[n]; /* n1 + n2 = n */
       if (equal_tuple(Car(obj),n1,args_pointer)
-          && equal_tuple(Cdr(obj),n2,args_pointer STACKop -(uintP)n1)
+          && equal_tuple(Cdr(obj),n2,args_pointer STACKop -(sintP)n1)
           )
         return true;
     }

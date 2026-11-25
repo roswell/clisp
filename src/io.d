@@ -1,6 +1,6 @@
 /*
  * Input/Output for CLISP
- * Bruno Haible 1990-2009, 2016-2018
+ * Bruno Haible 1990-2009, 2016-2026
  * Marcus Daniels 11.3.1997
  * Sam Steingold 1998-2011, 2017
  * German comments translated into English: Stefan Kain 2001-06-12
@@ -691,6 +691,7 @@ LISPFUN(get_macro_character,seclass_read,1,1,norest,nokey,0,NIL)
   var object nontermp = NIL; /* non-terminating-p Flag */
   switch (syntax_readtable_get(readtable,c)) {
     case syntax_nt_macro: { nontermp = T; }
+      FALLTHROUGH;
     case syntax_t_macro: { /* nontermp = NIL; */
       /* c is a macro-character. */
       var object entry =
@@ -971,7 +972,7 @@ local _Noreturn void error_eof (const gcv_object_t* stream_) {
  < uintWL scode: its syntaxcode
  can trigger GC */
 #define wpeek_char_syntax(ch_assignment,scode_assignment,stream_)       \
-  { while (1) {                                                         \
+  { while (true) {                                                      \
     object ch0 = read_char(stream_);              /* read Character */  \
     if (eq(ch0,eof_value)) { error_eof(stream_); }  /* EOF -> Error */  \
     /* check for Character: */                                          \
@@ -992,7 +993,7 @@ local _Noreturn void error_eof (const gcv_object_t* stream_) {
  < result: next character or eof_value
  can trigger GC */
 local maygc object wpeek_char_eof (const gcv_object_t* stream_) {
-  while (1) {
+  while (true) {
     var object ch = peek_char(stream_); /* peek character */
     if (eq(ch,eof_value))               /* EOF ? */
       return ch;
@@ -1195,7 +1196,7 @@ local maygc void read_token_1 (const gcv_object_t* stream_, object ch,
   var bool escape_flag = false;
   var bool fasl_stream = stream_get_fasl(*stream_); /* don't need to save ch */
   goto char_read;
-  while (1) {
+  while (true) {
     /* Here the token in STACK_1 (Semi-Simple-String for characters)
      and STACK_0 (Semi-Simple-Byte-Vector for attributecodes) is constructed.
      Multiple-Escape-Flag indicates, if we are situated between |...|.
@@ -1510,6 +1511,7 @@ local uintWL test_number_syntax (uintWL* base_, object* string_,
   info->sign = 0;               /* sign:=positiv */
   switch (*attrptr0) {
     case a_minus: info->sign = -1; /* sign:=negativ */
+      FALLTHROUGH;
     case a_plus:                   /* read over sign: */
       charptr0++; attrptr0++; index0++;
     default:
@@ -1814,7 +1816,7 @@ local maygc Values read_macro (object ch, const gcv_object_t* stream_) {
     {                          /* read digits of argument: */
       var bool flag = false; /* flag, if there has been a digit already */
       pushSTACK(Fixnum_0);   /* previous Integer := 0 */
-      while (1) {
+      while (true) {
         var object nextch = read_char(stream_); /* read character */
         if (eq(nextch,eof_value)) {
           pushSTACK(*stream_);  /* STREAM-ERROR slot STREAM */
@@ -2002,7 +2004,7 @@ local maygc object read_internal (const gcv_object_t* stream_) {
     var uintL pack_end_index;
     var uintL name_start_index;
     var bool external_internal_flag = false; /* preliminary external */
-    while (1) {
+    while (true) {
       if (index>=len)
         goto current;           /* found no colon -> current package */
       if (*attrptr == a_illg)
@@ -2030,7 +2032,7 @@ local maygc object read_internal (const gcv_object_t* stream_) {
        external */
     }
     /* no more colons are to come: */
-    while (1) {
+    while (true) {
       if (index>=len)
         goto ex_in_ternal;      /* no further colon found -> ok */
       if (*attrptr == a_illg)
@@ -2314,8 +2316,8 @@ global maygc object stream_read (const gcv_object_t* stream_,
 local maygc object read_delimited_list (const gcv_object_t* stream_,
                                         object endch, object ifdotted);
 /* Dito with set SYS::*READ-RECURSIVE-P* : */
-local maygc object read_delimited_list_recursive
-(const gcv_object_t* stream_, object endch, object ifdotted);
+local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
+                                                  object endch, object ifdotted);
 /* first the general function: */
 local maygc object read_delimited_list(const gcv_object_t* stream_, object endch,
                                        object ifdotted) {
@@ -2358,7 +2360,7 @@ local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
   /* don't need to save endch and ifdotted. */
   {
     var object object1;     /* first List element */
-    while (1) {         /* loop, in order to read first Listenelement */
+    while (true) {          /* loop, in order to read first Listenelement */
       /* next non-whitespace Character: */
       var object ch;
       var uintWL scode;
@@ -2392,9 +2394,9 @@ local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
     pushSTACK(new_cons);
   }
   /* stack layout: entire_list, (last entire_list). */
-  while (1) {              /* loop over further List elements */
+  while (true) {           /* loop over further List elements */
     var object object1;    /* further List element */
-    while (1) {        /* loop in order to read another  List element */
+    while (true) {            /* loop in order to read another  List element */
       /* next non-whitespace Character: */
       var object ch;
       var uintWL scode;
@@ -2435,7 +2437,7 @@ local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
     error_dot(*stream_);
   {
     var object object1;       /* last List-element */
-    while (1) {           /* loop, in order to read last List-element */
+    while (true) {            /* loop, in order to read last List-element */
       /* next non-whitespace Character: */
       var object ch;
       var uintWL scode;
@@ -2466,7 +2468,7 @@ local maygc object read_delimited_list_recursive (const gcv_object_t* stream_,
      insert into list as (cdr (last Gesamtliste)): */
     Cdr(STACK_0) = object1;
   }
-  while (1) { /* loop, in order to read comment after the last List-element */
+  while (true) { /* loop, in order to read comment after the last List-element */
     /* next non-whitespace Character: */
     var object ch;
     var uintWL scode;
@@ -2544,7 +2546,7 @@ LISPFUNN(string_reader,2) {     /* reads " */
   /* stack layout: stream, char. */
   if (!nullpSv(read_suppress)) { /* *READ-SUPPRESS* /= NIL ? */
     /* yes -> only read ahead of string: */
-    while (1) {
+    while (true) {
       /* read next character: */
       var object ch;
       var uintWL scode;
@@ -2565,43 +2567,47 @@ LISPFUNN(string_reader,2) {     /* reads " */
     /* no -> really read String */
     get_buffers();  /* two empty Buffers on the Stack */
     /* stack layout: stream, char, Buffer, anotherBuffer. */
-    if (stream_get_fasl(*stream_)) while (1) { /* faithful */
-      /* read next character: */
-      object ch = read_char(stream_);
-      if (eq(ch,eof_value)) goto error_eof;
-      if (eq(ch,ascii_char('"')))
-        break;
-      /* ignore newlines */
-      if (!(eq(ch,ascii_char(0x0A)) || eq(ch,ascii_char(0x0D)))) {
-        if (eq(ch,ascii_char('\\'))) { /* single-escape-character? */
+    if (stream_get_fasl(*stream_)) {
+      while (true) { /* faithful */
+        /* read next character: */
+        object ch = read_char(stream_);
+        if (eq(ch,eof_value)) goto error_eof;
+        if (eq(ch,ascii_char('"')))
+          break;
+        /* ignore newlines */
+        if (!(eq(ch,ascii_char(0x0A)) || eq(ch,ascii_char(0x0D)))) {
+          if (eq(ch,ascii_char('\\'))) { /* single-escape-character? */
+            /* yes -> read another character: */
+            ch = read_char(stream_);
+            if (eq(ch,eof_value)) goto error_eof;
+            if (eq(ch,ascii_char('n')))
+              ch = ascii_char(0x0A); /* "\n" = #\Linefeed */
+            else if (eq(ch,ascii_char('r')))
+              ch = ascii_char(0x0D); /* "\r" = #\Return */
+          }
+          /* push character ch into Buffer: */
+          ssstring_push_extend(STACK_1,char_code(ch));
+        }
+      }
+    } else {                      /* ANSI */
+      while (true) {
+        /* read next character: */
+        var object ch;
+        var uintWL scode;
+        read_char_syntax(ch = ,scode = ,stream_);
+        if (scode == syntax_eof)  /* EOF -> error */
+          goto error_eof;
+        if (eq(ch,STACK_2))       /* same character as char -> finished */
+          break;
+        if (scode == syntax_single_esc) { /* Single-Escape-Character? */
           /* yes -> read another character: */
-          ch = read_char(stream_);
-          if (eq(ch,eof_value)) goto error_eof;
-          if (eq(ch,ascii_char('n')))
-            ch = ascii_char(0x0A); /* "\n" = #\Linefeed */
-          else if (eq(ch,ascii_char('r')))
-            ch = ascii_char(0x0D); /* "\r" = #\Return */
+          read_char_syntax(ch = ,scode = ,stream_);
+          if (scode == syntax_eof) /* EOF -> error */
+            goto error_eof;
         }
         /* push character ch into Buffer: */
         ssstring_push_extend(STACK_1,char_code(ch));
       }
-    } else while (1) {          /* ANSI */
-      /* read next character: */
-      var object ch;
-      var uintWL scode;
-      read_char_syntax(ch = ,scode = ,stream_);
-      if (scode == syntax_eof)  /* EOF -> error */
-        goto error_eof;
-      if (eq(ch,STACK_2))       /* same character as char -> finished */
-        break;
-      if (scode == syntax_single_esc) { /* Single-Escape-Character? */
-        /* yes -> read another character: */
-        read_char_syntax(ch = ,scode = ,stream_);
-        if (scode == syntax_eof) /* EOF -> error */
-          goto error_eof;
-      }
-      /* push character ch into Buffer: */
-      ssstring_push_extend(STACK_1,char_code(ch));
     }
     /* copy Buffer and convert it into Simple-String: */
     {
@@ -2673,7 +2679,7 @@ LISPFUNN(quote_reader,2) {                    /* reads ' */
        (values))) */
 LISPFUNN(line_comment_reader,2) { /* reads ; */
   var gcv_object_t* stream_ = check_stream_arg(&STACK_1);
-  while (1) {
+  while (true) {
     var object ch = read_char(stream_); /* read character */
     if (eq(ch,eof_value) || eq(ch,ascii_char(NL)))
       break;
@@ -3415,7 +3421,7 @@ LISPFUNN(array_reader,3) {                             /* reads #A */
     STACK_2 = S(t);                        /* yes -> eltype := 'T */
   } else {
     var object i = Fixnum_0;    /* former nesting depth */
-    while (1) {
+    while (true) {
       pushSTACK(STACK_1); funcall(L(length),1); /* (LENGTH subcontents) */
       /* push on dims: */
       STACK_3 = value1;
@@ -3755,11 +3761,12 @@ local uintWL interpret_features (uintWL and_or_flag, object expr) {
 local uintWL interpret_feature (object expr) {
   check_SP();
   if (symbolp(expr)) {          /* expr Symbol, search in *FEATURES*: */
-    if (nullp(memq(expr,Symbol_value(S(features))))) return ~0;  /* no */
-    else return 0; /* yes */
+    if (nullp(memq(expr,Symbol_value(S(features)))))
+      return ~0; /* no */
+    else
+      return 0; /* yes */
   } else if (consp(expr) && symbolp(Car(expr))) {
     var object opname = Symbol_name(Car(expr));
-    var uintWL and_or_flag;
     if (string_eq(opname,Symbol_name(S(and)))) /* expr = (AND ...) */
       return interpret_features(0,expr);
     if (string_eq(opname,Symbol_name(S(or)))) /* expr = (OR ...) */
@@ -3973,7 +3980,7 @@ LISPFUNN(structure_reader,3) {                 /* reads #S */
         pushSTACK(args); pushSTACK(name);
         pushSTACK(*stream_);    /* Stream */
         pushSTACK(S(readL));
-        error(reader_error,GETTEXT("~S from ~S: bad ~S (extra fields: ~S"));
+        error(reader_error,GETTEXT("~S from ~S: bad ~S (extra fields: ~S)"));
       }
       VALUES1(closure); skipSTACK(3); return;
     }
@@ -4066,7 +4073,7 @@ LISPFUNN(structure_reader,3) {                 /* reads #S */
   }
   /* stack layout: Stream, remaining Args, name, constructor. */
   var uintC argcount = 0;     /* number of arguments for constructor */
-  while (1) {                 /* process remaining Argumentlist, */
+  while (true) {              /* process remaining Argumentlist, */
     /* push Arguments for constructor on STACK: */
     check_STACK();
     args = *(stream_ STACKop -1); /* remaining Args */
@@ -4377,7 +4384,7 @@ LISPFUNN(ansi_pathname_reader,3) {                 /* reads #P */
 LISPFUNN(unix_executable_reader,3) {           /* reads #! */
   var gcv_object_t* stream_ = test_no_infix(); /* n must be NIL */
   /* stack layout: Stream, sub-char #\!. */
-  while (1) {
+  while (true) {
     var object ch = read_char(stream_); /* read character */
     if (eq(ch,eof_value) || eq(ch,ascii_char(NL)))
       break;
@@ -4568,7 +4575,7 @@ LISPFUN(peek_char,seclass_default,0,5,norest,nokey,0,NIL) {
   } else if (charp(peek_type)) {
     /* peek-type is a Character */
     var object ch;
-    while (1) {
+    while (true) {
       ch = peek_char(stream_); /* what next? */
       if (eq(ch,eof_value))
         goto eof;
@@ -4594,7 +4601,8 @@ LISPFUN(listenL,seclass_default,0,1,norest,nokey,0,NIL) {
   check_istream(&STACK_0);      /* check input-stream */
   if (builtin_stream_p(STACK_0))
     VALUES_IF(LISTEN_AVAIL == listen_char(popSTACK()));
-  else funcall(S(stream_listen),1);
+  else
+    funcall(S(stream_listen),1);
 }
 
 /* (READ-CHAR-WILL-HANG-P input-stream)
@@ -4752,7 +4760,7 @@ LISPFUN(parse_integer,seclass_rd_sig,1,0,norest,key,4,
   {
     var chart c;                /* the last character read */
     /* step 1: skip whitespace */
-    while (1) {
+    while (true) {
       if (count==0)             /* the string has already ended? */
         goto badsyntax;
       c = *charptr;             /* the next character */
@@ -4764,6 +4772,7 @@ LISPFUN(parse_integer,seclass_rd_sig,1,0,norest,key,4,
     sign = 0;                   /* sign := positive */
     switch (as_cint(c)) {
       case '-': sign = -1;           /* sign := negative */
+        FALLTHROUGH;
       case '+':                      /* sign found */
         charptr++; index++; count--; /* skip */
         if (count==0)                /* the string has already ended? */
@@ -4775,7 +4784,7 @@ LISPFUN(parse_integer,seclass_rd_sig,1,0,norest,key,4,
   start_offset = arg.offset + index;
   /* now:  start_offset = offset of the first digit in the data vector
    step 3: read digits */
-  while (1) {
+  while (true) {
     var cint c = as_cint(*charptr); /* the next character */
     /* check the digits: (digit-char-p (code-char c) base) ?
      (cf. DIGIT-CHAR-P in CHARSTRG.D) */
@@ -5482,7 +5491,7 @@ global maygc object cons_ssstring (const gcv_object_t* stream_, object nl_type)
 #define PPH_TAB_COL_I(tab_spec) TheSvector(tab_spec)->data[3]
 #ifdef IO_DEBUG
 #define PPH_FORMAT_TAB(out,spec)                                \
-  (!vectorp(spec) || 4 != vector_length(spec) ? NOTREACHED,0 :  \
+  (!vectorp(spec) || vector_length(spec) != 4 ? NOTREACHED,0 :  \
    format_tab(out,PPH_TAB_COLON(spec),PPH_TAB_ATSIG(spec),      \
               PPH_TAB_COL_N(spec),PPH_TAB_COL_I(spec)))
 #else
@@ -5514,14 +5523,19 @@ local uintL format_tab (object stream, object colon_p, object atsig_p,
   var uintL ret;
   /* MSVC6 has broken %, so both arguments to % must be non-negative! */
   if (nullp(atsig_p)) {
-    if (nullp(pos)) ret = 2;
-    else if (pos_i < new_col_i) ret = new_col_i - pos_i;
-    else if (col_inc_i == 0) ret = 0;
-    else ret = col_inc_i - (pos_i - new_col_i) % col_inc_i;
+    if (nullp(pos))
+      ret = 2;
+    else if (pos_i < new_col_i)
+      ret = new_col_i - pos_i;
+    else if (col_inc_i == 0)
+      ret = 0;
+    else
+      ret = col_inc_i - (pos_i - new_col_i) % col_inc_i;
   } else {
-    if (nullp(pos)) ret = new_col_i;
-    else ret = new_col_i +
-           (new_inc_i - (pos_i + new_col_i) % new_inc_i) % new_inc_i;
+    if (nullp(pos))
+      ret = new_col_i;
+    else
+      ret = new_col_i + (new_inc_i - (pos_i + new_col_i) % new_inc_i) % new_inc_i;
   }
  #if IO_DEBUG > 1
   printf("%d\n",ret);
@@ -5578,8 +5592,10 @@ local object right_margin (void) {
   }
   if (nullp(prm)) return prm;   /* *PRIN-LINELENGTH* is NIL */
   var uintV margin = posfixnum_to_V(prm);
-  if (margin <= pp_pref_len) return Fixnum_0;
-  else return fixnum(margin - pp_pref_len);
+  if (margin <= pp_pref_len)
+    return Fixnum_0;
+  else
+    return fixnum(margin - pp_pref_len);
 }
 
 /* Returns the string-width of a PPHELP stream block. */
@@ -5831,7 +5847,8 @@ local maygc void justify_empty_2 (const gcv_object_t* stream_) {
       } while (--string_count);
       TheIarray(STACK_0)->dims[1] = needed_len;
       Car(TheStream(*stream_)->strm_pphelp_strings) = popSTACK();
-    } else skipSTACK(1);        /* drop the only string */
+    } else
+      skipSTACK(1);        /* drop the only string */
     /* (push (first strings) SYS::*PRIN-JBLOCKS*), or shorter:
      (setq SYS::*PRIN-JBLOCKS* (rplacd strings SYS::*PRIN-JBLOCKS*)) */
     new_cons = TheStream(*stream_)->strm_pphelp_strings;
@@ -5895,7 +5912,7 @@ local maygc void justify_end_fill (const gcv_object_t* stream_) {
      themselves and from the single-liners by Newline.
      But as many consecutive single-liners as possible are packed
      (separated by Space) into one line. */
-    while (1) {                 /* Run through Blocklist STACK_0: */
+    while (true) {                     /* Run through Blocklist STACK_0: */
       var object block = Car(STACK_0); /* next block */
       STACK_0 = Cdr(STACK_0);          /* shorten blocklist */
       if (consp(block)) {       /* Sub-Block with several lines */
@@ -6009,7 +6026,7 @@ local maygc void justify_end_linear (const gcv_object_t* stream_) {
    gesamt_einzeiler: {          /* a single-liner, altogether. */
       /* print blocks apartly, separated by Spaces, to the stream: */
       pushSTACK(nreverse(Symbol_value(S(prin_jblocks)))); /* (nreverse SYS::*PRIN-JBLOCKS*) */
-      while (1) {             /* peruse (non-empty) block list STACK_0: */
+      while (true) {                 /* peruse (non-empty) block list STACK_0: */
         var object block = Car(STACK_0); /* next block */
         /* (a single-liner, string without #\Newline) */
         STACK_0 = Cdr(STACK_0);      /* shorten block list */
@@ -6022,7 +6039,7 @@ local maygc void justify_end_linear (const gcv_object_t* stream_) {
    gesamt_mehrzeiler: {         /* a multi-liner, altogether. */
       /* print blocks apartly, separated by Newline, to the stream: */
       pushSTACK(nreverse(Symbol_value(S(prin_jblocks)))); /* (nreverse SYS::*PRIN-JBLOCKS*) */
-      while (1) {             /* peruse (non-empty) block list STACK_0: */
+      while (true) {                     /* peruse (non-empty) block list STACK_0: */
         var object block = Car(STACK_0); /* next block */
         STACK_0 = Cdr(STACK_0);          /* shorten block list */
         if (consp(block)) {              /* multi-line sub-block */
@@ -6440,8 +6457,10 @@ local maygc inline bool string_fit_line_p (const gcv_object_t *stream_,
   else if (vectorp(top)) {
     len = PPH_FORMAT_TAB(*stream_,top);
     while (mconsp(list) && !stringp(Car(list))) list = Cdr(list);
-    if (mconsp(list)) len += vector_length(Car(list)); /* string! */
-    else return false;          /* do not need to print this tab */
+    if (mconsp(list))
+      len += vector_length(Car(list)); /* string! */
+    else
+      return false;          /* do not need to print this tab */
   } else NOTREACHED;
   return posfixnum_to_V(avail) >= len + offset;
 }
@@ -6527,7 +6546,8 @@ local maygc void pr_enter_1 (const gcv_object_t* stream_, object obj,
         pprint_prefix(stream_,PPHELP_INDENTN(Car(STACK_0)));
         STACK_0 = Cdr(STACK_0);
         goto skip_NL;
-      } else STACK_0 = Cdr(STACK_0);
+      } else
+        STACK_0 = Cdr(STACK_0);
       /* Symbol_value(S(prin_lines)) = Fixnum_0; */
       do {                      /* NL & indent */
         { var object top = Car(STACK_0);
@@ -6904,7 +6924,8 @@ local void prin_object_dispatch_pretty (const gcv_object_t* stream_, object obj)
 local void maygc prin_object_dispatch (const gcv_object_t* stream_, object obj)
 { if (!nullpSv(print_pretty))
     prin_object_dispatch_pretty(stream_,obj);
-  else prin_object_dispatch_low(stream_,obj);
+  else
+    prin_object_dispatch_low(stream_,obj);
 }
 
 /* ------------- PRINT-Routines for various data-types -------------------- */
@@ -7066,7 +7087,7 @@ local maygc void pr_symbol_part (const gcv_object_t* stream_, object string,
       /* its syntaxcode shall be Constituent: */
       if (!(syntax_table_get(syntax_table,c) == syntax_constituent))
         goto surround;          /* no -> must use |...| */
-      while (1) {
+      while (true) {
         if (attribute_of(c) == a_pack_m) /* Attributcode Package-Marker ? */
           goto surround;                 /* yes -> must use |...| */
         if (!case_sensitive)
@@ -7255,7 +7276,7 @@ local maygc void pr_sstring_ab (const gcv_object_t* stream_, object string,
       #else  /* the same stuff, a little optimized */
       SstringDispatch(string,X, {
         var uintL index0 = index;
-        while (1) { /* search the next #\Linefeed or #\Return or #\" or #\\ : */
+        while (true) { /* search the next #\Linefeed or #\Return or #\" or #\\ : */
           string = STACK_0;
           while (len > 0) {
             var chart c = as_chart(((SstringX)TheVarobject(string))->data[index]);
@@ -7301,7 +7322,7 @@ local maygc void pr_sstring_ab (const gcv_object_t* stream_, object string,
         #else  /* the same stuff, a little optimized */
         SstringDispatch(string,X, {
           var uintL index0 = index;
-          while (1) {           /* search the next #\" or #\\ : */
+          while (true) {           /* search the next #\" or #\\ : */
             string = STACK_0;
             while (len > 0) {
               var chart c = as_chart(((SstringX)TheVarobject(string))->data[index]);
@@ -7447,7 +7468,7 @@ local maygc void pr_cons (const gcv_object_t* stream_, object list) {
     CHECK_LENGTH_LIMIT(length_limit==0,goto end_of_list);
     /* test for attaining of *PRINT-LINES* : */
     CHECK_LINES_LIMIT(goto end_of_list);
-    while (1) {
+    while (true) {
       /* print the CAR from here */
       list = *list_; *list_ = Cdr(list); /* shorten list */
       JUSTIFY_LAST(nullp(*list_));
@@ -7642,6 +7663,7 @@ local maygc void pr_real_number (const gcv_object_t* stream_, object number) {
             write_ascii_char(stream_,'.');
             return;
           }
+          FALLTHROUGH;
         default: {              /* print base in #nR-notation: */
           write_ascii_char(stream_,'#');
           pr_uint(stream_,base);
@@ -7713,9 +7735,10 @@ local maygc void pr_number (const gcv_object_t* stream_, object number) {
  < stream: stream
  can trigger GC */
 local maygc void pr_record_ab_00 (const gcv_object_t* stream_, object obj);
-local maygc void pr_unreadably_with_prefix
-(const gcv_object_t* stream_, object obj,
- gcv_object_t *string_, pr_routine_t printer, gcv_object_t *prefix_) {
+local maygc void pr_unreadably_with_prefix (const gcv_object_t* stream_, object obj,
+                                            gcv_object_t *string_,
+                                            pr_routine_t printer,
+                                            gcv_object_t *prefix_) {
   LEVEL_CHECK;
   pushSTACK(obj);                    /* save object */
   var gcv_object_t* obj_ = &STACK_0; /* and memorize, where it is */
@@ -7920,11 +7943,11 @@ local maygc void pr_kvtable (const gcv_object_t* stream_, gcv_object_t* kvt_,
                              uintL index, uintL count) {
   var uintL length = 0;
   var uintL length_limit = get_print_length(); /* *PRINT-LENGTH*-limit */
-  while (1) {
+  while (true) {
     length++;            /* increase previous length */
     /* search for next to be printed Key-Value-Pair: */
     var object kvt = *kvt_;
-    while (1) {
+    while (true) {
       if (index==0)             /* finished kvtable? */
         goto kvt_finish;
       index -= 3;               /* decrease index */
@@ -8194,7 +8217,7 @@ local maygc void pr_array (const gcv_object_t* stream_, object obj) {
         switch (atype) {
           case Atype_NIL: locals.pr_one_elt = NULL; break;
           case Atype_T: readable = false; /* automatically rereadable */
-            /*FALLTHROUGH*/
+            FALLTHROUGH;
           default: locals.pr_one_elt = &pr_array_elt_simple;
         }
       routine_ok:
@@ -8278,7 +8301,8 @@ local maygc void pr_instance (const gcv_object_t* stream_, object obj) {
       pr_sharp_dot(stream_,value1);
       return;
     }
-  } else obj = popSTACK();
+  } else
+    obj = popSTACK();
   LEVEL_CHECK;
   /* execute (CLOS:PRINT-OBJECT obj stream) : */
   var uintC count = pr_external_1(*stream_); /* instantiate bindings */
@@ -9254,7 +9278,7 @@ local maygc void pr_orecord (const gcv_object_t* stream_, object obj) {
               break;
           if (i1 < wl_length) {
             pushSTACK(TheWeakList(*wl_)->wl_elements[i1]);
-            while (1) {
+            while (true) {
               var uintL i2;
               for (i2 = i1+1; i2 < wl_length; i2++)
                 if (!eq(TheWeakList(*wl_)->wl_elements[i2],unbound))
@@ -9321,7 +9345,7 @@ local maygc void pr_orecord (const gcv_object_t* stream_, object obj) {
           if (i1 < wal_length) {
             pushSTACK(TheWeakAlist(*wal_)->wal_data[2*i1+0]);
             pushSTACK(TheWeakAlist(*wal_)->wal_data[2*i1+1]);
-            while (1) {
+            while (true) {
               var uintL i2;
               for (i2 = i1+1; i2 < wal_length; i2++)
                 if (!eq(TheWeakAlist(*wal_)->wal_data[2*i2+0],unbound))
@@ -9486,7 +9510,7 @@ local maygc void pr_orecord (const gcv_object_t* stream_, object obj) {
       CHECK_PRINT_READABLY(obj);
       write_sstring_case(stream_,O(printstring_internal_weak_hashed_alist));
       break;
-#ifdef MULTITHREAD
+    #ifdef MULTITHREAD
     case Rectype_Thread:
       CHECK_PRINT_READABLY(obj);
       pr_unreadably_with_prefix(stream_,TheThread(obj)->xth_name,
@@ -9506,7 +9530,7 @@ local maygc void pr_orecord (const gcv_object_t* stream_, object obj) {
       pr_unreadably(stream_,TheExemption(obj)->xco_name,
                     &O(printstring_exemption),prin_object);
       break;
-#endif
+    #endif
     default:
       pushSTACK(S(print));
       error(serious_condition,
@@ -9827,11 +9851,15 @@ local maygc void pr_stream (const gcv_object_t* stream_, object obj) {
     var bool input_p = (TheStream(*obj_)->strmflags & strmflags_rd_B) != 0;
     var bool output_p = (TheStream(*obj_)->strmflags & strmflags_wr_B) != 0;
     if (input_p) {
-      if (output_p) write_sstring_case(stream_,O(printstring_io));
-      else write_sstring_case(stream_,O(printstring_input));
+      if (output_p)
+        write_sstring_case(stream_,O(printstring_io));
+      else
+        write_sstring_case(stream_,O(printstring_input));
     } else {
-      if (output_p) write_sstring_case(stream_,O(printstring_output));
-      else write_sstring_case(stream_,O(printstring_invalid));
+      if (output_p)
+        write_sstring_case(stream_,O(printstring_output));
+      else
+        write_sstring_case(stream_,O(printstring_invalid));
     }
   }
   /* if a channel or socket stream, print "BUFFERED " or "UNBUFFERED ": */
@@ -9957,7 +9985,7 @@ local maygc void pr_stream (const gcv_object_t* stream_, object obj) {
    #ifdef SOCKET_STREAMS
     case strmtype_twoway_socket:
       *obj_ = TheStream(*obj_)->strm_twoway_socket_input;
-      /*FALLTHROUGH*/
+      FALLTHROUGH;
     case strmtype_socket: {     /* Socket-Stream */
       JUSTIFY_SPACE;
       JUSTIFY_LAST(false);
@@ -10122,11 +10150,11 @@ LISPFUN(pprint_newline,seclass_default,1,1,norest,nokey,0,NIL) {
         if (nullpSv(prin_miserp)) /* miser style */
           break;
         STACK_1 = S(Klinear);
-      } /*FALLTHROUGH*/
+      } FALLTHROUGH;
       case PPRINT_NEWLINE_LINEAR: {
         if (eq(TheStream(STACK_0)->strm_pphelp_modus,mehrzeiler))
           goto mandatory;
-      } /*FALLTHROUGH*/
+      } FALLTHROUGH;
       case PPRINT_NEWLINE_FILL: {
         cons_ssstring(&STACK_0,STACK_1);
       } break;
@@ -10198,7 +10226,7 @@ LISPFUN(format_tabulate,seclass_default,3,2,norest,nokey,0,NIL) {
     PPH_TAB_COL_I(tab_spec) = STACK_0;
     var object list = TheStream(STACK_4)->strm_pphelp_strings;
     pushSTACK(tab_spec);
-    if (stringp(Car(list)) && (0==vector_length(Car(list)))) {
+    if (stringp(Car(list)) && (vector_length(Car(list)) == 0)) {
       /* last string is empty -- keep it! */
       var object new_cons = allocate_cons();
       Car(new_cons) = popSTACK();

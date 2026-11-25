@@ -1,8 +1,10 @@
-# pid_t.m4 serial 4
-dnl Copyright (C) 2020-2021 Free Software Foundation, Inc.
+# pid_t.m4
+# serial 5
+dnl Copyright (C) 2020-2026 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
+dnl This file is offered as-is, without any warranty.
 
 # The following implementation works around a problem in autoconf <= 2.69.
 m4_version_prereq([2.70], [], [
@@ -15,9 +17,9 @@ AC_DEFUN([AC_TYPE_PID_T],
     [dnl On 64-bit native Windows, define it to the equivalent of 'intptr_t'
      dnl (= 'long long' = '__int64'), because that is the return type
      dnl of the _spawnv* functions
-     dnl <https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/spawnvp-wspawnvp>
+     dnl <https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/spawnvp-wspawnvp>
      dnl and the argument type of the _cwait function
-     dnl <https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/cwait>.
+     dnl <https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/cwait>.
      dnl Otherwise (on 32-bit Windows and on old Unix platforms), define it
      dnl to 'int'.
      AC_COMPILE_IFELSE(

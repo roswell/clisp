@@ -30,7 +30,9 @@ local void init_ctype() {
     setlocale(LC_CTYPE,locale);
 
   /* Also set the other locale facets that may be used by i18n.d. */
- #ifdef LC_MESSAGES
+  /* Ignore LC_MESSAGES if it is defined by gnulib's <locale.h> but
+     setlocale is not overridden. */
+ #if defined(LC_MESSAGES) && !(LC_MESSAGES==1729 && !defined(setlocale))
   setlocale(LC_MESSAGES,"");
  #endif
   setlocale(LC_CTYPE,"");

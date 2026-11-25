@@ -606,9 +606,8 @@ NIL
 
 (let* ((n (min (1- lambda-parameters-limit)
                (case (read-from-string (software-type))
-                 ((g++ i686-pc-mingw32-g++) 256)
-                 (i686-pc-mingw32-gcc 512)
-                 (t 1024))))
+                 ((g++ clang++ i686-pc-mingw32-g++) 256)
+                 (t #+win32 512 #-win32 1024))))
        (vars (loop repeat n collect (gensym))))
   (eval
    `(= ,n (flet ((%f ,vars (+ ,@vars)))
@@ -1210,6 +1209,7 @@ BOOLE-ORC2
       #+CLISP (equal s "549755813887")
       #+CLISP (equal s "1099511627775")
       #+CLISP (equal s "2199023255551")
+      #+CLISP (equal s "4398046511103")
       #+CLISP (equal s "281474976710655")
       #+CLISP (equal s "4503599627370495")
       #+CLISP (equal s "36028797018963967")
@@ -1232,6 +1232,7 @@ T
       #+CLISP (equal s "-549755813888")
       #+CLISP (equal s "-1099511627776")
       #+CLISP (equal s "-2199023255552")
+      #+CLISP (equal s "-4398046511104")
       #+CLISP (equal s "-281474976710656")
       #+CLISP (equal s "-4503599627370496")
       #+CLISP (equal s "-36028797018963968")

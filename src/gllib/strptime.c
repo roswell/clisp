@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2004-2005, 2007, 2009-2021 Free Software Foundation,
+/* Copyright (C) 2002, 2004-2005, 2007, 2009-2026 Free Software Foundation,
    Inc.
    This file is part of the GNU C Library.
 
@@ -29,9 +29,9 @@
 #include <limits.h>
 #include <string.h>
 #include <strings.h>
-#include <stdbool.h>
 
 #ifdef _LIBC
+# include <stdbool.h>
 # include "../locale/localeinfo.h"
 #endif
 
@@ -170,17 +170,13 @@ static const unsigned short int __mon_yday[2][13] =
 # undef _NL_CURRENT_WORD
 # define _NL_CURRENT_WORD(category, item) \
   (current->values[_NL_ITEM_INDEX (item)].word)
-# define LOCALE_PARAM , locale
+# define LOCALE_PARAM , __locale_t locale
 # define LOCALE_ARG , locale
-# define LOCALE_PARAM_PROTO , __locale_t locale
-# define LOCALE_PARAM_DECL __locale_t locale;
 # define HELPER_LOCALE_ARG , current
 # define ISSPACE(Ch) __isspace_l (Ch, locale)
 #else
 # define LOCALE_PARAM
 # define LOCALE_ARG
-# define LOCALE_PARAM_DECL
-# define LOCALE_PARAM_PROTO
 # define HELPER_LOCALE_ARG
 # define ISSPACE(Ch) isspace (Ch)
 #endif
@@ -229,19 +225,14 @@ internal_function
 #else
 static char *
 #endif
-__strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
-     const char *rp;
-     const char *fmt;
-     struct tm *tm;
-     enum ptime_locale_status *decided;
-     int era_cnt;
-     LOCALE_PARAM_DECL
+__strptime_internal (const char *rp, const char *fmt, struct tm *tm,
+                     enum ptime_locale_status *decided,
+                     int era_cnt LOCALE_PARAM)
 {
 #ifdef _LIBC
   struct locale_data *const current = locale->__locales[LC_TIME];
 #endif
 
-  int cnt;
   size_t val;
   int have_I, is_pm;
   int century, want_century;
@@ -304,82 +295,88 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
         case 'a':
         case 'A':
           /* Match day of week.  */
-          for (cnt = 0; cnt < 7; ++cnt)
-            {
+          {
+            int cnt;
+            for (cnt = 0; cnt < 7; ++cnt)
+              {
 #ifdef _NL_CURRENT
-              if (*decided !=raw)
-                {
-                  if (match_string (_NL_CURRENT (LC_TIME, DAY_1 + cnt), rp))
-                    {
-                      if (*decided == not
-                          && strcmp (_NL_CURRENT (LC_TIME, DAY_1 + cnt),
-                                     weekday_name[cnt]))
-                        *decided = loc;
-                      break;
-                    }
-                  if (match_string (_NL_CURRENT (LC_TIME, ABDAY_1 + cnt), rp))
-                    {
-                      if (*decided == not
-                          && strcmp (_NL_CURRENT (LC_TIME, ABDAY_1 + cnt),
-                                     ab_weekday_name[cnt]))
-                        *decided = loc;
-                      break;
-                    }
-                }
+                if (*decided !=raw)
+                  {
+                    if (match_string (_NL_CURRENT (LC_TIME, DAY_1 + cnt), rp))
+                      {
+                        if (*decided == not
+                            && strcmp (_NL_CURRENT (LC_TIME, DAY_1 + cnt),
+                                       weekday_name[cnt]))
+                          *decided = loc;
+                        break;
+                      }
+                    if (match_string (_NL_CURRENT (LC_TIME, ABDAY_1 + cnt), rp))
+                      {
+                        if (*decided == not
+                            && strcmp (_NL_CURRENT (LC_TIME, ABDAY_1 + cnt),
+                                       ab_weekday_name[cnt]))
+                          *decided = loc;
+                        break;
+                      }
+                  }
 #endif
-              if (*decided != loc
-                  && (match_string (weekday_name[cnt], rp)
-                      || match_string (ab_weekday_name[cnt], rp)))
-                {
-                  *decided = raw;
-                  break;
-                }
-            }
-          if (cnt == 7)
-            /* Does not match a weekday name.  */
-            return NULL;
-          tm->tm_wday = cnt;
-          have_wday = 1;
+                if (*decided != loc
+                    && (match_string (weekday_name[cnt], rp)
+                        || match_string (ab_weekday_name[cnt], rp)))
+                  {
+                    *decided = raw;
+                    break;
+                  }
+              }
+            if (cnt == 7)
+              /* Does not match a weekday name.  */
+              return NULL;
+            tm->tm_wday = cnt;
+            have_wday = 1;
+          }
           break;
         case 'b':
         case 'B':
         case 'h':
           /* Match month name.  */
-          for (cnt = 0; cnt < 12; ++cnt)
-            {
+          {
+            int cnt;
+            for (cnt = 0; cnt < 12; ++cnt)
+              {
 #ifdef _NL_CURRENT
-              if (*decided !=raw)
-                {
-                  if (match_string (_NL_CURRENT (LC_TIME, MON_1 + cnt), rp))
-                    {
-                      if (*decided == not
-                          && strcmp (_NL_CURRENT (LC_TIME, MON_1 + cnt),
-                                     month_name[cnt]))
-                        *decided = loc;
-                      break;
-                    }
-                  if (match_string (_NL_CURRENT (LC_TIME, ABMON_1 + cnt), rp))
-                    {
-                      if (*decided == not
-                          && strcmp (_NL_CURRENT (LC_TIME, ABMON_1 + cnt),
-                                     ab_month_name[cnt]))
-                        *decided = loc;
-                      break;
-                    }
-                }
+                if (*decided !=raw)
+                  {
+                    if (match_string (_NL_CURRENT (LC_TIME, MON_1 + cnt), rp))
+                      {
+                        if (*decided == not
+                            && strcmp (_NL_CURRENT (LC_TIME, MON_1 + cnt),
+                                       month_name[cnt]))
+                          *decided = loc;
+                        break;
+                      }
+                    if (match_string (_NL_CURRENT (LC_TIME, ABMON_1 + cnt), rp))
+                      {
+                        if (*decided == not
+                            && strcmp (_NL_CURRENT (LC_TIME, ABMON_1 + cnt),
+                                       ab_month_name[cnt]))
+                          *decided = loc;
+                        break;
+                      }
+                  }
 #endif
-              if (match_string (month_name[cnt], rp)
-                  || match_string (ab_month_name[cnt], rp))
-                {
-                  *decided = raw;
-                  break;
-                }
-            }
-          if (cnt == 12)
-            /* Does not match a month name.  */
-            return NULL;
-          tm->tm_mon = cnt;
-          want_xday = 1;
+                if (match_string (month_name[cnt], rp)
+                    || match_string (ab_month_name[cnt], rp))
+                  {
+                    *decided = raw;
+                    break;
+                  }
+              }
+            if (cnt == 12)
+              /* Does not match a month name.  */
+              return NULL;
+            tm->tm_mon = cnt;
+            want_xday = 1;
+          }
           break;
         case 'c':
           /* Match locale's date and time format.  */
@@ -684,7 +681,7 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
              specify hours.  If fours digits are used, minutes are
              also specified.  */
           {
-            bool neg _GL_UNUSED;
+            _GL_UNUSED bool neg;
             int n;
 
             val = 0;
@@ -713,7 +710,7 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
               }
             if (val > 1200)
               return NULL;
-#if defined _LIBC || HAVE_TM_GMTOFF
+#if defined _LIBC || HAVE_STRUCT_TM_TM_GMTOFF
             tm->tm_gmtoff = (val * 3600) / 100;
             if (neg)
               tm->tm_gmtoff = -tm->tm_gmtoff;
@@ -1102,23 +1099,23 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
 
   if ((have_uweek || have_wweek) && have_wday)
     {
-      int save_wday = tm->tm_wday;
-      int save_mday = tm->tm_mday;
-      int save_mon = tm->tm_mon;
+      int saved_wday = tm->tm_wday;
+      int saved_mday = tm->tm_mday;
+      int saved_mon = tm->tm_mon;
       int w_offset = have_uweek ? 0 : 1;
 
       tm->tm_mday = 1;
       tm->tm_mon = 0;
       day_of_the_week (tm);
       if (have_mday)
-        tm->tm_mday = save_mday;
+        tm->tm_mday = saved_mday;
       if (have_mon)
-        tm->tm_mon = save_mon;
+        tm->tm_mon = saved_mon;
 
       if (!have_yday)
         tm->tm_yday = ((7 - (tm->tm_wday - w_offset)) % 7
                        + (week_no - 1) *7
-                       + save_wday - w_offset);
+                       + saved_wday - w_offset);
 
       if (!have_mday || !have_mon)
         {
@@ -1134,7 +1131,7 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
                  - __mon_yday[__isleap(1900 + tm->tm_year)][t_mon - 1] + 1);
         }
 
-      tm->tm_wday = save_wday;
+      tm->tm_wday = saved_wday;
     }
 
   return (char *) rp;
@@ -1142,11 +1139,8 @@ __strptime_internal (rp, fmt, tm, decided, era_cnt LOCALE_PARAM)
 
 
 char *
-strptime (buf, format, tm LOCALE_PARAM)
-     const char *restrict buf;
-     const char *restrict format;
-     struct tm *restrict tm;
-     LOCALE_PARAM_DECL
+strptime (const char *restrict buf, const char *restrict format,
+          struct tm *restrict tm LOCALE_PARAM)
 {
   enum ptime_locale_status decided;
 

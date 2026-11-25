@@ -26,8 +26,6 @@ Syntax eines Inputfile:
     -------------------<-----------------------------------------
 */
 
-#include <config.h>
-
 #include <stdlib.h>
 
 #include <stdio.h>
@@ -98,7 +96,7 @@ int main (int argc, char* argv[]) {
     { fputc('/',outfile); fputc('*',outfile); fputc(' ',outfile); }
 #define fput_endcomment(outfile)                                        \
     { fputc(' ',outfile); fputc('*',outfile); fputc('/',outfile); }
-  { register int c;
+  { int c;
     L1:  /* innerhalb einer Zeile, vor Kommentar */
          c = fgetc(infile) ;
     L1a: if (c==EOF){ goto L3; }
@@ -128,13 +126,13 @@ int main (int argc, char* argv[]) {
          if (!(c=='*')) goto L1;
     L5:  /* Inside '／＊' comment */
          c = fgetc(infile) ;
-    L5a: if (c==EOF){ goto L3; } /* do not fix programmer errors */
+         if (c==EOF){ goto L3; } /* do not fix programmer errors */
          fputc(c,outfile);
          if (c=='*') goto L6;
          goto L5;
     L6:  /* after asterisk in '／＊' comment */
          c = fgetc(infile) ;
-    L6a: if (c==EOF){ goto L3; }
+         if (c==EOF){ goto L3; }
          fputc(c,outfile);
          if (c=='/') goto L1;
          goto L5;

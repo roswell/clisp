@@ -39,6 +39,8 @@
 /* sort(v,n); sorts the array v[0]..v[n-1] in ascending order. */
 local void SORT(SORTID,sort) (SORT_ELEMENT* v, uintL n)
 {
+  if (n<=1) /* nothing to do? */
+    return;
   var SORT_ELEMENT* w = &v[-1];
   /* w[1]..w[n] point to the same elements as v[0]..v[n-1] .
      We collect the numbers 1,...,n to a balanced binary subtree,
@@ -51,9 +53,9 @@ local void SORT(SORTID,sort) (SORT_ELEMENT* v, uintL n)
         Let 0<r<=s and w[r+1]..w[s] already sorted.
         Sort w[r]..w[s].
         Time cost: max. O(log(s)). */
- #define adjust(r,s)                                                     \
+ #define adjust(r,s)                                                    \
   { var uintL i = r;                                                    \
-    while (1) { /* Put w[i] into the subtree below i */                 \
+    while (true) { /* Put w[i] into the subtree below i */              \
       var uintL j = 2*i; /* a child of i */                             \
       if (j > s) /* 2*i and 2*i+1 not existent anymore -> ready */      \
         break;                                                          \
@@ -68,8 +70,6 @@ local void SORT(SORTID,sort) (SORT_ELEMENT* v, uintL n)
       i = j;                                                            \
     }                                                                   \
   }
-  if (n<=1) /* nothing to do? */
-    return;
   { /* Because of 2*(floor(n/2)+1) > n,
        w[floor(n/2)+1]..w[n] is already sorted. */
     var uintL r;

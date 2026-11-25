@@ -325,7 +325,7 @@
       {
         var uintL q_D = q%intDsize;
         if (!(q_D==0)) {
-          newMSDptr[0] &= (uintD)((1L<<q_D)-1); # intDsize-q_D Bits löschen
+          newMSDptr[0] &= (uintD)((1UL<<q_D)-1); # intDsize-q_D Bits löschen
         }
       }
       # Jetzt enthält die UDS newMSDptr/len/.. die extrahierten Bits.
