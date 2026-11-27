@@ -1,5 +1,5 @@
 dnl -*- Autoconf -*-
-dnl Copyright (C) 1993-2008, 2017, 2021 Free Software Foundation, Inc.
+dnl Copyright (C) 1993-2008, 2017, 2021, 2026 Free Software Foundation, Inc.
 dnl This file is free software, distributed under the terms of the GNU
 dnl General Public License.  As a special exception to the GNU General
 dnl Public License, this file may be distributed as part of a program
@@ -10,6 +10,7 @@ dnl From Bruno Haible, Marcus Daniels, Sam Steingold.
 
 AC_PREREQ([2.13])
 
+dnl Find how to make hard links (to files, not directories), if possible.
 AC_DEFUN([CL_PROG_LN],
 [
   AC_CACHE_CHECK([how to make hard links], [cl_cv_prog_LN],
@@ -26,8 +27,14 @@ AC_DEFUN([CL_PROG_LN],
   AC_SUBST([LN])
 ])
 
+dnl Find how to make symbolic links (to files, not directories), if possible.
 AC_DEFUN([CL_PROG_LN_S],
 [
+  dnl libtool.m4 requires AC_PROG_LN_S, which also sets LN_S.
+  dnl In order to make the result customizable, require AC_PROG_LN_S
+  dnl and override its result.
+  AC_REQUIRE([AC_PROG_LN_S])
+
   AC_REQUIRE([CL_PROG_LN])
   dnl Make a symlink if possible; otherwise try a hard link. On filesystems
   dnl which support neither symlink nor hard link, use a plain copy.
@@ -40,11 +47,14 @@ AC_DEFUN([CL_PROG_LN_S],
      fi
      rm -f conftestdata
     ])
-  if test $cl_cv_prog_LN_S_works = yes; then
-    LN_S="ln -s"
-  else
-    LN_S="$cl_cv_prog_LN"
-  fi
+  AC_CACHE_CHECK([how to make symbolic links], [cl_cv_prog_LN_S],
+    [if test $cl_cv_prog_LN_S_works = yes; then
+       cl_cv_prog_LN_S="ln -s"
+     else
+       cl_cv_prog_LN_S="$cl_cv_prog_LN"
+     fi
+    ])
+  LN_S="$cl_cv_prog_LN_S"
   AC_SUBST([LN_S])
 ])
 

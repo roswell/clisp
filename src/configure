@@ -2864,8 +2864,8 @@ OBJDUMP
 DLLTOOL
 AS
 HLN
-LN_S
 LN
+LN_S
 RANLIB
 ARFLAGS
 AR
@@ -9648,6 +9648,17 @@ else
 printf '%s\n' "no" >&6; }
   SET_MAKE="MAKE=${MAKE-make}"
 fi
+  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
+printf %s "checking whether ln -s works... " >&6; }
+LN_S=$as_ln_s
+if test "$LN_S" = "ln -s"; then
+  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf '%s\n' "yes" >&6; }
+else
+  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: no, using $LN_S" >&5
+printf '%s\n' "no, using $LN_S" >&6; }
+fi
+
 
   { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking how to make hard links" >&5
 printf %s "checking how to make hard links... " >&6; }
@@ -9673,6 +9684,8 @@ printf '%s\n' "$cl_cv_prog_LN" >&6; }
 
 
 
+
+
       { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
 printf %s "checking whether ln -s works... " >&6; }
 if test ${cl_cv_prog_LN_S_works+y}
@@ -9691,11 +9704,23 @@ esac
 fi
 { printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: $cl_cv_prog_LN_S_works" >&5
 printf '%s\n' "$cl_cv_prog_LN_S_works" >&6; }
-  if test $cl_cv_prog_LN_S_works = yes; then
-    LN_S="ln -s"
-  else
-    LN_S="$cl_cv_prog_LN"
-  fi
+  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking how to make symbolic links" >&5
+printf %s "checking how to make symbolic links... " >&6; }
+if test ${cl_cv_prog_LN_S+y}
+then :
+  printf %s "(cached) " >&6
+else case e in #(
+  e) if test $cl_cv_prog_LN_S_works = yes; then
+       cl_cv_prog_LN_S="ln -s"
+     else
+       cl_cv_prog_LN_S="$cl_cv_prog_LN"
+     fi
+     ;;
+esac
+fi
+{ printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: $cl_cv_prog_LN_S" >&5
+printf '%s\n' "$cl_cv_prog_LN_S" >&6; }
+  LN_S="$cl_cv_prog_LN_S"
 
 
 
@@ -10500,17 +10525,6 @@ esac
 fi
 { printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: $lt_cv_nm_interface" >&5
 printf '%s\n' "$lt_cv_nm_interface" >&6; }
-
-{ printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
-printf %s "checking whether ln -s works... " >&6; }
-LN_S=$as_ln_s
-if test "$LN_S" = "ln -s"; then
-  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf '%s\n' "yes" >&6; }
-else
-  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: result: no, using $LN_S" >&5
-printf '%s\n' "no, using $LN_S" >&6; }
-fi
 
 # find the maximum length of command line arguments
 { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking the maximum length of command line arguments" >&5
@@ -25961,8 +25975,8 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
         LIBS="$saved_LIBS"
         test $gl_pthread_api = yes && break
       done
-      echo "$as_me:25964: gl_pthread_api=$gl_pthread_api" >&5
-      echo "$as_me:25965: LIBPTHREAD=$LIBPTHREAD" >&5
+      echo "$as_me:25978: gl_pthread_api=$gl_pthread_api" >&5
+      echo "$as_me:25979: LIBPTHREAD=$LIBPTHREAD" >&5
 
       gl_pthread_in_glibc=no
       # On Linux with glibc >= 2.34, libc contains the fully functional
@@ -25991,7 +26005,7 @@ rm -rf conftest*
   *) :
      ;;
 esac
-      echo "$as_me:25994: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
+      echo "$as_me:26008: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
 
       # Test for libpthread by looking for pthread_kill.
       if test $gl_pthread_api = yes && test -z "$LIBPTHREAD"
@@ -26243,7 +26257,7 @@ fi
 fi
 
 fi
-      echo "$as_me:26246: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
+      echo "$as_me:26260: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
 
 fi
     { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether POSIX threads API is available" >&5
@@ -34494,8 +34508,8 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
         LIBS="$saved_LIBS"
         test $gl_pthread_api = yes && break
       done
-      echo "$as_me:34497: gl_pthread_api=$gl_pthread_api" >&5
-      echo "$as_me:34498: LIBPTHREAD=$LIBPTHREAD" >&5
+      echo "$as_me:34511: gl_pthread_api=$gl_pthread_api" >&5
+      echo "$as_me:34512: LIBPTHREAD=$LIBPTHREAD" >&5
 
       gl_pthread_in_glibc=no
       # On Linux with glibc >= 2.34, libc contains the fully functional
@@ -34524,7 +34538,7 @@ rm -rf conftest*
   *) :
      ;;
 esac
-      echo "$as_me:34527: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
+      echo "$as_me:34541: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
 
       # Test for libpthread by looking for pthread_kill.
       if test $gl_pthread_api = yes && test -z "$LIBPTHREAD"
@@ -34776,7 +34790,7 @@ fi
 fi
 
 fi
-      echo "$as_me:34779: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
+      echo "$as_me:34793: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
 
 fi
     { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether POSIX threads API is available" >&5
@@ -35066,8 +35080,8 @@ rm -f core conftest.err conftest.$ac_objext conftest.beam \
         LIBS="$saved_LIBS"
         test $gl_pthread_api = yes && break
       done
-      echo "$as_me:35069: gl_pthread_api=$gl_pthread_api" >&5
-      echo "$as_me:35070: LIBPTHREAD=$LIBPTHREAD" >&5
+      echo "$as_me:35083: gl_pthread_api=$gl_pthread_api" >&5
+      echo "$as_me:35084: LIBPTHREAD=$LIBPTHREAD" >&5
 
       gl_pthread_in_glibc=no
       # On Linux with glibc >= 2.34, libc contains the fully functional
@@ -35096,7 +35110,7 @@ rm -rf conftest*
   *) :
      ;;
 esac
-      echo "$as_me:35099: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
+      echo "$as_me:35113: gl_pthread_in_glibc=$gl_pthread_in_glibc" >&5
 
       # Test for libpthread by looking for pthread_kill.
       if test $gl_pthread_api = yes && test -z "$LIBPTHREAD"
@@ -35348,7 +35362,7 @@ fi
 fi
 
 fi
-      echo "$as_me:35351: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
+      echo "$as_me:35365: LIBPMULTITHREAD=$LIBPMULTITHREAD" >&5
 
 fi
     { printf '%s\n' "$as_me:${as_lineno-$LINENO}: checking whether POSIX threads API is available" >&5

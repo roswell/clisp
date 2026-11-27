@@ -3355,6 +3355,7 @@ for f in clisp-link ; do
   echotab "    -e 's%@''host_os''@%${host_os}%' \\"
   echotab "    -e 's%@''build_os''@%${build_os}%' \\"
   echotab "    -e 's%@''OBJEXT''@%${OBJEXT}%' \\"
+  echotab "    -e 's%@''LN_S''@%${LN_S}%' \\"
   echotab "    -e 's%@with_dynamic_modules@%${with_dynamic_modules}%' \\"
   echotab "    -e 's%@createsharedlib@%$XCC_CREATESHARED_%' \\"
   echotab "    -e 's%@LEXE@%${LEXE}%' -e 's%@SHREXT@%${SHREXT}%' \\"
