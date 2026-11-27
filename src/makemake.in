@@ -3160,7 +3160,7 @@ if test -d "${SRCTOPDIR}ansi-tests"; then
   echotab "for d in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type d\`; do mkdir -p \$\$d; done"
   case "$SRCTOPDIR" in
     /*) echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type f -name '*.lsp'\`; do \$(LN_S) ${SRCTOPDIR}\$\$f \$\$f; done" ;;
-    *)  echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type f -name '*.lsp'\`; do d=\`echo \"\$\$f\" | sed -e 's,/[^/]*\$\$,,'\`; u=\`echo \"\$\$d\" | sed -e 's,[^/][^/]*,..,g'\`; \$(LN_S) \$\$u/${SRCTOPDIR}\$\$f \$\$f; done" ;;
+    *)  echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type f -name '*.lsp'\`; do d=\`echo \"\$\$f\" | sed -e 's,/[^/]*\$\$,,'\`; u=\`echo \"\$\$d\" | sed -e 's,[^/][^/]*,..,g'\`; b=\`echo \"\$\$f\" | sed -e 's,^.*/,,'\`; (cd \"\$\$d\" && \$(LN_S) \"\$\$u/${SRCTOPDIR}\$\$f\" \"\$\$b\"); done" ;;
   esac
   echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR}/sandbox -type f -name '*.txt'\`; do cp -p ${SRCTOPDIR}\$\$f \$\$f; done"
   echotab "cd ${ANSITESTSDIR} && \$(LN_S) ${PARENT_SRCTOPDIR}utils/clispload.lisp ."
