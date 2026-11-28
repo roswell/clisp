@@ -46,7 +46,7 @@ lncp_some () {
 lnscp () {
   # Make a link from $1 to $2. Try symbolic link, hard link, file copying.
   rm -f "$2"
-  ln -s "`normalize . $1`" "$2" 2>/dev/null || \
+  @LN_S@ "`normalize . $1`" "$2" 2>/dev/null || \
     ln "$1" "$2" 2>/dev/null || \
     cp -p "$1" "$2"
 }

@@ -3160,7 +3160,7 @@ if test -d "${SRCTOPDIR}ansi-tests"; then
   echotab "for d in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type d\`; do mkdir -p \$\$d; done"
   case "$SRCTOPDIR" in
     /*) echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type f -name '*.lsp'\`; do \$(LN_S) ${SRCTOPDIR}\$\$f \$\$f; done" ;;
-    *)  echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type f -name '*.lsp'\`; do d=\`echo \"\$\$f\" | sed -e 's,/[^/]*\$\$,,'\`; u=\`echo \"\$\$d\" | sed -e 's,[^/][^/]*,..,g'\`; \$(LN_S) \$\$u/${SRCTOPDIR}\$\$f \$\$f; done" ;;
+    *)  echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR} -type f -name '*.lsp'\`; do d=\`echo \"\$\$f\" | sed -e 's,/[^/]*\$\$,,'\`; u=\`echo \"\$\$d\" | sed -e 's,[^/][^/]*,..,g'\`; b=\`echo \"\$\$f\" | sed -e 's,^.*/,,'\`; (cd \"\$\$d\" && \$(LN_S) \"\$\$u/${SRCTOPDIR}\$\$f\" \"\$\$b\"); done" ;;
   esac
   echotab "for f in \`cd ${SRCTOPDIR} && find ${ANSITESTSDIR}/sandbox -type f -name '*.txt'\`; do cp -p ${SRCTOPDIR}\$\$f \$\$f; done"
   echotab "cd ${ANSITESTSDIR} && \$(LN_S) ${PARENT_SRCTOPDIR}utils/clispload.lisp ."
@@ -3355,6 +3355,7 @@ for f in clisp-link ; do
   echotab "    -e 's%@''host_os''@%${host_os}%' \\"
   echotab "    -e 's%@''build_os''@%${build_os}%' \\"
   echotab "    -e 's%@''OBJEXT''@%${OBJEXT}%' \\"
+  echotab "    -e 's%@''LN_S''@%${LN_S}%' \\"
   echotab "    -e 's%@with_dynamic_modules@%${with_dynamic_modules}%' \\"
   echotab "    -e 's%@createsharedlib@%$XCC_CREATESHARED_%' \\"
   echotab "    -e 's%@LEXE@%${LEXE}%' -e 's%@SHREXT@%${SHREXT}%' \\"
